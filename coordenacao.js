@@ -272,14 +272,18 @@ window.salvarPreCadastro = async function() {
 }
 
 window.carregarRelatorioGeral = async function() {
-    const filtroData = document.getElementById('filtro-data');
+    // CORREÇÃO: Mudado de 'filtro-data' para 'filtroData' para bater com o HTML
+    const filtroData = document.getElementById('filtroData');
     if (!filtroData) return;
     
     const dataFiltro = filtroData.value;
-    const salaFiltro = document.getElementById('filtro-sala').value;
-    const tabela = document.getElementById('corpo-tabela');
-    const avisoVazio = document.getElementById('aviso-vazio');
+    // CORREÇÃO: Mudado de 'filtro-sala' para 'filtroSala' para bater com o HTML
+    const salaFiltro = document.getElementById('filtroSala')?.value || ''; 
+    // CORREÇÃO: Verifique se o ID da tabela é 'corpo-tabela' ou 'listaAgendamentos'
+    const tabela = document.getElementById('corpo-tabela') || document.getElementById('listaAgendamentos');
+    const avisoVazio = document.getElementById('aviso-vazio') || document.getElementById('sem-dados');
 
+    if (!tabela) return;
     tabela.innerHTML = '';
     dadosAtuaisParaExportar = [];
     if (!dataFiltro) return;
@@ -305,14 +309,18 @@ window.carregarRelatorioGeral = async function() {
         return;
     }
 
-    document.getElementById('qtd-total').innerText = agendamentos.length;
+    const qtdTotalElemento = document.getElementById('qtd-total');
+    if (qtdTotalElemento) {
+        qtdTotalElemento.innerText = agendamentos.length;
+    }
+    
     dadosAtuaisParaExportar = agendamentos;
 
     if (agendamentos.length === 0) {
-        avisoVazio.classList.remove('hidden');
+        if (avisoVazio) avisoVazio.classList.remove('hidden');
         return;
     } else {
-        avisoVazio.classList.add('hidden');
+        if (avisoVazio) avisoVazio.classList.add('hidden');
     }
 
     agendamentos.forEach(item => {
@@ -334,7 +342,6 @@ window.carregarRelatorioGeral = async function() {
         tabela.appendChild(tr);
     });
 }
-
 window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula) {
     if (typeof Swal === 'undefined') {
         const c = confirm(`Deseja cancelar o agendamento de: ${nomeSala}?`);
