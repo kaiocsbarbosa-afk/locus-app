@@ -61,25 +61,31 @@
         </button>
     </div>
 
-    <div class="filtros-bar">
-        <div class="filtros-lado-esquerdo">
-            <div class="form-group">
-                <label>Filtrar por Data:</label>
-                <input type="date" id="filtro-data" onchange="carregarRelatorioGeral()">
-            </div>
-
-            <div class="form-group">
-    <label>Filtrar por Sala:</label>
-    <select id="filtro-sala" onchange="carregarRelatorioGeral()">
-        <option value="">Todas as salas</option>
-        </select>
-</div>
+   <div class="tabela-larga">
+    
+    <div class="filtros-container">
+        <div class="filtro-item">
+            <label>Filtrar por Data:</label>
+            <input type="date" id="filtroData">
+        </div>
         
-        <button class="btn-exportar" onclick="exportarParaPlanilha()">
-            📊 Exportar p/ Excel/Planilhas
-        </button>
+        <div class="filtro-item">
+            <label>Filtrar por Sala:</label>
+            <select id="filtroSala">
+                <option value="">Todas as salas</option>
+            </select>
+        </div>
+
+        <button id="btnExportar" class="btn-exportar">📊 Exportar p/ Excel/Planilhas</button>
     </div>
 
+    <div class="table-responsive">
+        <table>
+            ...
+        </table>
+    </div>
+
+</div>
     <div class="tabela-container">
         <table>
             <thead>
