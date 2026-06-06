@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Locus - Painel da Coordenação</title>
+    
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="coordenaçao.css">
+</head>
+<body>
+
+<div id="secao-login-coord" class="login-coord-box">
+    <h2>Acesso Restrito</h2>
+    <p style="color: var(--texto-secundario); font-size: 0.9rem;">Autenticação via Supabase</p>
+    <input type="password" id="senha-coord" placeholder="Digite a senha de administrador...">
+    <button onclick="entrarPainel()">Acessar Painel</button>
+</div>
+
+<div id="secao-dashboard" class="dashboard hidden">
+    <div class="header-painel">
+        <div>
+            <h2>Painel da Coordenação</h2>
+            <small style="color: var(--texto-secundario);">Gerenciamento e auditoria de salas em tempo real</small>
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <span style="font-weight: 600; color: var(--cor-primaria);">🏫 Modo Administrador</span>
+            <button class="btn-sair" onclick="sairPainel()">Sair</button>
+        </div>
+    </div>
+
+    <div class="resumo-cards">
+        <div class="card-mini">
+            <span id="qtd-total">0</span>
+            <label>Salas Reservadas no Filtro Atual</label>
+        </div>
+    </div>
+
+    <div class="card-precadastro">
+        <h3>📋 Pré-cadastrar Professor (Autorizar Acesso)</h3>
+        <p class="card-subtitulo">O nome e a matéria vão para a lista de liberação. O professor criará o PIN dele depois.</p>
+        
+        <div class="form-group">
+            <label for="coord-nome-professor">Nome Completo do Professor:</label>
+            <input type="text" id="coord-nome-professor" placeholder="Ex: Professor Carlos Silva">
+        </div>
+
+        <div class="form-group">
+    <label for="coord-disciplina-professor">Selecione a Disciplina:</label>
+    <select id="coord-disciplina-professor">
+        <option value="">Selecione a disciplina...</option>
+        </select>
+</div>
+
+        <button type="button" class="btn-liberar-cadastro" onclick="salvarPreCadastro()">
+            ➕ Liberar Cadastro
+        </button>
+    </div>
+
+    <div class="filtros-bar">
+        <div class="filtros-lado-esquerdo">
+            <div class="form-group">
+                <label>Filtrar por Data:</label>
+                <input type="date" id="filtro-data" onchange="carregarRelatorioGeral()">
+            </div>
+
+            <div class="form-group">
+    <label>Filtrar por Sala:</label>
+    <select id="filtro-sala" onchange="carregarRelatorioGeral()">
+        <option value="">Todas as salas</option>
+        </select>
+</div>
+        
+        <button class="btn-exportar" onclick="exportarParaPlanilha()">
+            📊 Exportar p/ Excel/Planilhas
+        </button>
+    </div>
+
+    <div class="tabela-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Aula</th>
+                    <th>Local</th>
+                    <th>Professor Responsável</th>
+                    <th>Turma</th>
+                    <th>Ações Adm.</th>
+                </tr>
+            </thead>
+            <tbody id="corpo-tabela">
+                </tbody>
+        </table>
+        <div id="aviso-vazio" class="sem-dados hidden">Nenhum agendamento encontrado para os filtros selecionados.</div>
+    </div>
+</div>
+
+<script type="module" src="coordenaçao.js"></script>
+
+</body>
+</html>

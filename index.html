@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Locus - Início</title>
+    
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+    :root {
+        /* Identidade Visual Premium (Sincronizada com o resto do app) */
+        --bg-body: #f8fafc;
+        --bg-card: #ffffff;
+        --texto-principal: #0f172a;
+        --texto-secundario: #64748b;
+        --borda: #e2e8f0;
+        
+        /* Cores de Ação */
+        --cor-primaria: #4f46e5;
+        --cor-primaria-clara: rgba(79, 70, 229, 0.1);
+        --cor-sucesso: #10b981;
+        --cor-sucesso-clara: rgba(16, 185, 129, 0.1);
+        
+        /* Sombras Modernas */
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+        --raio-borda: 24px;
+        --transicao: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* O "Diferencial": Fundo claro com um brilho elegante no topo */
+    body {
+        font-family: 'Poppins', sans-serif;
+        background-color: var(--bg-body);
+        background-image: radial-gradient(at top center, rgba(79, 70, 229, 0.08) 0%, transparent 70%);
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column; 
+        justify-content: center;
+        align-items: center;
+        padding: 24px;
+        color: var(--texto-principal);
+    }
+
+    /* --- CABEÇALHO DO APP --- */
+    .header-home {
+        text-align: center;
+        margin-bottom: 48px;
+        animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .header-home h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin: 0 0 12px 0;
+        letter-spacing: -1.5px;
+        color: var(--texto-principal);
+    }
+
+    .header-home p {
+        font-size: 1.15rem;
+        color: var(--texto-secundario);
+        font-weight: 400;
+        max-width: 500px;
+        margin: 0 auto;
+        line-height: 1.5;
+    }
+
+    /* --- CONTAINER DOS CARTÕES --- */
+    .cards-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        width: 100%;
+        max-width: 1050px;
+        animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* --- ESTILO DOS CARTÕES PREMIUM --- */
+    .card-link {
+        background: var(--bg-card);
+        padding: 40px 30px;
+        border-radius: var(--raio-borda);
+        box-shadow: var(--shadow-md);
+        text-decoration: none; 
+        text-align: center;
+        transition: var(--transicao); 
+        border: 1px solid var(--borda);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        position: relative;
+        overflow: hidden;
+        border-top: 4px solid var(--cor-primaria); /* Detalhe visual de identidade */
+    }
+
+    .card-link.cadastro-destaque {
+        border-top-color: var(--cor-sucesso);
+    }
+
+    /* Efeito Hover/Touch (Sensação física de clique) */
+    .card-link:hover, .card-link:active {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-xl);
+    }
+
+    /* Fundo do emoji em formato de App (Squircle) */
+    .card-badge {
+        width: 80px;
+        height: 80px;
+        background-color: var(--cor-primaria-clara);
+        border-radius: 22px; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 24px;
+        transition: var(--transicao);
+    }
+
+    .card-link.cadastro-destaque .card-badge {
+        background-color: var(--cor-sucesso-clara);
+    }
+
+    /* Interação com o ícone */
+    .card-link:hover .card-badge {
+        transform: scale(1.05) rotate(5deg);
+    }
+
+    .card-icone {
+        font-size: 2.5rem;
+        transition: var(--transicao);
+    }
+
+    .card-link h2 {
+        color: var(--texto-principal);
+        margin-bottom: 12px;
+        font-size: 1.3rem;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
+
+    /* Remove a cor verde fixa forçada pelo inline do HTML (se houver) */
+    .card-link.cadastro-destaque h2 {
+        color: var(--texto-principal) !important;
+    }
+
+    .card-link p {
+        color: var(--texto-secundario);
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+
+    /* --- ANIMAÇÕES --- */
+    @keyframes fadeInDown {
+        from { opacity: 0; transform: translateY(-30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* --- MEDIA QUERIES APERFEIÇOADAS PARA MOBILE --- */
+    @media (max-width: 600px) {
+        body {
+            padding: 20px;
+            justify-content: flex-start; /* Evita que o título suma em telas pequenas */
+        }
+        .header-home {
+            margin-top: 20px;
+            margin-bottom: 30px;
+        }
+        .header-home h1 {
+            font-size: 2.8rem;
+        }
+        .header-home p {
+            font-size: 1rem;
+        }
+        .card-link {
+            padding: 30px 20px;
+        }
+        .cards-container {
+            gap: 16px; /* Cards mais próximos no celular */
+        }
+    }
+</style>
+
+</head>
+<body>
+
+    <div class="header-home">
+        <h1>🏫 Locus</h1>
+        <p>Sistema ágil e moderno para agendamento de salas de aula e laboratórios.</p>
+    </div>
+
+    <div class="cards-container">
+        <a href="professor.html" class="card-link">
+            <div class="card-badge">
+                <div class="card-icone">👨‍🏫</div>
+            </div>
+            <h2>Área do Professor</h2>
+            <p>Faça o agendamento de salas, pátios e laboratórios de forma rápida e intuitiva.</p>
+        </a>
+
+        <a href="cadasto.html" class="card-link cadastro-destaque">
+            <div class="card-badge">
+                <div class="card-icone">🚀</div>
+            </div>
+            <h2>Ativar Meu Acesso</h2>
+            <p>Primeiro acesso? Crie aqui o seu PIN de segurança após a liberação da coordenação.</p>
+        </a>
+        
+        <a href="coordenaçao.html" class="card-link">
+            <div class="card-badge">
+                <div class="card-icone">🛡️</div>
+            </div>
+            <h2>Painel da Coordenação</h2>
+            <p>Acesse o controle total, audite as reservas e exporte os dados para planilhas.</p>
+        </a>
+    </div>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registrado com sucesso!', reg))
+            .catch(err => console.error('Erro ao registrar o Service Worker:', err));
+        });
+      }
+    </script>
+
+</body>
+</html>

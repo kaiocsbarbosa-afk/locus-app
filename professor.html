@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Locus</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6C63FF">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <link rel="stylesheet" href="professor.css">
+</head>
+<body>
+
+<div class="container">
+    <div class="header-controles">
+        <button class="btn-toggle-modo" onclick="toggleDarkMode()" id="txt-modo">🌙 Escuro</button>
+        <button class="btn-sair hidden" id="btn-sair" onclick="fazerLogout()">Sair 🚪</button>
+    </div>
+
+    <h2 id="titulo-app">Locus</h2>
+    
+    <div id="secao-login">
+        <div class="form-group">
+            <label>PIN de Identificação:</label>
+            <input type="password" id="pin-professor" placeholder="Digite seu PIN numérico..." inputmode="numeric">
+        </div>
+        <button id="btn-login" class="principal" onclick="fazerLogin(null)">Entrar Sistema</button>
+    </div>
+
+    <div id="secao-agendamento" class="hidden">
+        <div class="status-card" id="status-usuario">
+            Carregando...
+        </div>
+        
+        <div class="form-group">
+            <label>Data de Agendamento:</label>
+            <input type="date" id="data-agendamento" onchange="buscarAulas()">
+        </div>
+
+        <div class="form-group">
+            <label>Sala:</label>
+            <select id="select-sala" onchange="buscarAulas()">
+                <option value="">Selecione uma sala...</option>
+                </select>
+        </div>
+
+        <div class="form-group" id="container-turma">
+            <label>Turma Destinada:</label>
+            <select id="select-turma">
+                <option value="">Selecione a turma...</option>
+                </select>
+        </div>
+
+        <h3 style="font-size: 1.1rem; text-align: center; margin-top: 20px;" id="titulo-grade">Grade Horária:</h3>
+        <div class="aulas-grid" id="grid-aulas">
+            </div>
+
+        <div class="historico-secao hidden" id="secao-historico">
+            <div class="historico-titulo">📅 Seus Agendamentos Ativos</div>
+            <div class="historico-lista" id="historico-lista">
+                </div>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="professor.js"></script>
+
+</body>
+</html>

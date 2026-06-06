@@ -1,0 +1,331 @@
+:root {
+    /* Cores de Fundo e Texto (Light Mode) */
+    --bg-body: #f8fafc;
+    --bg-card: #ffffff;
+    --texto-principal: #0f172a;
+    --texto-secundario: #64748b;
+    --borda: #e2e8f0;
+    
+    /* Cores de Ação */
+    --cor-primaria: #4f46e5;      
+    --cor-primaria-hover: #4338ca;
+    --cor-sucesso: #10b981;       
+    --cor-perigo: #ef4444;        
+    
+    /* Cores Específicas das Aulas (Light Mode) */
+    --bg-aula-livre: #d1fae5;
+    --texto-aula-livre: #065f46;
+    --borda-aula-livre: #34d399;
+    
+    --bg-aula-ocupada: #fee2e2;
+    --texto-aula-ocupada: #991b1b;
+    --borda-aula-ocupada: #f87171;
+    
+    --bg-historico: #f8fafc;
+
+    /* Sombras e Formas */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --raio-borda: 16px;
+    --transicao: all 0.3s ease;
+}
+
+/* =========================================
+   DARK MODE (A Magia das Variáveis)
+   ========================================= */
+body.dark-mode {
+    --bg-body: #0f172a;
+    --bg-card: #1e293b;
+    --texto-principal: #f8fafc;
+    --texto-secundario: #94a3b8;
+    --borda: #334155;
+    
+    --bg-aula-livre: #064e3b;
+    --texto-aula-livre: #a7f3d0;
+    --borda-aula-livre: #059669;
+
+    --bg-aula-ocupada: #450a0a;
+    --texto-aula-ocupada: #fca5a5;
+    --borda-aula-ocupada: #991b1b;
+    
+    --bg-historico: #0f172a;
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4);
+}
+
+/* =========================================
+   ESTILOS GERAIS
+   ========================================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background-color: var(--bg-body);
+    color: var(--texto-principal);
+    display: flex;
+    justify-content: center;
+    padding: 15px; 
+    min-height: 100dvh;
+    transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* Container Principal */
+.container {
+    background: var(--bg-card);
+    width: 100%;
+    max-width: 600px;
+    border-radius: var(--raio-borda);
+    padding: 30px 24px;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--borda);
+    transition: var(--transicao);
+}
+
+/* Cabeçalho e Controles */
+.header-controles {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+h2#titulo-app {
+    text-align: center;
+    color: var(--cor-primaria);
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+    letter-spacing: -0.5px;
+}
+
+/* =========================================
+   BOTÕES GERAIS E INPUTS
+   ========================================= */
+button {
+    padding: 12px 16px;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: var(--transicao);
+    outline: none;
+}
+
+button:active {
+    transform: translateY(1px);
+}
+
+.btn-toggle-modo {
+    background: var(--bg-body);
+    color: var(--texto-principal);
+    border: 1px solid var(--borda);
+}
+
+.btn-toggle-modo:hover {
+    background: var(--borda);
+}
+
+.btn-sair {
+    background: var(--bg-aula-ocupada);
+    color: var(--texto-aula-ocupada);
+    border: 1px solid var(--borda-aula-ocupada);
+}
+
+button.principal {
+    width: 100%;
+    background: var(--cor-primaria);
+    color: white;
+    font-size: 16px;
+    padding: 14px;
+    margin-top: 10px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+}
+
+button.principal:hover {
+    background: var(--cor-primaria-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Formulários */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--texto-secundario);
+}
+
+.form-group input, 
+.form-group select {
+    padding: 14px 16px;
+    border: 1px solid var(--borda);
+    border-radius: 12px;
+    font-size: 16px; /* Evita zoom no iOS */
+    background-color: var(--bg-body);
+    color: var(--texto-principal);
+    width: 100%;
+    outline: none;
+    transition: var(--transicao);
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.form-group input:focus, 
+.form-group select:focus {
+    border-color: var(--cor-primaria);
+    background-color: var(--bg-card);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* =========================================
+   GRID DE AULAS
+   ========================================= */
+.aulas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.btn-aula {
+    padding: 14px 10px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 75px;
+    line-height: 1.4;
+    font-size: 14px;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Aula Livre */
+.btn-aula.disponivel {
+    background-color: var(--bg-aula-livre); 
+    color: var(--texto-aula-livre);
+    border: 1px solid var(--borda-aula-livre);
+}
+
+.btn-aula.disponivel:hover {
+    filter: brightness(0.95);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Aula Ocupada */
+.btn-aula.ocupada {
+    background-color: var(--bg-aula-ocupada);
+    color: var(--texto-aula-ocupada);
+    border: 1px solid var(--borda-aula-ocupada);
+    cursor: not-allowed;
+    opacity: 0.9;
+}
+
+/* =========================================
+   HISTÓRICO E AGENDAMENTOS ATIVOS
+   ========================================= */
+.historico-secao {
+    margin-top: 35px;            
+    background-color: var(--bg-historico);   
+    padding: 24px 20px;
+    border-radius: var(--raio-borda);
+    border: 1px solid var(--borda);
+    transition: var(--transicao);
+}
+
+.historico-titulo {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--texto-principal);
+    margin-bottom: 16px;
+    text-align: center;
+    letter-spacing: 0.5px;
+}
+
+.historico-item {
+    display: flex;
+    justify-content: space-between; 
+    align-items: center; 
+    background: var(--bg-card);
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+    border-left: 4px solid var(--cor-primaria); 
+    box-shadow: var(--shadow-sm);
+    border-top: 1px solid var(--borda);
+    border-right: 1px solid var(--borda);
+    border-bottom: 1px solid var(--borda);
+    transition: var(--transicao);
+}
+
+.historico-item:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.historico-info {
+    display: flex;
+    flex-direction: column;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    padding-right: 15px; 
+    color: var(--texto-principal);
+}
+
+.historico-info span {
+    font-size: 12px;
+    color: var(--texto-secundario); 
+    margin-top: 4px;
+    font-weight: 400;
+}
+
+.btn-cancelar {
+    background-color: var(--bg-aula-ocupada); 
+    color: var(--texto-aula-ocupada); 
+    border: 1px solid var(--borda-aula-ocupada);
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.btn-cancelar:hover {
+    background-color: var(--cor-perigo);
+    color: #ffffff;
+    border-color: var(--cor-perigo);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Ajuste sutil para o Status do Usuário */
+.status-card {
+    background-color: var(--bg-body);
+    border: 1px solid var(--borda);
+    padding: 12px;
+    border-radius: 10px;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--cor-primaria);
+    margin-bottom: 24px;
+}
