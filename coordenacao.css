@@ -428,3 +428,48 @@ tr:hover { background-color: var(--bg-body); }
         width: 100%;
     }
 }
+
+/* =========================================
+   AJUSTE DA TABELA E CONTAINER DE BAIXO
+   ========================================= */
+
+/* Deixa o container da tabela mais largo */
+.container-tabela, 
+.agendamentos-wrapper { /* Ajuste para o nome da classe que você usou na div de baixo */
+    width: 100%;
+    max-width: 1200px; /* Deixa bem mais largo que os cards de cima */
+    margin: 30px auto;
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    
+    /* O pulo do gato: se a tela for menor que a tabela, cria uma barra de rolagem só nela */
+    overflow-x: auto; 
+}
+
+/* Garante que a tabela não se esprema e quebre o texto */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px; /* Força as colunas a terem um respiro */
+    margin-top: 20px;
+}
+
+table th {
+    background-color: #f8fafc;
+    color: #475569;
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+table td {
+    padding: 16px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 0.95rem;
+}
