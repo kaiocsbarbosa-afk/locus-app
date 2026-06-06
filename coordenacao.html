@@ -81,13 +81,6 @@
 
     <div class="table-responsive">
         <table>
-            ...
-        </table>
-    </div>
-
-</div>
-    <div class="tabela-container">
-        <table>
             <thead>
                 <tr>
                     <th>Data</th>
@@ -98,11 +91,16 @@
                     <th>Ações Adm.</th>
                 </tr>
             </thead>
-            <tbody id="corpo-tabela">
-                </tbody>
+            <tbody id="listaAgendamentos">
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 30px; color: #64748b;">
+                        Nenhum agendamento encontrado para os filtros selecionados.
+                    </td>
+                </tr>
+            </tbody>
         </table>
-        <div id="aviso-vazio" class="sem-dados hidden">Nenhum agendamento encontrado para os filtros selecionados.</div>
     </div>
+
 </div>
 
 <script type="module" src="coordenacao.js"></script>
