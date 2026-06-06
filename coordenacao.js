@@ -44,7 +44,7 @@ async function carregarSalasNoFiltro() {
 
         if (error) throw error;
 
-        const selectSala = document.getElementById('filtro-sala');
+        const selectSala = document.getElementById('filtroSala');
         
         // Garante que a primeira opção sempre será "Todas as salas"
         selectSala.innerHTML = '<option value="">Todas as salas</option>';
