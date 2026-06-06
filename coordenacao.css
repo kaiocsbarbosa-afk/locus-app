@@ -479,12 +479,9 @@ table td {
    ========================================= */
 
 /* 1. O truque para a tabela ignorar a caixa estreita e ficar larga */
+/* 1. Alinhando a tabela perfeitamente com a caixa de cima */
 .tabela-larga {
-    width: 90vw !important; /* Ocupa 90% da largura da tela */
-    max-width: 1200px !important;
-    position: relative !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important; /* Centraliza perfeitamente */
+    width: 100%; /* Agora ela obedece o limite do site e alinha com a de cima */
     
     /* Estilo do card */
     background: #ffffff;
