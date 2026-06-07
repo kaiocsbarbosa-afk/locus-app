@@ -28,27 +28,27 @@
         --cor-sucesso: #10b981;
         --cor-sucesso-clara: rgba(16, 185, 129, 0.08);
         
-        /* Sombras Geométricas Suaves */
+        /* Sombras mais leves para performance */
         --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
-        --shadow-md: 0 8px 24px -4px rgba(15, 23, 42, 0.04), 0 4px 12px -2px rgba(15, 23, 42, 0.02);
-        --shadow-xl: 0 30px 60px -15px rgba(124, 58, 237, 0.12), 0 10px 25px -5px rgba(124, 58, 237, 0.04);
+        --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.04);
+        --shadow-hover: 0 12px 24px rgba(124, 58, 237, 0.08);
         
         --raio-borda: 24px;
-        --transicao: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        --transicao: all 0.3s ease-out; /* Transição mais rápida e leve */
     }
 
     * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
-        -webkit-tap-highlight-color: transparent;
+        -webkit-tap-highlight-color: transparent; /* Remove aquele quadrado azul ao clicar no celular */
     }
 
     /* Fundo com iluminação radial suave */
     body {
         font-family: 'Poppins', sans-serif;
         background-color: var(--bg-body);
-        background-image: radial-gradient(at top center, rgba(124, 58, 237, 0.08) 0%, transparent 65%);
+        background-image: radial-gradient(at top center, rgba(124, 58, 237, 0.05) 0%, transparent 60%);
         min-height: 100dvh;
         display: flex;
         flex-direction: column; 
@@ -56,15 +56,13 @@
         align-items: center;
         padding: 24px;
         color: var(--texto-principal);
-        overflow-x: hidden; /* Evita rolagem horizontal durante as animações */
     }
 
     /* --- CABEÇALHO --- */
     .header-home {
         text-align: center;
         margin-bottom: 56px;
-        /* Animação do título refinada */
-        animation: fadeTitle 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation: suaveEntrada 0.8s ease-out forwards;
     }
 
     .header-home h1 {
@@ -94,10 +92,9 @@
         gap: 28px;
         width: 100%;
         max-width: 1100px;
-        /* Removemos a animação global daqui para animar cada card individualmente */
     }
 
-    /* --- CARTÕES DESIGN REFINADO --- */
+    /* --- CARTÕES DESIGN LEVE --- */
     .card-link {
         background: var(--bg-card);
         padding: 44px 32px;
@@ -115,28 +112,28 @@
         overflow: hidden;
         border-top: 5px solid var(--cor-primaria);
         
-        /* Nova animação individual tipo App Nativo */
-        animation: cardPopIn 0.8s cubic-bezier(0.2, 1.2, 0.3, 1) backwards;
+        /* Animação super leve (Fade + deslize de 15px apenas) */
+        animation: suaveDeslize 0.6s ease-out backwards;
     }
 
-    /* EFEITO CASCATA (Stagger): Define a ordem de entrada de cada cartão */
-    .card-link:nth-child(1) { animation-delay: 0.15s; }
-    .card-link:nth-child(2) { animation-delay: 0.30s; }
-    .card-link:nth-child(3) { animation-delay: 0.45s; }
+    /* Cascata ágil */
+    .card-link:nth-child(1) { animation-delay: 0.1s; }
+    .card-link:nth-child(2) { animation-delay: 0.2s; }
+    .card-link:nth-child(3) { animation-delay: 0.3s; }
 
     .card-link.cadastro-destaque {
         border-top-color: var(--cor-sucesso);
     }
 
-    /* Efeito de aproximação ultra fluído no toque/mouse */
+    /* Interação de toque mais limpa, sem pulos físicos na tela */
     .card-link:hover, .card-link:active {
-        transform: translateY(-10px);
-        box-shadow: var(--shadow-xl);
-        border-color: rgba(124, 58, 237, 0.2);
+        transform: translateY(-3px); /* Deslize micro, quase não move a tela */
+        box-shadow: var(--shadow-hover);
+        border-color: rgba(124, 58, 237, 0.15);
     }
     
     .card-link.cadastro-destaque:hover, .card-link.cadastro-destaque:active {
-        border-color: rgba(16, 185, 129, 0.2);
+        border-color: rgba(16, 185, 129, 0.15);
     }
 
     /* Badges dos Ícones */
@@ -149,15 +146,16 @@
         align-items: center;
         justify-content: center;
         margin-bottom: 28px;
-        transition: var(--transicao);
+        transition: transform 0.3s ease; /* Transição restrita só ao transform */
     }
 
     .card-link.cadastro-destaque .card-badge {
         background-color: var(--cor-sucesso-clara);
     }
 
+    /* Micro-interação no ícone */
     .card-link:hover .card-badge, .card-link:active .card-badge {
-        transform: scale(1.08) rotate(6deg);
+        transform: scale(1.05); /* Escala menor, sem girar, mais leve */
     }
 
     .card-icone {
@@ -183,29 +181,27 @@
         line-height: 1.6;
     }
 
-    /* --- NOVAS KEYFRAMES (ANIMAÇÕES) --- */
+    /* --- NOVAS ANIMAÇÕES LEVES --- */
     
-    /* Animação do Título: Suave e majestosa */
-    @keyframes fadeTitle {
+    @keyframes suaveEntrada {
         from { 
             opacity: 0; 
-            transform: translateY(-20px) scale(0.98); 
+            transform: translateY(-10px); 
         }
         to { 
             opacity: 1; 
-            transform: translateY(0) scale(1); 
+            transform: translateY(0); 
         }
     }
 
-    /* Animação dos Cartões: Sensação de app mobile (elástica) */
-    @keyframes cardPopIn {
+    @keyframes suaveDeslize {
         from { 
             opacity: 0; 
-            transform: translateY(40px) scale(0.92); 
+            transform: translateY(15px); /* Deslize super curto e sem scale */
         }
         to { 
             opacity: 1; 
-            transform: translateY(0) scale(1); 
+            transform: translateY(0); 
         }
     }
 
@@ -231,11 +227,6 @@
         .cards-container {
             gap: 20px;
         }
-        
-        /* Acelera levemente o efeito cascata no mobile para ficar mais ágil */
-        .card-link:nth-child(1) { animation-delay: 0.1s; }
-        .card-link:nth-child(2) { animation-delay: 0.2s; }
-        .card-link:nth-child(3) { animation-delay: 0.3s; }
     }
 </style>
 
