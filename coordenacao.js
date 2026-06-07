@@ -215,7 +215,7 @@ function mostrarDashboard() {
     const mes = String(hoje.getMonth() + 1).padStart(2, '0');
     const dia = String(hoje.getDate()).padStart(2, '0');
     
-    const filtroData = document.getElementById('filtro-data');
+    const filtroData = document.getElementById('filtroData');
     if (filtroData) {
         filtroData.value = `${ano}-${mes}-${dia}`;
     }
