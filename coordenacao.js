@@ -390,25 +390,30 @@ window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula) 
 }
 
 window.exportarParaPlanilha = async function() {
-    if (dadosAtuaisParaExportar.length === 0) {
-        Swal.fire({
+    // 1. Verifica se há dados na tabela
+    if (!dadosAtuaisParaExportar || dadosAtuaisParaExportar.length === 0) {
+        dispararAlerta({
             icon: 'warning',
             title: 'Tabela Vazia',
-            text: 'Não há dados na tabela para enviar. Mude a data do filtro.',
+            text: 'Não há dados na tabela para enviar. Mude a data do filtro para carregar os agendamentos primeiro.',
             confirmButtonColor: 'var(--cor-primaria)'
         });
         return;
     }
 
-    Swal.fire({
-        title: 'Exportando dados...',
-        text: 'Enviando para o Google Planilhas. Por favor, aguarde.',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
+    // 2. Exibe o balão de "Carregando/Exportando"
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: 'Exportando dados...',
+            text: 'Enviando para o Google Planilhas. Por favor, aguarde.',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+    }
 
+    // 3. Formata os dados vindos do Supabase
     const dadosFormatados = dadosAtuaisParaExportar.map(item => ({
         data: item.data.split('-').reverse().join('/'),
         horario: `Aula ${item.aula_numero}º`,
@@ -417,6 +422,7 @@ window.exportarParaPlanilha = async function() {
         turma: item.turmas?.nome || 'Geral'
     }));
 
+    // 4. Faz o envio físico para o Google Apps Script
     try {
         await fetch(URL_GOOGLE_SCRIPT, {
             method: "POST",
@@ -425,7 +431,10 @@ window.exportarParaPlanilha = async function() {
             body: JSON.stringify(dadosFormatados)
         });
 
-        Swal.fire({
+        if (typeof Swal !== 'undefined') Swal.close();
+
+        // Sucesso!
+        dispararAlerta({
             icon: 'success',
             title: 'Concluído!',
             text: 'Os dados foram enviados para a sua planilha com sucesso.',
@@ -433,45 +442,16 @@ window.exportarParaPlanilha = async function() {
         });
 
     } catch (erro) {
-        Swal.fire({
+        if (typeof Swal !== 'undefined') Swal.close();
+        
+        // Falha física (ex: falta de internet)
+        dispararAlerta({
             icon: 'error',
             title: 'Falha no envio',
             text: "Ocorreu um erro físico: " + erro.message,
             confirmButtonColor: 'var(--cor-perigo)'
         });
     }
-}
-
-// Escuta em tempo real ativa
-supabase
-    .channel('mudancas-agendamentos-coord')
-    .on(
-        'postgres_changes', 
-        { event: '*', schema: 'public', table: 'agendamentos' }, 
-        (payload) => {
-            console.log('Mudança detectada em tempo real!', payload);
-            carregarRelatorioGeral();
-        }
-    )
-    .subscribe();
-
-// Garante que assim que a página carregar, os dados dinâmicos serão buscados no Supabase
-document.addEventListener("DOMContentLoaded", () => {
-    carregarSalasNoFiltro();
-    carregarDisciplinasNoPreCadastro(); 
-    
-    // 👇 ATUALIZA A TABELA AUTOMATICAMENTE QUANDO MUDAR A DATA OU A SALA NOS FILTROS
-    const fData = document.getElementById('filtroData') || document.getElementById('filtro-data');
-    const fSala = document.getElementById('filtroSala') || document.getElementById('filtro-sala');
-    
-    if (fData) fData.addEventListener('change', () => carregarRelatorioGeral());
-    if (fSala) fSala.addEventListener('change', () => carregarRelatorioGeral());
-});
-// 👇 CORREÇÃO: Remove qualquer canal antigo com o mesmo nome antes de criar um novo
-// Isso impede o erro de duplicidade se o script rodar duas vezes!
-const canalExistente = supabase.channel('mudancas-agendamentos-coord');
-if (canalExistente) {
-    supabase.removeChannel(canalExistente);
 }
 
 // Agora sim, cria o canal do zero com segurança total
