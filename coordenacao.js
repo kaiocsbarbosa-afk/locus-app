@@ -467,7 +467,14 @@ document.addEventListener("DOMContentLoaded", () => {
     if (fData) fData.addEventListener('change', () => carregarRelatorioGeral());
     if (fSala) fSala.addEventListener('change', () => carregarRelatorioGeral());
 });
-// Escuta em tempo real ativa
+// 👇 CORREÇÃO: Remove qualquer canal antigo com o mesmo nome antes de criar um novo
+// Isso impede o erro de duplicidade se o script rodar duas vezes!
+const canalExistente = supabase.channel('mudancas-agendamentos-coord');
+if (canalExistente) {
+    supabase.removeChannel(canalExistente);
+}
+
+// Agora sim, cria o canal do zero com segurança total
 supabase
     .channel('mudancas-agendamentos-coord')
     .on(
@@ -480,8 +487,14 @@ supabase
     )
     .subscribe();
 
-   // Garante que assim que a página carregar, os dados dinâmicos serão buscados no Supabase
+// Garante que assim que a página carregar, os dados dinâmicos serão buscados no Supabase
 document.addEventListener("DOMContentLoaded", () => {
     carregarSalasNoFiltro();
-    carregarDisciplinasNoPreCadastro(); // <-- ADICIONE ESTA LINHA AQUI
+    carregarDisciplinasNoPreCadastro(); 
+    
+    const fData = document.getElementById('filtroData') || document.getElementById('filtro-data');
+    const fSala = document.getElementById('filtroSala') || document.getElementById('filtro-sala');
+    
+    if (fData) fData.addEventListener('change', () => carregarRelatorioGeral());
+    if (fSala) fSala.addEventListener('change', () => carregarRelatorioGeral());
 });
