@@ -12,7 +12,7 @@
     
     <style>
     :root {
-        /* Nova Identidade Visual Roxa Ultra Premium */
+        /* Identidade Visual Roxa Ultra Premium */
         --bg-body: #fafafa;
         --bg-card: #ffffff;
         --texto-principal: #0f172a;
@@ -44,7 +44,7 @@
         -webkit-tap-highlight-color: transparent;
     }
 
-    /* Fundo com iluminação radial suave focada no novo título */
+    /* Fundo com iluminação radial suave */
     body {
         font-family: 'Poppins', sans-serif;
         background-color: var(--bg-body);
@@ -56,13 +56,15 @@
         align-items: center;
         padding: 24px;
         color: var(--texto-principal);
+        overflow-x: hidden; /* Evita rolagem horizontal durante as animações */
     }
 
-    /* --- CABEÇALHO REMODELADO --- */
+    /* --- CABEÇALHO --- */
     .header-home {
         text-align: center;
         margin-bottom: 56px;
-        animation: fadeInDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        /* Animação do título refinada */
+        animation: fadeTitle 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     }
 
     .header-home h1 {
@@ -70,7 +72,6 @@
         font-weight: 800;
         margin: 0 0 8px 0;
         letter-spacing: -2.5px;
-        /* Efeito de degradê roxo metálico no nome */
         background: linear-gradient(135deg, var(--cor-primaria) 0%, var(--cor-primaria-dark) 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -93,7 +94,7 @@
         gap: 28px;
         width: 100%;
         max-width: 1100px;
-        animation: fadeInUp 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+        /* Removemos a animação global daqui para animar cada card individualmente */
     }
 
     /* --- CARTÕES DESIGN REFINADO --- */
@@ -113,20 +114,28 @@
         position: relative;
         overflow: hidden;
         border-top: 5px solid var(--cor-primaria);
+        
+        /* Nova animação individual tipo App Nativo */
+        animation: cardPopIn 0.8s cubic-bezier(0.2, 1.2, 0.3, 1) backwards;
     }
+
+    /* EFEITO CASCATA (Stagger): Define a ordem de entrada de cada cartão */
+    .card-link:nth-child(1) { animation-delay: 0.15s; }
+    .card-link:nth-child(2) { animation-delay: 0.30s; }
+    .card-link:nth-child(3) { animation-delay: 0.45s; }
 
     .card-link.cadastro-destaque {
         border-top-color: var(--cor-sucesso);
     }
 
-    /* Efeito de aproximação ultra fluído */
-    .card-link:hover {
+    /* Efeito de aproximação ultra fluído no toque/mouse */
+    .card-link:hover, .card-link:active {
         transform: translateY(-10px);
         box-shadow: var(--shadow-xl);
         border-color: rgba(124, 58, 237, 0.2);
     }
     
-    .card-link.cadastro-destaque:hover {
+    .card-link.cadastro-destaque:hover, .card-link.cadastro-destaque:active {
         border-color: rgba(16, 185, 129, 0.2);
     }
 
@@ -147,8 +156,7 @@
         background-color: var(--cor-sucesso-clara);
     }
 
-    /* Micro-interação elegante nos emojis */
-    .card-link:hover .card-badge {
+    .card-link:hover .card-badge, .card-link:active .card-badge {
         transform: scale(1.08) rotate(6deg);
     }
 
@@ -175,15 +183,30 @@
         line-height: 1.6;
     }
 
-    /* --- ANIMAÇÕES DE ENTRADA --- */
-    @keyframes fadeInDown {
-        from { opacity: 0; transform: translateY(-20px); }
-        to { opacity: 1; transform: translateY(0); }
+    /* --- NOVAS KEYFRAMES (ANIMAÇÕES) --- */
+    
+    /* Animação do Título: Suave e majestosa */
+    @keyframes fadeTitle {
+        from { 
+            opacity: 0; 
+            transform: translateY(-20px) scale(0.98); 
+        }
+        to { 
+            opacity: 1; 
+            transform: translateY(0) scale(1); 
+        }
     }
 
-    @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(25px); }
-        to { opacity: 1; transform: translateY(0); }
+    /* Animação dos Cartões: Sensação de app mobile (elástica) */
+    @keyframes cardPopIn {
+        from { 
+            opacity: 0; 
+            transform: translateY(40px) scale(0.92); 
+        }
+        to { 
+            opacity: 1; 
+            transform: translateY(0) scale(1); 
+        }
     }
 
     /* --- MEDIA QUERIES MOBILE --- */
@@ -203,11 +226,16 @@
             font-size: 1rem;
         }
         .card-link {
-            padding: 36px 24px;
+            padding: 32px 24px;
         }
         .cards-container {
             gap: 20px;
         }
+        
+        /* Acelera levemente o efeito cascata no mobile para ficar mais ágil */
+        .card-link:nth-child(1) { animation-delay: 0.1s; }
+        .card-link:nth-child(2) { animation-delay: 0.2s; }
+        .card-link:nth-child(3) { animation-delay: 0.3s; }
     }
 </style>
 
