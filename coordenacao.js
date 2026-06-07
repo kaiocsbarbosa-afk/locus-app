@@ -272,18 +272,19 @@ window.salvarPreCadastro = async function() {
 }
 
 window.carregarRelatorioGeral = async function() {
-    // CORREÇÃO: Mudado de 'filtro-data' para 'filtroData' para bater com o HTML
-    const filtroData = document.getElementById('filtroData');
-    if (!filtroData) return;
-    
-    const dataFiltro = filtroData.value;
-    // CORREÇÃO: Mudado de 'filtro-sala' para 'filtroSala' para bater com o HTML
-    const salaFiltro = document.getElementById('filtroSala')?.value || ''; 
-    // CORREÇÃO: Verifique se o ID da tabela é 'corpo-tabela' ou 'listaAgendamentos'
+    const filtroData = document.getElementById('filtroData') || document.getElementById('filtro-data');
+    const filtroSala = document.getElementById('filtroSala') || document.getElementById('filtro-sala');
     const tabela = document.getElementById('corpo-tabela') || document.getElementById('listaAgendamentos');
     const avisoVazio = document.getElementById('aviso-vazio') || document.getElementById('sem-dados');
 
-    if (!tabela) return;
+    if (!filtroData || !tabela) return;
+    
+    const dataFiltro = filtroData.value;
+    const salaFiltro = filtroSala?.value || ''; 
+
+    // 🕵️‍♂️ LINHA ESPIÃ 1: Mostra no console o que o app está tentando buscar
+    console.log("🔍 [DIAGNÓSTICO] Tentando buscar agendamentos da data:", dataFiltro, "| Sala ID:", salaFiltro);
+
     tabela.innerHTML = '';
     dadosAtuaisParaExportar = [];
     if (!dataFiltro) return;
@@ -298,6 +299,9 @@ window.carregarRelatorioGeral = async function() {
     }
 
     const { data: agendamentos, error } = await query.order('aula_numero', { ascending: true });
+
+    // 🕵️‍♂️ LINHA ESPIÃ 2: Mostra exatamente o que o Supabase respondeu
+    console.log("📊 [DIAGNÓSTICO] Resposta do Supabase:", { dados: agendamentos, erro: error });
 
     if (error) {
         dispararAlerta({
@@ -316,7 +320,7 @@ window.carregarRelatorioGeral = async function() {
     
     dadosAtuaisParaExportar = agendamentos;
 
-    if (agendamentos.length === 0) {
+    if (!agendamentos || agendamentos.length === 0) {
         if (avisoVazio) avisoVazio.classList.remove('hidden');
         return;
     } else {
@@ -342,6 +346,7 @@ window.carregarRelatorioGeral = async function() {
         tabela.appendChild(tr);
     });
 }
+
 window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula) {
     if (typeof Swal === 'undefined') {
         const c = confirm(`Deseja cancelar o agendamento de: ${nomeSala}?`);
@@ -385,7 +390,6 @@ window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula) 
 }
 
 window.exportarParaPlanilha = async function() {
-    // 1. Verifica se há dados na tabela
     if (dadosAtuaisParaExportar.length === 0) {
         Swal.fire({
             icon: 'warning',
@@ -396,7 +400,6 @@ window.exportarParaPlanilha = async function() {
         return;
     }
 
-    // 2. Exibe o balão de "Carregando/Exportando"
     Swal.fire({
         title: 'Exportando dados...',
         text: 'Enviando para o Google Planilhas. Por favor, aguarde.',
@@ -406,7 +409,6 @@ window.exportarParaPlanilha = async function() {
         }
     });
 
-    // 3. Formata os dados vindos do Supabase
     const dadosFormatados = dadosAtuaisParaExportar.map(item => ({
         data: item.data.split('-').reverse().join('/'),
         horario: `Aula ${item.aula_numero}º`,
@@ -415,7 +417,6 @@ window.exportarParaPlanilha = async function() {
         turma: item.turmas?.nome || 'Geral'
     }));
 
-    // 4. Faz o envio físico para o Google Apps Script
     try {
         await fetch(URL_GOOGLE_SCRIPT, {
             method: "POST",
@@ -424,7 +425,6 @@ window.exportarParaPlanilha = async function() {
             body: JSON.stringify(dadosFormatados)
         });
 
-        // Sucesso!
         Swal.fire({
             icon: 'success',
             title: 'Concluído!',
@@ -433,7 +433,6 @@ window.exportarParaPlanilha = async function() {
         });
 
     } catch (erro) {
-        // Falha física (ex: falta de internet)
         Swal.fire({
             icon: 'error',
             title: 'Falha no envio',
@@ -443,6 +442,31 @@ window.exportarParaPlanilha = async function() {
     }
 }
 
+// Escuta em tempo real ativa
+supabase
+    .channel('mudancas-agendamentos-coord')
+    .on(
+        'postgres_changes', 
+        { event: '*', schema: 'public', table: 'agendamentos' }, 
+        (payload) => {
+            console.log('Mudança detectada em tempo real!', payload);
+            carregarRelatorioGeral();
+        }
+    )
+    .subscribe();
+
+// Garante que assim que a página carregar, os dados dinâmicos serão buscados no Supabase
+document.addEventListener("DOMContentLoaded", () => {
+    carregarSalasNoFiltro();
+    carregarDisciplinasNoPreCadastro(); 
+    
+    // 👇 ATUALIZA A TABELA AUTOMATICAMENTE QUANDO MUDAR A DATA OU A SALA NOS FILTROS
+    const fData = document.getElementById('filtroData') || document.getElementById('filtro-data');
+    const fSala = document.getElementById('filtroSala') || document.getElementById('filtro-sala');
+    
+    if (fData) fData.addEventListener('change', () => carregarRelatorioGeral());
+    if (fSala) fSala.addEventListener('change', () => carregarRelatorioGeral());
+});
 // Escuta em tempo real ativa
 supabase
     .channel('mudancas-agendamentos-coord')
