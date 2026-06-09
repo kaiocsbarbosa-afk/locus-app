@@ -123,7 +123,8 @@ async function carregarDisciplinasNoPreCadastro() {
 }
 
 window.entrarPainel = async function() {
-    const senhaDigitada = document.getElementById('senha-coord').value;
+    // Adicionamos o .trim() para remover espaços invisíveis no início ou fim
+    const senhaDigitada = document.getElementById('senha-coord').value.trim();
     
     if (!senhaDigitada) {
         dispararAlerta({
@@ -145,8 +146,10 @@ window.entrarPainel = async function() {
     }
 
     try {
-        // 🔒 Transforma a senha digitada em Hash ANTES de comparar
         const senhaCriptografada = await gerarHashDaSenha(senhaDigitada);
+        
+        // 🕵️‍♂️ LINHA ESPIÃ: Abra o console do navegador (F12) para ver o hash exato!
+        console.log("Hash gerado pelo aplicativo:", senhaCriptografada);
 
         const { data, error } = await supabase
             .from('configuracoes')
@@ -156,29 +159,24 @@ window.entrarPainel = async function() {
 
         if (typeof Swal !== 'undefined') Swal.close();
 
-        if (error) {
-            console.error("Erro retornado do Supabase:", error);
+        if (error || !data) {
             dispararAlerta({
                 icon: 'error',
                 title: 'Erro de Banco de Dados',
-                text: `Não foi possível ler os dados. Motivo: ${error.message}.`,
+                text: `Não foi possível ler a senha no Supabase.`,
                 confirmButtonColor: 'var(--cor-perigo)'
             });
             return;
         }
 
-        if (!data) {
-            dispararAlerta({
-                icon: 'error',
-                title: 'Configuração Ausente',
-                text: "A chave 'senha_coordenacao' não foi encontrada no banco.",
-                confirmButtonColor: 'var(--cor-perigo)'
-            });
-            return;
-        }
+        // 🕵️‍♂️ Mostra o que veio do banco para você comparar visualmente
+        console.log("Hash salvo no banco:", data.valor);
 
-        // 🔒 Compara o Hash gerado agora com o Hash salvo no Supabase
-        if (senhaCriptografada === data.valor) {
+        // 🔒 Compara transformando ambos em minúsculos e sem espaços extras no banco
+        const hashDoApp = senhaCriptografada.toLowerCase();
+        const hashDoBanco = data.valor.trim().toLowerCase();
+
+        if (hashDoApp === hashDoBanco) {
             sessionStorage.setItem('coord_logada', 'true');
             mostrarDashboard();
         } else {
@@ -192,7 +190,6 @@ window.entrarPainel = async function() {
         }
     } catch (err) {
         if (typeof Swal !== 'undefined') Swal.close();
-        console.error("Erro na execução do bloco try-catch:", err);
         dispararAlerta({
             icon: 'error',
             title: 'Erro Crítico',
