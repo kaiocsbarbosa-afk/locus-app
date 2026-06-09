@@ -8,6 +8,15 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 let professorLogado = null;
 let buscandoAulasAtualmente = false;
 
+// Função que transforma o PIN legível em um código (Hash SHA-256)
+async function gerarHashDoPin(pin) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(pin);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // Inicialização do Sistema
 document.addEventListener("DOMContentLoaded", () => {
     carregarPreferenciaModo();
@@ -63,10 +72,14 @@ window.fazerLogin = async function(pinAutomatico) {
         btnLogin.style.opacity = '0.8';
     }
 
+    // 🔒 Transforma o PIN digitado no código cheio de letras e números
+    const pinCriptografado = await gerarHashDoPin(pin);
+
+    // 🔍 Busca no banco usando o código criptografado
     const { data, error } = await supabase
         .from('professores')
         .select('*')
-        .eq('pin', pin)
+        .eq('pin', pinCriptografado)
         .single();
 
     if (error || !data) {
@@ -95,7 +108,7 @@ window.fazerLogin = async function(pinAutomatico) {
     }
 
     professorLogado = data;
-    localStorage.setItem('prof_pin', pin);
+    localStorage.setItem('prof_pin', pin); // Na memória do celular pode ficar o normal para o auto-login
 
     configurarInterfaceParaLogado();
     configurarCalendarioSemana();
