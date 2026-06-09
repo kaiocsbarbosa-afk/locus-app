@@ -8,6 +8,15 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 // Array para guardar temporariamente os professores vindos do banco
 let professoresSemPin = [];
 
+// 🔒 Função que transforma o PIN de 4 números em um código gigante e irreversível
+async function gerarHashDoPin(pin) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(pin);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     carregarPreferenciaModo();
     buscarProfessoresLiberados();
@@ -108,11 +117,14 @@ window.cadastrarProfessor = async function() {
             return;
         }
 
-        // 2. Garante que ninguém usou esse mesmo PIN de 4 dígitos antes
+        // 🔒 TRANSFORMA O PIN EM HASH AQUI
+        const pinCriptografado = await gerarHashDoPin(pinInput);
+
+        // 2. Garante que ninguém usou esse mesmo PIN criptografado antes
         const { data: pinExistente, error: erroBusca } = await supabase
             .from('professores')
             .select('id')
-            .eq('pin', pinInput);
+            .eq('pin', pinCriptografado); // 🔍 Busca pelo hash em vez do texto puro
 
         if (erroBusca) throw erroBusca;
 
@@ -129,10 +141,10 @@ window.cadastrarProfessor = async function() {
 
         btnCadastrar.innerText = 'Salvando acesso... ⏳';
 
-        // 3. Atualiza (UPDATE) a linha do professor adicionando o PIN definitivo
+        // 3. Atualiza (UPDATE) a linha do professor adicionando o PIN Criptografado
         const { error: erroUpdate } = await supabase
             .from('professores')
-            .update({ pin: pinInput })
+            .update({ pin: pinCriptografado }) // 💾 Salva o hash no banco
             .eq('id', professorId);
 
         if (erroUpdate) throw erroUpdate;
@@ -140,10 +152,10 @@ window.cadastrarProfessor = async function() {
         Swal.fire({
             icon: 'success',
             title: 'Acesso Ativado!',
-            text: 'Seu PIN foi configurado com sucesso. Você já pode fazer login!',
+            text: 'Seu PIN foi configurado com segurança. Você já pode fazer login!',
             confirmButtonColor: '#00b09b'
         }).then(() => {
-            window.location.href = 'index.html';
+            window.location.href = 'index.html'; // Aqui você coloca o nome do seu arquivo HTML de login
         });
 
     } catch (err) {
