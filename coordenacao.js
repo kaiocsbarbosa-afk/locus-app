@@ -20,6 +20,15 @@ window.addEventListener('error', function(e) {
     });
 });
 
+// 🔒 FUNÇÃO DE CRIPTOGRAFIA (HASH)
+async function gerarHashDaSenha(senha) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(senha);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 // =========================================================================
 // CONFIGURAÇÃO
 // =========================================================================
@@ -36,7 +45,6 @@ let dadosAtuaisParaExportar = [];
 // Função para carregar as salas do Supabase no filtro da coordenação
 async function carregarSalasNoFiltro() {
     try {
-        // Busca todas as salas cadastradas na tabela 'salas' ordenadas por nome
         const { data: salas, error } = await supabase
             .from('salas')
             .select('id, nome')
@@ -45,15 +53,12 @@ async function carregarSalasNoFiltro() {
         if (error) throw error;
 
         const selectSala = document.getElementById('filtroSala');
-        
-        // Garante que a primeira opção sempre será "Todas as salas"
         selectSala.innerHTML = '<option value="">Todas as salas</option>';
 
-        // Preenche o select com as salas vindas do banco de dados
         salas.forEach(sala => {
             const option = document.createElement('option');
-            option.value = sala.id; // O UUID da sala
-            option.textContent = sala.nome; // O nome legível (ex: Auditório)
+            option.value = sala.id;
+            option.textContent = sala.nome;
             selectSala.appendChild(option);
         });
 
@@ -73,12 +78,11 @@ document.addEventListener("DOMContentLoaded", () => {
         mostrarDashboard();
     }
     
-    // CORREÇÃO MOBILE: Alterado de 'keypress' para 'keydown' para evitar o bug 229 dos teclados Android
     const inputSenha = document.getElementById("senha-coord");
     if (inputSenha) {
         inputSenha.addEventListener("keydown", function(event) {
             if (event.key === "Enter") {
-                inputSenha.blur(); // Fecha o teclado virtual do celular imediatamente ao dar Enter
+                inputSenha.blur();
                 entrarPainel();
             }
         });
@@ -88,8 +92,6 @@ document.addEventListener("DOMContentLoaded", () => {
 // Função para carregar as disciplinas do Supabase no formulário de pré-cadastro
 async function carregarDisciplinasNoPreCadastro() {
     try {
-        // Busca todas as disciplinas cadastradas na tabela 'disciplinas' ordenadas por nome
-        // NOTA: Certifique-se de que o nome da sua tabela no Supabase seja exatamente 'disciplinas'
         const { data: disciplinas, error } = await supabase
             .from('disciplinas')
             .select('id, nome')
@@ -98,16 +100,12 @@ async function carregarDisciplinasNoPreCadastro() {
         if (error) throw error;
 
         const selectDisciplina = document.getElementById('coord-disciplina-professor');
-        if (!selectDisciplina) return; // Proteção caso o elemento não exista na tela atual
+        if (!selectDisciplina) return; 
 
-        // Limpa e mantém apenas a opção padrão
         selectDisciplina.innerHTML = '<option value="">Selecione a disciplina...</option>';
 
-        // Preenche o select dinamicamente
         disciplinas.forEach(disc => {
             const option = document.createElement('option');
-            // Dica: Se no seu banco a coluna for o texto corrido (Ex: 'Matemática'), use disc.nome no value. 
-            // Se for um ID/UUID relacional, use disc.id. Aqui usaremos disc.nome presumindo que você salva o texto na tabela do professor.
             option.value = disc.nome; 
             option.textContent = disc.nome;
             selectDisciplina.appendChild(option);
@@ -137,7 +135,6 @@ window.entrarPainel = async function() {
         return;
     }
 
-    // Feedback visual rápido de carregamento
     if (typeof Swal !== 'undefined') {
         Swal.fire({
             title: 'Autenticando...',
@@ -148,20 +145,23 @@ window.entrarPainel = async function() {
     }
 
     try {
+        // 🔒 Transforma a senha digitada em Hash ANTES de comparar
+        const senhaCriptografada = await gerarHashDaSenha(senhaDigitada);
+
         const { data, error } = await supabase
             .from('configuracoes')
             .select('valor')
             .eq('chave', 'senha_coordenacao')
-            .maybeSingle(); // Usando maybeSingle para evitar travar caso retorne vazio
+            .maybeSingle();
 
-        if (typeof Swal !== 'undefined') Swal.close(); // Fecha o loading se existir
+        if (typeof Swal !== 'undefined') Swal.close();
 
         if (error) {
             console.error("Erro retornado do Supabase:", error);
             dispararAlerta({
                 icon: 'error',
                 title: 'Erro de Banco de Dados',
-                text: `Não foi possível ler os dados. Motivo: ${error.message}. Certifique-se de desativar ou configurar a RLS na tabela 'configuracoes'.`,
+                text: `Não foi possível ler os dados. Motivo: ${error.message}.`,
                 confirmButtonColor: 'var(--cor-perigo)'
             });
             return;
@@ -171,13 +171,14 @@ window.entrarPainel = async function() {
             dispararAlerta({
                 icon: 'error',
                 title: 'Configuração Ausente',
-                text: "A tabela 'configuracoes' foi lida com sucesso, mas nenhuma linha com a chave 'senha_coordenacao' foi encontrada no banco.",
+                text: "A chave 'senha_coordenacao' não foi encontrada no banco.",
                 confirmButtonColor: 'var(--cor-perigo)'
             });
             return;
         }
 
-        if (senhaDigitada === data.valor) {
+        // 🔒 Compara o Hash gerado agora com o Hash salvo no Supabase
+        if (senhaCriptografada === data.valor) {
             sessionStorage.setItem('coord_logada', 'true');
             mostrarDashboard();
         } else {
@@ -223,7 +224,6 @@ function mostrarDashboard() {
     carregarRelatorioGeral();
 }
 
-// SALVAR O PRÉ-CADASTRO COM PIN NULO REAL
 window.salvarPreCadastro = async function() {
     const nomeInput = document.getElementById('coord-nome-professor').value.trim();
     const disciplinaInput = document.getElementById('coord-disciplina-professor').value;
@@ -282,7 +282,6 @@ window.carregarRelatorioGeral = async function() {
     const dataFiltro = filtroData.value;
     const salaFiltro = filtroSala?.value || ''; 
 
-    // 🕵️‍♂️ LINHA ESPIÃ 1: Mostra no console o que o app está tentando buscar
     console.log("🔍 [DIAGNÓSTICO] Tentando buscar agendamentos da data:", dataFiltro, "| Sala ID:", salaFiltro);
 
     tabela.innerHTML = '';
@@ -300,7 +299,6 @@ window.carregarRelatorioGeral = async function() {
 
     const { data: agendamentos, error } = await query.order('aula_numero', { ascending: true });
 
-    // 🕵️‍♂️ LINHA ESPIÃ 2: Mostra exatamente o que o Supabase respondeu
     console.log("📊 [DIAGNÓSTICO] Resposta do Supabase:", { dados: agendamentos, erro: error });
 
     if (error) {
@@ -390,7 +388,6 @@ window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula) 
 }
 
 window.exportarParaPlanilha = async function() {
-    // 1. Verifica se há dados na tabela
     if (!dadosAtuaisParaExportar || dadosAtuaisParaExportar.length === 0) {
         dispararAlerta({
             icon: 'warning',
@@ -401,7 +398,6 @@ window.exportarParaPlanilha = async function() {
         return;
     }
 
-    // 2. Exibe o balão de "Carregando/Exportando"
     if (typeof Swal !== 'undefined') {
         Swal.fire({
             title: 'Exportando dados...',
@@ -413,7 +409,6 @@ window.exportarParaPlanilha = async function() {
         });
     }
 
-    // 3. Formata os dados vindos do Supabase
     const dadosFormatados = dadosAtuaisParaExportar.map(item => ({
         data: item.data.split('-').reverse().join('/'),
         horario: `Aula ${item.aula_numero}º`,
@@ -422,7 +417,6 @@ window.exportarParaPlanilha = async function() {
         turma: item.turmas?.nome || 'Geral'
     }));
 
-    // 4. Faz o envio físico para o Google Apps Script
     try {
         await fetch(URL_GOOGLE_SCRIPT, {
             method: "POST",
@@ -433,7 +427,6 @@ window.exportarParaPlanilha = async function() {
 
         if (typeof Swal !== 'undefined') Swal.close();
 
-        // Sucesso!
         dispararAlerta({
             icon: 'success',
             title: 'Concluído!',
@@ -444,7 +437,6 @@ window.exportarParaPlanilha = async function() {
     } catch (erro) {
         if (typeof Swal !== 'undefined') Swal.close();
         
-        // Falha física (ex: falta de internet)
         dispararAlerta({
             icon: 'error',
             title: 'Falha no envio',
@@ -454,7 +446,6 @@ window.exportarParaPlanilha = async function() {
     }
 }
 
-// Agora sim, cria o canal do zero com segurança total
 supabase
     .channel('mudancas-agendamentos-coord')
     .on(
@@ -467,7 +458,6 @@ supabase
     )
     .subscribe();
 
-// Garante que assim que a página carregar, os dados dinâmicos serão buscados no Supabase
 document.addEventListener("DOMContentLoaded", () => {
     carregarSalasNoFiltro();
     carregarDisciplinasNoPreCadastro(); 
