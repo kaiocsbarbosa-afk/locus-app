@@ -124,81 +124,34 @@ async function carregarDisciplinasNoPreCadastro() {
     }
 }
 
+// Substitui o bloco que busca a senha diretamente
 window.entrarPainel = async function() {
-    const senhaDigitada = document.getElementById('senha-coord').value;
-    
-    if (!senhaDigitada) {
-        dispararAlerta({
-            icon: 'warning',
-            title: 'Atenção',
-            text: 'Por favor, digite a senha.',
-            confirmButtonColor: 'var(--cor-primaria)'
-        });
-        return;
+  const senhaDigitada = document.getElementById('senha-coord').value;
+  if (!senhaDigitada) return;
+
+  Swal.fire({ title: 'Autenticando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  try {
+    // Chama a Edge Function — a senha real NUNCA desce pro front
+    const { data, error } = await supabase.functions.invoke('verificar-senha-coord', {
+      body: { senha: senhaDigitada }
+    });
+
+    Swal.close();
+
+    if (error || !data?.autorizado) {
+      Swal.fire({ icon: 'error', title: 'Acesso Negado', text: 'Senha incorreta.', confirmButtonColor: 'var(--cor-perigo)' });
+      document.getElementById('senha-coord').value = '';
+      return;
     }
 
-    // Feedback visual rápido de carregamento
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            title: 'Autenticando...',
-            text: 'Buscando credenciais com segurança no Supabase',
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading()
-        });
-    }
+    sessionStorage.setItem('coord_logada', 'true');
+    mostrarDashboard();
 
-    try {
-        const { data, error } = await supabase
-            .from('configuracoes')
-            .select('valor')
-            .eq('chave', 'senha_coordenacao')
-            .maybeSingle(); // Usando maybeSingle para evitar travar caso retorne vazio
-
-        if (typeof Swal !== 'undefined') Swal.close(); // Fecha o loading se existir
-
-        if (error) {
-            console.error("Erro retornado do Supabase:", error);
-            dispararAlerta({
-                icon: 'error',
-                title: 'Erro de Banco de Dados',
-                text: `Não foi possível ler os dados. Motivo: ${error.message}. Certifique-se de desativar ou configurar a RLS na tabela 'configuracoes'.`,
-                confirmButtonColor: 'var(--cor-perigo)'
-            });
-            return;
-        }
-
-        if (!data) {
-            dispararAlerta({
-                icon: 'error',
-                title: 'Configuração Ausente',
-                text: "A tabela 'configuracoes' foi lida com sucesso, mas nenhuma linha com a chave 'senha_coordenacao' foi encontrada no banco.",
-                confirmButtonColor: 'var(--cor-perigo)'
-            });
-            return;
-        }
-
-        if (senhaDigitada === data.valor) {
-            sessionStorage.setItem('coord_logada', 'true');
-            mostrarDashboard();
-        } else {
-            dispararAlerta({
-                icon: 'error',
-                title: 'Acesso Negado',
-                text: '❌ Senha incorreta!',
-                confirmButtonColor: 'var(--cor-perigo)'
-            });
-            document.getElementById('senha-coord').value = "";
-        }
-    } catch (err) {
-        if (typeof Swal !== 'undefined') Swal.close();
-        console.error("Erro na execução do bloco try-catch:", err);
-        dispararAlerta({
-            icon: 'error',
-            title: 'Erro Crítico',
-            text: `Falha na requisição: ${err.message}`,
-            confirmButtonColor: 'var(--cor-perigo)'
-        });
-    }
+  } catch (err) {
+    Swal.close();
+    Swal.fire({ icon: 'error', title: 'Erro de conexão', text: err.message });
+  }
 }
 
 window.sairPainel = function() {
