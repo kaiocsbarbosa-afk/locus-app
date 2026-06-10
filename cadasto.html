@@ -1,53 +1,53 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Locus</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#6C63FF">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="stylesheet" href="professor.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Locus</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6C63FF">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="professor.css">
 </head>
 <body>
 
 <div class="container">
-    <div class="header-controles">
-        <button class="btn-toggle-modo" onclick="toggleDarkMode()" id="txt-modo">🌙 Escuro</button>
-        <button class="btn-sair" onclick="window.location.href='index.html'">Voltar ao Login 🔙</button>
-    </div>
+    <div class="header-controles">
+        <button class="btn-toggle-modo" onclick="toggleDarkMode()" id="txt-modo">🌙 Escuro</button>
+        <button class="btn-sair" onclick="window.location.href='index.html'">Voltar ao Login 🔙</button>
+    </div>
 
-    <h2 id="titulo-app">Ativar Meu Acesso</h2>
-    <div class="status-card" style="margin-bottom: 25px; color: var(--texto-secundario); border-color: transparent; background: transparent; font-size: 0.9rem;">
-        Selecione seu nome na lista autorizada pela coordenação e crie seu PIN de segurança.
-    </div>
-    
-    <div id="secao-cadastro">
-        <div class="form-group">
-            <label>Selecione Seu Nome:</label>
-            <select id="select-professor-cadastro">
-                <option value="">Carregando lista de professores...</option>
-            </select>
-        </div>
+    <h2 id="titulo-app">Ativar Meu Acesso</h2>
+    <div class="status-card" style="margin-bottom: 25px; color: var(--texto-secundario); border-color: transparent; background: transparent; font-size: 0.9rem;">
+        Selecione seu nome na lista autorizada pela coordenação e crie seu PIN de segurança.
+    </div>
+    
+    <div id="secao-cadastro">
+        <div class="form-group">
+            <label>Selecione Seu Nome:</label>
+            <select id="select-professor-cadastro">
+                <option value="">Carregando lista de professores...</option>
+            </select>
+        </div>
 
-        <div class="form-group">
-            <label>Sua Disciplina:</label>
-            <input type="text" id="disciplina-cadastro-visual" disabled placeholder="Selecione seu nome acima para ver a disciplina">
-        </div>
+        <div class="form-group">
+            <label>Sua Disciplina:</label>
+            <input type="text" id="disciplina-cadastro-visual" disabled placeholder="Selecione seu nome acima para ver a disciplina">
+        </div>
 
-        <div class="form-group">
-            <label>Crie seu PIN (Exatamente 4 Números):</label>
-            <input type="password" id="pin-cadastro" placeholder="Ex: 4826" inputmode="numeric" maxlength="4">
-        </div>
+        <div class="form-group">
+            <label>Crie seu PIN (Exatamente 4 Números):</label>
+            <input type="password" id="pin-cadastro" placeholder="Ex: 4826" inputmode="numeric" maxlength="4">
+        </div>
 
-        <div class="form-group">
-            <label>Código de Convite da Escola:</label>
-            <input type="text" id="codigo-escola-cadastro" placeholder="Digite o código secreto fornecido pela coordenação">
-        </div>
+        <div class="form-group">
+            <label>Código de Convite da Escola:</label>
+            <input type="text" id="codigo-escola-cadastro" placeholder="Digite o código secreto fornecido pela coordenação">
+        </div>
 
-        <button id="btn-cadastrar" class="principal" onclick="cadastrarProfessor()">Concluir Ativação</button>
-    </div>
+        <button id="btn-cadastrar" class="principal" onclick="cadastrarProfessor()">Concluir Ativação</button>
+    </div>
 </div>
 
 <script type="module" src="cadrasto.js"></script>
