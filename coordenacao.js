@@ -1,6 +1,5 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// Função auxiliar de segurança para garantir que o app não trave se o SweetAlert2 falhar
 function dispararAlerta(config) {
     if (typeof Swal !== 'undefined') {
         Swal.fire(config);
@@ -9,34 +8,142 @@ function dispararAlerta(config) {
     }
 }
 
-// Captura qualquer erro invisível na tela de forma elegante
 window.addEventListener('error', function(e) {
     console.error("Erro capturado:", e);
     dispararAlerta({
         icon: 'error',
-        title: '🚨 O código quebrou!',
-        text: `Erro: ${e.message} na linha ${e.lineno}`,
+        title: 'Erro no sistema',
+        text: `${e.message} (linha ${e.lineno})`,
         confirmButtonColor: 'var(--cor-perigo)'
     });
 });
 
-// =========================================================================
-// CONFIGURAÇÃO
-// =========================================================================
 const supabaseUrl = 'https://ixhuqbfzwkobhrvlzwgm.supabase.co'
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84'
-
-// URL DO GOOGLE (Terminando obrigatoriamente com /exec)
-const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbw6fMtP880hmAdtRSj8tgBVCw-U9qGo-JnOqMD7DCb_I5q6Isooady17YNCmmUlKemhzQ/exec";
-// =========================================================================
+const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbw6fMtP880hmAdtRSj8tgBVCw-U9qGo-JnOqMD7DCb_I5q6Isooady17YNCmmUlKemhzQ/exec"
 
 const supabase = createClient(supabaseUrl, supabaseKey)
 let dadosAtuaisParaExportar = [];
 
-// Função para carregar as salas do Supabase no filtro da coordenação
+// ============================================================
+//  AUTENTICAÇÃO — agora via Edge Function (segura)
+//  A senha nunca desce para o front-end
+// ============================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+    if (sessionStorage.getItem('coord_logada') === 'true') {
+        mostrarDashboard();
+    }
+
+    const inputSenha = document.getElementById("senha-coord");
+    if (inputSenha) {
+        inputSenha.addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                inputSenha.blur();
+                entrarPainel();
+            }
+        });
+    }
+
+    carregarSalasNoFiltro();
+    carregarDisciplinasNoPreCadastro();
+
+    const fData = document.getElementById('filtroData');
+    const fSala = document.getElementById('filtroSala');
+    if (fData) fData.addEventListener('change', () => carregarRelatorioGeral());
+    if (fSala) fSala.addEventListener('change', () => carregarRelatorioGeral());
+});
+
+window.entrarPainel = async function() {
+    const senhaDigitada = document.getElementById('senha-coord').value;
+
+    if (!senhaDigitada) {
+        dispararAlerta({
+            icon: 'warning',
+            title: 'Atenção',
+            text: 'Por favor, digite a senha.',
+            confirmButtonColor: 'var(--cor-primaria)'
+        });
+        return;
+    }
+
+    Swal.fire({
+        title: 'Autenticando...',
+        text: 'Verificando credenciais',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        // Chama a Edge Function no servidor — a senha real nunca desce ao browser
+        const { data, error } = await supabase.functions.invoke('verificar-senha-coord', {
+            body: { senha: senhaDigitada }
+        });
+
+        Swal.close();
+
+        if (error) {
+            console.error("Erro na Edge Function:", error);
+            dispararAlerta({
+                icon: 'error',
+                title: 'Erro de conexão',
+                text: 'Não foi possível verificar as credenciais. Tente novamente.',
+                confirmButtonColor: 'var(--cor-perigo)'
+            });
+            return;
+        }
+
+        if (!data?.autorizado) {
+            dispararAlerta({
+                icon: 'error',
+                title: 'Acesso Negado',
+                text: 'Senha incorreta.',
+                confirmButtonColor: 'var(--cor-perigo)'
+            });
+            document.getElementById('senha-coord').value = '';
+            return;
+        }
+
+        sessionStorage.setItem('coord_logada', 'true');
+        mostrarDashboard();
+
+    } catch (err) {
+        Swal.close();
+        console.error("Erro inesperado:", err);
+        dispararAlerta({
+            icon: 'error',
+            title: 'Erro crítico',
+            text: `Falha na requisição: ${err.message}`,
+            confirmButtonColor: 'var(--cor-perigo)'
+        });
+    }
+}
+
+window.sairPainel = function() {
+    sessionStorage.removeItem('coord_logada');
+    window.location.reload();
+}
+
+// ============================================================
+//  DASHBOARD
+// ============================================================
+
+function mostrarDashboard() {
+    document.getElementById('secao-login-coord').classList.add('hidden');
+    document.getElementById('secao-dashboard').classList.remove('hidden');
+
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    const inputData = document.getElementById('filtroData');
+    if (inputData) inputData.value = `${ano}-${mes}-${dia}`;
+
+    carregarRelatorioGeral();
+}
+
 async function carregarSalasNoFiltro() {
     try {
-        // Busca todas as salas cadastradas na tabela 'salas' ordenadas por nome
         const { data: salas, error } = await supabase
             .from('salas')
             .select('id, nome')
@@ -45,51 +152,20 @@ async function carregarSalasNoFiltro() {
         if (error) throw error;
 
         const selectSala = document.getElementById('filtroSala');
-        
-        // Garante que a primeira opção sempre será "Todas as salas"
         selectSala.innerHTML = '<option value="">Todas as salas</option>';
-
-        // Preenche o select com as salas vindas do banco de dados
         salas.forEach(sala => {
             const option = document.createElement('option');
-            option.value = sala.id; // O UUID da sala
-            option.textContent = sala.nome; // O nome legível (ex: Auditório)
+            option.value = sala.id;
+            option.textContent = sala.nome;
             selectSala.appendChild(option);
         });
-
     } catch (erro) {
-        console.error("Erro ao carregar salas no filtro:", erro);
-        dispararAlerta({
-            icon: 'error',
-            title: 'Erro ao carregar salas',
-            text: 'Não foi possível buscar a lista de salas do banco de dados.',
-            confirmButtonColor: 'var(--cor-perigo)'
-        });
+        console.error("Erro ao carregar salas:", erro);
     }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    if (sessionStorage.getItem('coord_logada') === 'true') {
-        mostrarDashboard();
-    }
-    
-    // CORREÇÃO MOBILE: Alterado de 'keypress' para 'keydown' para evitar o bug 229 dos teclados Android
-    const inputSenha = document.getElementById("senha-coord");
-    if (inputSenha) {
-        inputSenha.addEventListener("keydown", function(event) {
-            if (event.key === "Enter") {
-                inputSenha.blur(); // Fecha o teclado virtual do celular imediatamente ao dar Enter
-                entrarPainel();
-            }
-        });
-    }
-});
-
-// Função para carregar as disciplinas do Supabase no formulário de pré-cadastro
 async function carregarDisciplinasNoPreCadastro() {
     try {
-        // Busca todas as disciplinas cadastradas na tabela 'disciplinas' ordenadas por nome
-        // NOTA: Certifique-se de que o nome da sua tabela no Supabase seja exatamente 'disciplinas'
         const { data: disciplinas, error } = await supabase
             .from('disciplinas')
             .select('id, nome')
@@ -98,149 +174,83 @@ async function carregarDisciplinasNoPreCadastro() {
         if (error) throw error;
 
         const selectDisciplina = document.getElementById('coord-disciplina-professor');
-        if (!selectDisciplina) return; // Proteção caso o elemento não exista na tela atual
+        if (!selectDisciplina) return;
 
-        // Limpa e mantém apenas a opção padrão
         selectDisciplina.innerHTML = '<option value="">Selecione a disciplina...</option>';
-
-        // Preenche o select dinamicamente
         disciplinas.forEach(disc => {
             const option = document.createElement('option');
-            // Dica: Se no seu banco a coluna for o texto corrido (Ex: 'Matemática'), use disc.nome no value. 
-            // Se for um ID/UUID relacional, use disc.id. Aqui usaremos disc.nome presumindo que você salva o texto na tabela do professor.
-            option.value = disc.nome; 
+            option.value = disc.nome;
             option.textContent = disc.nome;
             selectDisciplina.appendChild(option);
         });
-
     } catch (erro) {
         console.error("Erro ao carregar disciplinas:", erro);
-        dispararAlerta({
-            icon: 'error',
-            title: 'Erro ao carregar disciplinas',
-            text: 'Não foi possível buscar a lista de disciplinas do banco de dados.',
-            confirmButtonColor: 'var(--cor-perigo)'
-        });
     }
 }
 
-// Substitui o bloco que busca a senha diretamente
-window.entrarPainel = async function() {
-  const senhaDigitada = document.getElementById('senha-coord').value;
-  if (!senhaDigitada) return;
-
-  Swal.fire({ title: 'Autenticando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-  try {
-    // Chama a Edge Function — a senha real NUNCA desce pro front
-    const { data, error } = await supabase.functions.invoke('verificar-senha-coord', {
-      body: { senha: senhaDigitada }
-    });
-
-    Swal.close();
-
-    if (error || !data?.autorizado) {
-      Swal.fire({ icon: 'error', title: 'Acesso Negado', text: 'Senha incorreta.', confirmButtonColor: 'var(--cor-perigo)' });
-      document.getElementById('senha-coord').value = '';
-      return;
-    }
-
-    sessionStorage.setItem('coord_logada', 'true');
-    mostrarDashboard();
-
-  } catch (err) {
-    Swal.close();
-    Swal.fire({ icon: 'error', title: 'Erro de conexão', text: err.message });
-  }
-}
-
-window.sairPainel = function() {
-    sessionStorage.removeItem('coord_logada');
-    window.location.reload();
-}
-
-function mostrarDashboard() {
-    document.getElementById('secao-login-coord').classList.add('hidden');
-    document.getElementById('secao-dashboard').classList.remove('hidden');
-    
-    const hoje = new Date();
-    const ano = hoje.getFullYear();
-    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-    const dia = String(hoje.getDate()).padStart(2, '0');
-    
-    const filtroData = document.getElementById('filtroData');
-    if (filtroData) {
-        filtroData.value = `${ano}-${mes}-${dia}`;
-    }
-    
-    carregarRelatorioGeral();
-}
-
-// SALVAR O PRÉ-CADASTRO COM PIN NULO REAL
 window.salvarPreCadastro = async function() {
-    const nomeInput = document.getElementById('coord-nome-professor').value.trim();
-    const disciplinaInput = document.getElementById('coord-disciplina-professor').value;
+    const nome = document.getElementById('coord-nome-professor').value.trim();
+    const disciplina = document.getElementById('coord-disciplina-professor').value;
 
-    if (!nomeInput || !disciplinaInput) {
-        return dispararAlerta({
+    if (!nome || !disciplina) {
+        dispararAlerta({
             icon: 'warning',
-            title: 'Campos Incompletos',
-            text: 'Por favor, informe o nome completo do professor e escolha uma disciplina.',
+            title: 'Campos obrigatórios',
+            text: 'Preencha o nome e selecione a disciplina do professor.',
             confirmButtonColor: 'var(--cor-primaria)'
         });
+        return;
     }
-
-    document.activeElement.blur();
 
     try {
         const { error } = await supabase
             .from('professores')
-            .insert([{
-                nome: nomeInput,
-                disciplina: disciplinaInput,
-                pin: null 
-            }]);
+            .insert([{ nome, disciplina, pin: null }]);
 
         if (error) throw error;
 
         dispararAlerta({
             icon: 'success',
-            title: 'Professor Autorizado!',
-            text: `"${nomeInput}" foi liberado. Ele já pode configurar o PIN de 4 dígitos na página de ativação.`,
-            confirmButtonColor: 'var(--cor-sucesso)'
+            title: 'Professor liberado!',
+            text: `${nome} já pode criar seu PIN de acesso.`,
+            confirmButtonColor: 'var(--cor-sucesso)',
+            timer: 2500,
+            showConfirmButton: false
         });
 
-        document.getElementById('coord-nome-professor').value = "";
-        document.getElementById('coord-disciplina-professor').value = "";
+        document.getElementById('coord-nome-professor').value = '';
+        document.getElementById('coord-disciplina-professor').value = '';
 
     } catch (err) {
         console.error("Erro ao pré-cadastrar professor:", err);
         dispararAlerta({
             icon: 'error',
-            title: 'Erro de Banco de Dados',
-            text: 'Não foi possível autorizar o professor. Verifique se a tabela aceita valores NULL.',
+            title: 'Erro de banco de dados',
+            text: 'Não foi possível autorizar o professor.',
             confirmButtonColor: 'var(--cor-perigo)'
         });
     }
 }
 
 window.carregarRelatorioGeral = async function() {
-    const filtroData = document.getElementById('filtroData') || document.getElementById('filtro-data');
-    const filtroSala = document.getElementById('filtroSala') || document.getElementById('filtro-sala');
-    const tabela = document.getElementById('corpo-tabela') || document.getElementById('listaAgendamentos');
-    const avisoVazio = document.getElementById('aviso-vazio') || document.getElementById('sem-dados');
+    const filtroData = document.getElementById('filtroData');
+    const filtroSala = document.getElementById('filtroSala');
+    const tabela = document.getElementById('listaAgendamentos');
 
     if (!filtroData || !tabela) return;
-    
-    const dataFiltro = filtroData.value;
-    const salaFiltro = filtroSala?.value || ''; 
 
-    // 🕵️‍♂️ LINHA ESPIÃ 1: Mostra no console o que o app está tentando buscar
-    console.log("🔍 [DIAGNÓSTICO] Tentando buscar agendamentos da data:", dataFiltro, "| Sala ID:", salaFiltro);
+    const dataFiltro = filtroData.value;
+    const salaFiltro = filtroSala?.value || '';
 
     tabela.innerHTML = '';
     dadosAtuaisParaExportar = [];
-    if (!dataFiltro) return;
+
+    if (!dataFiltro) {
+        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Selecione uma data para ver os agendamentos.</td></tr>`;
+        return;
+    }
+
+    tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Carregando...</td></tr>`;
 
     let query = supabase
         .from('agendamentos')
@@ -253,37 +263,30 @@ window.carregarRelatorioGeral = async function() {
 
     const { data: agendamentos, error } = await query.order('aula_numero', { ascending: true });
 
-    // 🕵️‍♂️ LINHA ESPIÃ 2: Mostra exatamente o que o Supabase respondeu
-    console.log("📊 [DIAGNÓSTICO] Resposta do Supabase:", { dados: agendamentos, erro: error });
-
     if (error) {
         dispararAlerta({
             icon: 'error',
-            title: 'Erro de Carregamento',
-            text: 'Não foi possível buscar os agendamentos no Supabase.',
+            title: 'Erro de carregamento',
+            text: 'Não foi possível buscar os agendamentos.',
             confirmButtonColor: 'var(--cor-perigo)'
         });
         return;
     }
 
-    const qtdTotalElemento = document.getElementById('qtd-total');
-    if (qtdTotalElemento) {
-        qtdTotalElemento.innerText = agendamentos.length;
-    }
-    
+    const qtdEl = document.getElementById('qtd-total');
+    if (qtdEl) qtdEl.innerText = agendamentos.length;
+
     dadosAtuaisParaExportar = agendamentos;
 
     if (!agendamentos || agendamentos.length === 0) {
-        if (avisoVazio) avisoVazio.classList.remove('hidden');
+        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Nenhum agendamento encontrado para os filtros selecionados.</td></tr>`;
         return;
-    } else {
-        if (avisoVazio) avisoVazio.classList.add('hidden');
     }
 
+    tabela.innerHTML = '';
     agendamentos.forEach(item => {
         const dataBr = item.data.split('-').reverse().join('/');
         const tr = document.createElement('tr');
-
         tr.innerHTML = `
             <td><strong>${dataBr}</strong></td>
             <td><span class="badge-aula">Aula ${item.aula_numero}º</span></td>
@@ -301,72 +304,42 @@ window.carregarRelatorioGeral = async function() {
 }
 
 window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula) {
-    if (typeof Swal === 'undefined') {
-        const c = confirm(`Deseja cancelar o agendamento de: ${nomeSala}?`);
-        if(!c) return;
-    } else {
-        const confirmacao = await Swal.fire({
-            title: 'Tem certeza?',
-            text: `Deseja cancelar o agendamento de: ${nomeSala}?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: 'var(--cor-perigo)',
-            cancelButtonColor: 'var(--texto-secundario)',
-            confirmButtonText: 'Sim, cancelar!',
-            cancelButtonText: 'Voltar'
-        });
-        if (!confirmacao.isConfirmed) return;
-    }
+    const confirmacao = await Swal.fire({
+        title: 'Tem certeza?',
+        text: `Cancelar reserva de ${nomeSala} — Aula ${numeroAula}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--cor-perigo)',
+        cancelButtonColor: 'var(--texto-secundario)',
+        confirmButtonText: 'Sim, cancelar!',
+        cancelButtonText: 'Voltar'
+    });
 
-    const { error } = await supabase
-        .from('agendamentos')
-        .delete()
-        .eq('id', idAgendamento);
+    if (!confirmacao.isConfirmed) return;
+
+    const { error } = await supabase.from('agendamentos').delete().eq('id', idAgendamento);
 
     if (error) {
-        dispararAlerta({
-            icon: 'error',
-            title: 'Erro!',
-            text: 'Não foi possível excluir o agendamento.',
-            confirmButtonColor: 'var(--cor-primaria)'
-        });
+        dispararAlerta({ icon: 'error', title: 'Erro!', text: 'Não foi possível excluir o agendamento.', confirmButtonColor: 'var(--cor-primaria)' });
     } else {
-        dispararAlerta({
-            icon: 'success',
-            title: 'Cancelado!',
-            text: 'O agendamento foi removido.',
-            timer: 1500,
-            showConfirmButton: false
-        });
+        dispararAlerta({ icon: 'success', title: 'Cancelado!', text: 'Reserva removida.', timer: 1500, showConfirmButton: false });
         carregarRelatorioGeral();
     }
 }
 
 window.exportarParaPlanilha = async function() {
-    // 1. Verifica se há dados na tabela
     if (!dadosAtuaisParaExportar || dadosAtuaisParaExportar.length === 0) {
         dispararAlerta({
             icon: 'warning',
-            title: 'Tabela Vazia',
-            text: 'Não há dados na tabela para enviar. Mude a data do filtro para carregar os agendamentos primeiro.',
+            title: 'Tabela vazia',
+            text: 'Filtre por uma data com agendamentos antes de exportar.',
             confirmButtonColor: 'var(--cor-primaria)'
         });
         return;
     }
 
-    // 2. Exibe o balão de "Carregando/Exportando"
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            title: 'Exportando dados...',
-            text: 'Enviando para o Google Planilhas. Por favor, aguarde.',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-    }
+    Swal.fire({ title: 'Exportando...', text: 'Enviando para o Google Planilhas.', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
-    // 3. Formata os dados vindos do Supabase
     const dadosFormatados = dadosAtuaisParaExportar.map(item => ({
         data: item.data.split('-').reverse().join('/'),
         horario: `Aula ${item.aula_numero}º`,
@@ -375,7 +348,6 @@ window.exportarParaPlanilha = async function() {
         turma: item.turmas?.nome || 'Geral'
     }));
 
-    // 4. Faz o envio físico para o Google Apps Script
     try {
         await fetch(URL_GOOGLE_SCRIPT, {
             method: "POST",
@@ -384,50 +356,21 @@ window.exportarParaPlanilha = async function() {
             body: JSON.stringify(dadosFormatados)
         });
 
-        if (typeof Swal !== 'undefined') Swal.close();
-
-        // Sucesso!
-        dispararAlerta({
-            icon: 'success',
-            title: 'Concluído!',
-            text: 'Os dados foram enviados para a sua planilha com sucesso.',
-            confirmButtonColor: 'var(--cor-sucesso)'
-        });
+        Swal.close();
+        dispararAlerta({ icon: 'success', title: 'Concluído!', text: 'Dados enviados para a planilha.', confirmButtonColor: 'var(--cor-sucesso)' });
 
     } catch (erro) {
-        if (typeof Swal !== 'undefined') Swal.close();
-        
-        // Falha física (ex: falta de internet)
-        dispararAlerta({
-            icon: 'error',
-            title: 'Falha no envio',
-            text: "Ocorreu um erro físico: " + erro.message,
-            confirmButtonColor: 'var(--cor-perigo)'
-        });
+        Swal.close();
+        dispararAlerta({ icon: 'error', title: 'Falha no envio', text: erro.message, confirmButtonColor: 'var(--cor-perigo)' });
     }
 }
 
-// Agora sim, cria o canal do zero com segurança total
+// Realtime — atualiza tabela automaticamente
 supabase
     .channel('mudancas-agendamentos-coord')
-    .on(
-        'postgres_changes', 
-        { event: '*', schema: 'public', table: 'agendamentos' }, 
-        (payload) => {
-            console.log('Mudança detectada em tempo real!', payload);
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, () => {
+        if (sessionStorage.getItem('coord_logada') === 'true') {
             carregarRelatorioGeral();
         }
-    )
+    })
     .subscribe();
-
-// Garante que assim que a página carregar, os dados dinâmicos serão buscados no Supabase
-document.addEventListener("DOMContentLoaded", () => {
-    carregarSalasNoFiltro();
-    carregarDisciplinasNoPreCadastro(); 
-    
-    const fData = document.getElementById('filtroData') || document.getElementById('filtro-data');
-    const fSala = document.getElementById('filtroSala') || document.getElementById('filtro-sala');
-    
-    if (fData) fData.addEventListener('change', () => carregarRelatorioGeral());
-    if (fSala) fSala.addEventListener('change', () => carregarRelatorioGeral());
-});
