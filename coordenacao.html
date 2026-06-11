@@ -3,108 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Locus - Painel da Coordenação</title>
-    
+    <title>Locus — Coordenação</title>
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./icon-192.png">
-
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="locus.css">
 </head>
 <body>
 
+<!-- LOGIN -->
 <div id="secao-login-coord" class="login-coord-box">
-    <h2>Acesso Restrito</h2>
-    <p style="color: var(--texto-secundario); font-size: 0.9rem;">Autenticação via Supabase</p>
-    <input type="password" id="senha-coord" placeholder="Digite a senha de administrador...">
-    <button onclick="entrarPainel()">Acessar Painel</button>
+    <div style="font-size:2.2rem; margin-bottom:14px;">🛡️</div>
+    <h2>Painel da Coordenação</h2>
+    <p>Acesso restrito. Digite a senha de administrador.</p>
+    <input type="password" id="senha-coord" placeholder="Senha de administrador..." autocomplete="current-password">
+    <button onclick="entrarPainel()">Acessar painel</button>
+    <div style="margin-top:16px;">
+        <a href="index.html" style="font-size:.85rem; color:var(--texto-secundario); text-decoration:none;">← Voltar ao início</a>
+    </div>
 </div>
 
+<!-- DASHBOARD -->
 <div id="secao-dashboard" class="dashboard hidden">
+
+    <!-- Header -->
     <div class="header-painel">
         <div>
             <h2>Painel da Coordenação</h2>
-            <small style="color: var(--texto-secundario);">Gerenciamento e auditoria de salas em tempo real</small>
+            <small>Gerenciamento e auditoria em tempo real</small>
         </div>
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <span style="font-weight: 600; color: var(--cor-primaria);">🏫 Modo Administrador</span>
-            <button class="btn-sair" onclick="sairPainel()">Sair</button>
+        <div class="header-painel-direita">
+            <span class="badge-admin">🏫 Administrador</span>
+            <button class="btn-toggle-modo" onclick="toggleDarkMode()" id="txt-modo">🌙 Escuro</button>
+            <button class="btn-sair" onclick="sairPainel()">Sair 🚪</button>
         </div>
     </div>
 
+    <!-- Resumo -->
     <div class="resumo-cards">
         <div class="card-mini">
             <span id="qtd-total">0</span>
-            <label>Salas Reservadas no Filtro Atual</label>
+            <label>Reservas no filtro atual</label>
         </div>
     </div>
 
+    <!-- Pré-cadastro -->
     <div class="card-precadastro">
-        <h3>📋 Pré-cadastrar Professor (Autorizar Acesso)</h3>
-        <p class="card-subtitulo">O nome e a matéria vão para a lista de liberação. O professor criará o PIN dele depois.</p>
-        
+        <h3>📋 Autorizar novo professor</h3>
+        <p class="card-subtitulo">O professor vai aparecer na lista de ativação e criará o próprio PIN depois.</p>
+
         <div class="form-group">
-            <label for="coord-nome-professor">Nome Completo do Professor:</label>
-            <input type="text" id="coord-nome-professor" placeholder="Ex: Professor Carlos Silva">
+            <label for="coord-nome-professor">Nome completo</label>
+            <input type="text" id="coord-nome-professor" placeholder="Ex: Prof. Carlos Silva">
         </div>
 
         <div class="form-group">
-    <label for="coord-disciplina-professor">Selecione a Disciplina:</label>
-    <select id="coord-disciplina-professor">
-        <option value="">Selecione a disciplina...</option>
-        </select>
-</div>
-
-        <button type="button" class="btn-liberar-cadastro" onclick="salvarPreCadastro()">
-            ➕ Liberar Cadastro
-        </button>
-    </div>
-
-   <div class="tabela-larga">
-    
-    <div class="filtros-container">
-        <div class="filtro-item">
-            <label>Filtrar por Data:</label>
-            <input type="date" id="filtroData">
-        </div>
-        
-        <div class="filtro-item">
-            <label>Filtrar por Sala:</label>
-            <select id="filtroSala">
-                <option value="">Todas as salas</option>
+            <label for="coord-disciplina-professor">Disciplina</label>
+            <select id="coord-disciplina-professor">
+                <option value="">Selecione a disciplina...</option>
             </select>
         </div>
 
-       <button class="btn-exportar" onclick="exportarParaPlanilha()">
-    Exportar para Planilha
-</button>
-        
-    <div class="table-responsive">
-        <table>
-            <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Aula</th>
-                    <th>Local</th>
-                    <th>Professor Responsável</th>
-                    <th>Turma</th>
-                    <th>Ações Adm.</th>
-                </tr>
-            </thead>
-            <tbody id="listaAgendamentos">
-                <tr>
-                    <td colspan="6" style="text-align: center; padding: 30px; color: #64748b;">
-                        Nenhum agendamento encontrado para os filtros selecionados.
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <button type="button" class="btn-liberar-cadastro" onclick="salvarPreCadastro()">
+            ➕ Liberar cadastro
+        </button>
     </div>
 
+    <!-- Tabela de agendamentos -->
+    <div class="tabela-larga">
+
+        <div class="filtros-container">
+            <div class="filtro-item">
+                <label for="filtroData">Data</label>
+                <input type="date" id="filtroData">
+            </div>
+            <div class="filtro-item">
+                <label for="filtroSala">Sala</label>
+                <select id="filtroSala">
+                    <option value="">Todas as salas</option>
+                </select>
+            </div>
+            <button class="btn-exportar" onclick="exportarParaPlanilha()">
+                📊 Exportar planilha
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Aula</th>
+                        <th>Local</th>
+                        <th>Professor</th>
+                        <th>Turma</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="listaAgendamentos">
+                    <tr>
+                        <td colspan="6" style="text-align:center; padding:40px; color:var(--texto-secundario);">
+                            Selecione uma data para ver os agendamentos.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
 </div>
 
 <script type="module" src="coordenacao.js"></script>
-
 </body>
 </html>
