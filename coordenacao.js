@@ -30,7 +30,24 @@ let dadosAtuaisParaExportar = [];
 //  A senha nunca desce para o front-end
 // ============================================================
 
+window.toggleDarkMode = function() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
+    const btn = document.getElementById('txt-modo');
+    if (btn) btn.innerText = isDark ? '☀️ Claro' : '🌙 Escuro';
+}
+
+function carregarPreferenciaModo() {
+    if (localStorage.getItem('darkMode') === 'enabled') {
+        document.body.classList.add('dark-mode');
+        const btn = document.getElementById('txt-modo');
+        if (btn) btn.innerText = '☀️ Claro';
+    }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+    carregarPreferenciaModo();
     if (sessionStorage.getItem('coord_logada') === 'true') {
         mostrarDashboard();
     }
