@@ -3,276 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Locus - Início</title>
-    
+    <title>Locus — Agendamento de Salas</title>
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./icon-192.png">
-    
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    
     <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     :root {
-        /* Identidade Visual Roxa Ultra Premium */
-        --bg-body: #fafafa;
-        --bg-card: #ffffff;
-        --texto-principal: #0f172a;
-        --texto-secundario: #64748b;
-        --borda: #f1f5f9;
-        
-        /* Tons Roxos do Locus */
-        --cor-primaria: #7c3aed; 
-        --cor-primaria-dark: #5b21b6;
-        --cor-primaria-clara: rgba(124, 58, 237, 0.08);
-        
-        /* Destaques Secundários */
-        --cor-sucesso: #10b981;
-        --cor-sucesso-clara: rgba(16, 185, 129, 0.08);
-        
-        /* Sombras mais leves para performance */
-        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.02);
-        --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.04);
-        --shadow-hover: 0 12px 24px rgba(124, 58, 237, 0.08);
-        
-        --raio-borda: 24px;
-        --transicao: all 0.3s ease-out; /* Transição mais rápida e leve */
+        --roxo: #6d28d9; --roxo-escuro: #4c1d95; --roxo-claro: #ede9fe;
+        --verde: #059669; --verde-claro: #d1fae5;
+        --texto: #1e1b4b; --subtexto: #6b7280; --borda: #e5e7eb; --bg: #f5f3ff;
     }
-
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-        -webkit-tap-highlight-color: transparent; /* Remove aquele quadrado azul ao clicar no celular */
-    }
-
-    /* Fundo com iluminação radial suave */
     body {
-        font-family: 'Poppins', sans-serif;
-        background-color: var(--bg-body);
-        background-image: radial-gradient(at top center, rgba(124, 58, 237, 0.05) 0%, transparent 60%);
-        min-height: 100dvh;
-        display: flex;
-        flex-direction: column; 
-        justify-content: center;
-        align-items: center;
-        padding: 24px;
-        color: var(--texto-principal);
+        font-family: 'Poppins', sans-serif; background: var(--bg);
+        min-height: 100dvh; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; padding: 28px 20px; color: var(--texto);
     }
-
-    /* --- CABEÇALHO --- */
-    .header-home {
-        text-align: center;
-        margin-bottom: 56px;
-        animation: suaveEntrada 0.8s ease-out forwards;
+    body::before {
+        content: ''; position: fixed; inset: 0;
+        background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(109,40,217,.09) 0%, transparent 70%);
+        pointer-events: none; z-index: 0;
     }
-
+    .conteudo { position: relative; z-index: 1; width: 100%; max-width: 1000px; display: flex; flex-direction: column; align-items: center; }
+    .header-home { text-align: center; margin-bottom: 52px; animation: entrar .7s ease-out both; }
+    .logo-marca { display: inline-flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+    .logo-icone {
+        width: 52px; height: 52px;
+        background: linear-gradient(135deg, var(--roxo), #a855f7);
+        border-radius: 16px; display: flex; align-items: center; justify-content: center;
+        font-size: 1.6rem; box-shadow: 0 8px 24px rgba(109,40,217,.25);
+    }
     .header-home h1 {
-        font-size: 4.5rem;
-        font-weight: 800;
-        margin: 0 0 8px 0;
-        letter-spacing: -2.5px;
-        background: linear-gradient(135deg, var(--cor-primaria) 0%, var(--cor-primaria-dark) 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        line-height: 1;
+        font-size: 3.8rem; font-weight: 800; letter-spacing: -2px; line-height: 1;
+        background: linear-gradient(135deg, var(--roxo) 0%, #a855f7 100%);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-
-    .header-home p {
-        font-size: 1.1rem;
-        color: var(--texto-secundario);
-        font-weight: 400;
-        max-width: 480px;
-        margin: 0 auto;
-        line-height: 1.6;
-    }
-
-    /* --- CONTAINER DOS CARTÕES --- */
-    .cards-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 28px;
-        width: 100%;
-        max-width: 1100px;
-    }
-
-    /* --- CARTÕES DESIGN LEVE --- */
+    .header-home p { font-size: 1.05rem; color: var(--subtexto); max-width: 440px; margin: 12px auto 0; line-height: 1.65; }
+    .cards-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; }
     .card-link {
-        background: var(--bg-card);
-        padding: 44px 32px;
-        border-radius: var(--raio-borda);
-        box-shadow: var(--shadow-md);
-        text-decoration: none; 
-        text-align: center;
-        transition: var(--transicao); 
-        border: 1px solid var(--borda);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        position: relative;
-        overflow: hidden;
-        border-top: 5px solid var(--cor-primaria);
-        
-        /* Animação super leve (Fade + deslize de 15px apenas) */
-        animation: suaveDeslize 0.6s ease-out backwards;
+        background: #fff; padding: 36px 28px; border-radius: 20px; text-decoration: none;
+        border: 1px solid var(--borda); border-top: 4px solid var(--roxo);
+        display: flex; flex-direction: column; align-items: flex-start;
+        transition: all .25s ease-out; animation: subir .5s ease-out backwards; position: relative; overflow: hidden;
     }
-
-    /* Cascata ágil */
-    .card-link:nth-child(1) { animation-delay: 0.1s; }
-    .card-link:nth-child(2) { animation-delay: 0.2s; }
-    .card-link:nth-child(3) { animation-delay: 0.3s; }
-
-    .card-link.cadastro-destaque {
-        border-top-color: var(--cor-sucesso);
-    }
-
-    /* Interação de toque mais limpa, sem pulos físicos na tela */
-    .card-link:hover, .card-link:active {
-        transform: translateY(-3px); /* Deslize micro, quase não move a tela */
-        box-shadow: var(--shadow-hover);
-        border-color: rgba(124, 58, 237, 0.15);
-    }
-    
-    .card-link.cadastro-destaque:hover, .card-link.cadastro-destaque:active {
-        border-color: rgba(16, 185, 129, 0.15);
-    }
-
-    /* Badges dos Ícones */
-    .card-badge {
-        width: 76px;
-        height: 76px;
-        background-color: var(--cor-primaria-clara);
-        border-radius: 24px; 
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 28px;
-        transition: transform 0.3s ease; /* Transição restrita só ao transform */
-    }
-
-    .card-link.cadastro-destaque .card-badge {
-        background-color: var(--cor-sucesso-clara);
-    }
-
-    /* Micro-interação no ícone */
-    .card-link:hover .card-badge, .card-link:active .card-badge {
-        transform: scale(1.05); /* Escala menor, sem girar, mais leve */
-    }
-
-    .card-icone {
-        font-size: 2.3rem;
-    }
-
-    .card-link h2 {
-        color: var(--texto-principal);
-        margin-bottom: 14px;
-        font-size: 1.35rem;
-        font-weight: 700;
-        letter-spacing: -0.5px;
-    }
-
-    .card-link.cadastro-destaque h2 {
-        color: var(--texto-principal) !important;
-    }
-
-    .card-link p {
-        color: var(--texto-secundario);
-        margin: 0;
-        font-size: 0.95rem;
-        line-height: 1.6;
-    }
-
-    /* --- NOVAS ANIMAÇÕES LEVES --- */
-    
-    @keyframes suaveEntrada {
-        from { 
-            opacity: 0; 
-            transform: translateY(-10px); 
-        }
-        to { 
-            opacity: 1; 
-            transform: translateY(0); 
-        }
-    }
-
-    @keyframes suaveDeslize {
-        from { 
-            opacity: 0; 
-            transform: translateY(15px); /* Deslize super curto e sem scale */
-        }
-        to { 
-            opacity: 1; 
-            transform: translateY(0); 
-        }
-    }
-
-    /* --- MEDIA QUERIES MOBILE --- */
+    .card-link::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(109,40,217,.03) 0%, transparent 60%); pointer-events: none; }
+    .card-link.destaque-verde { border-top-color: var(--verde); }
+    .card-link:nth-child(1) { animation-delay: .1s; }
+    .card-link:nth-child(2) { animation-delay: .18s; }
+    .card-link:nth-child(3) { animation-delay: .26s; }
+    .card-link:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(109,40,217,.12); border-color: rgba(109,40,217,.25); }
+    .card-link.destaque-verde:hover { box-shadow: 0 16px 40px rgba(5,150,105,.12); border-color: rgba(5,150,105,.25); }
+    .card-badge { width: 56px; height: 56px; background: var(--roxo-claro); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; font-size: 1.6rem; transition: transform .25s ease; }
+    .card-link.destaque-verde .card-badge { background: var(--verde-claro); }
+    .card-link:hover .card-badge { transform: scale(1.08); }
+    .card-link h2 { color: var(--texto); font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; letter-spacing: -.3px; }
+    .card-link p { color: var(--subtexto); font-size: .9rem; line-height: 1.6; margin: 0; }
+    .card-seta { margin-top: 20px; font-size: .85rem; font-weight: 600; color: var(--roxo); display: flex; align-items: center; gap: 4px; transition: gap .2s ease; }
+    .card-link.destaque-verde .card-seta { color: var(--verde); }
+    .card-link:hover .card-seta { gap: 8px; }
+    @keyframes entrar { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes subir { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
     @media (max-width: 600px) {
-        body {
-            padding: 24px 16px;
-            justify-content: flex-start;
-        }
-        .header-home {
-            margin-top: 32px;
-            margin-bottom: 40px;
-        }
-        .header-home h1 {
-            font-size: 3.5rem;
-        }
-        .header-home p {
-            font-size: 1rem;
-        }
-        .card-link {
-            padding: 32px 24px;
-        }
-        .cards-container {
-            gap: 20px;
-        }
+        body { padding: 24px 16px; justify-content: flex-start; }
+        .header-home { margin-top: 24px; margin-bottom: 36px; }
+        .header-home h1 { font-size: 2.8rem; letter-spacing: -1.5px; }
+        .card-link { padding: 28px 22px; } .cards-container { gap: 14px; }
     }
-</style>
-
+    </style>
 </head>
 <body>
-
+<div class="conteudo">
     <div class="header-home">
-        <h1>Locus</h1>
-        <p>Sistema ágil e moderno para agendamento de salas de aula e laboratórios.</p>
+        <div class="logo-marca">
+            <div class="logo-icone">📍</div>
+            <h1>Locus</h1>
+        </div>
+        <p>Sistema ágil para agendamento de salas, pátios e laboratórios.</p>
     </div>
-
     <div class="cards-container">
         <a href="professor.html" class="card-link">
-            <div class="card-badge">
-                <div class="card-icone">👨‍🏫</div>
-            </div>
+            <div class="card-badge">👨‍🏫</div>
             <h2>Área do Professor</h2>
-            <p>Faça o agendamento de salas, pátios e laboratórios de forma rápida e intuitiva.</p>
+            <p>Consulte a grade e reserve salas, pátios e laboratórios em poucos toques.</p>
+            <span class="card-seta">Acessar →</span>
         </a>
-
-        <a href="cadasto.html" class="card-link cadastro-destaque">
-            <div class="card-badge">
-                <div class="card-icone">🚀</div>
-            </div>
+        <a href="cadasto.html" class="card-link destaque-verde">
+            <div class="card-badge">🚀</div>
             <h2>Ativar Meu Acesso</h2>
-            <p>Primeiro acesso? Crie aqui o seu PIN de segurança após a liberação da coordenação.</p>
+            <p>Primeiro acesso? Crie seu PIN após a liberação pela coordenação.</p>
+            <span class="card-seta">Começar →</span>
         </a>
-        
         <a href="coordenacao.html" class="card-link">
-            <div class="card-badge">
-                <div class="card-icone">🛡️</div>
-            </div>
+            <div class="card-badge">🛡️</div>
             <h2>Painel da Coordenação</h2>
-            <p>Acesse o controle total, audite as reservas e exporte os dados para planilhas.</p>
+            <p>Gerencie professores, audite reservas e exporte relatórios.</p>
+            <span class="card-seta">Acessar →</span>
         </a>
     </div>
-
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registrado com sucesso!', reg))
-            .catch(err => console.error('Erro ao registrar o Service Worker:', err));
-        });
-      }
-    </script>
-
+</div>
+<script>
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); }); }
+</script>
 </body>
 </html>
