@@ -3,50 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Locus</title>
+    <title>Locus — Ativar Acesso</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#6C63FF">
+    <meta name="theme-color" content="#6d28d9">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="stylesheet" href="professor.css">
+    <link rel="stylesheet" href="locus.css">
 </head>
 <body>
-
 <div class="container">
     <div class="header-controles">
         <button class="btn-toggle-modo" onclick="toggleDarkMode()" id="txt-modo">🌙 Escuro</button>
-        <button class="btn-sair" onclick="window.location.href='index.html'">Voltar ao Login 🔙</button>
+        <button class="btn-sair" onclick="window.location.href='index.html'">← Voltar</button>
     </div>
 
-    <h2 id="titulo-app">Ativar Meu Acesso</h2>
-    <div class="status-card" style="margin-bottom: 25px; color: var(--texto-secundario); border-color: transparent; background: transparent; font-size: 0.9rem;">
-        Selecione seu nome na lista autorizada pela coordenação e crie seu PIN de segurança.
+    <h2 id="titulo-app">Ativar Acesso</h2>
+
+    <div class="status-card" style="margin-bottom:24px; color:var(--texto-secundario); background:transparent; border-color:transparent; font-size:.88rem;">
+        Selecione seu nome na lista autorizada e crie seu PIN de segurança.
     </div>
-    
+
     <div id="secao-cadastro">
         <div class="form-group">
-            <label>Selecione Seu Nome:</label>
+            <label for="select-professor-cadastro">Seu nome</label>
             <select id="select-professor-cadastro">
-                <option value="">Carregando lista de professores...</option>
+                <option value="">Carregando lista...</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label>Sua Disciplina:</label>
-            <input type="text" id="disciplina-cadastro-visual" disabled placeholder="Selecione seu nome acima para ver a disciplina">
+            <label for="disciplina-cadastro-visual">Sua disciplina</label>
+            <input type="text" id="disciplina-cadastro-visual" disabled placeholder="Aparece ao selecionar seu nome acima">
         </div>
 
         <div class="form-group">
-            <label>Crie seu PIN (Exatamente 4 Números):</label>
-            <input type="password" id="pin-cadastro" placeholder="Ex: 4826" inputmode="numeric" maxlength="4">
+            <label for="pin-cadastro">Crie seu PIN (exatamente 4 números)</label>
+            <input type="password" id="pin-cadastro" placeholder="Ex: 4826" inputmode="numeric" maxlength="4" autocomplete="new-password">
         </div>
 
         <div class="form-group">
-            <label>Código de Convite da Escola:</label>
-            <input type="text" id="codigo-escola-cadastro" placeholder="Digite o código secreto fornecido pela coordenação">
+            <label for="codigo-escola-cadastro">Código de convite da escola</label>
+            <input type="text" id="codigo-escola-cadastro" placeholder="Fornecido pela coordenação" autocomplete="off">
         </div>
 
-        <button id="btn-cadastrar" class="principal" onclick="cadastrarProfessor()">Concluir Ativação</button>
+        <button id="btn-cadastrar" class="principal" onclick="cadastrarProfessor()">Concluir ativação</button>
     </div>
 </div>
 
