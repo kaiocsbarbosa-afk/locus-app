@@ -38,12 +38,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     carregarSalasNoFiltro();
+    carregarProfessoresNoFiltro();
     carregarDisciplinasNoPreCadastro();
 
     const fData = document.getElementById('filtroData');
     const fSala = document.getElementById('filtroSala');
+    const fProfessor = document.getElementById('filtroProfessor');
     if (fData) fData.addEventListener('change', () => carregarRelatorioGeral());
     if (fSala) fSala.addEventListener('change', () => carregarRelatorioGeral());
+    if (fProfessor) fProfessor.addEventListener('change', () => carregarRelatorioGeral());
 });
 
 window.entrarPainel = async function() {
@@ -159,6 +162,30 @@ async function carregarSalasNoFiltro() {
     }
 }
 
+async function carregarProfessoresNoFiltro() {
+    try {
+        const { data: professores, error } = await supabase
+            .from('professores')
+            .select('id, nome')
+            .order('nome', { ascending: true });
+
+        if (error) throw error;
+
+        const selectProfessor = document.getElementById('filtroProfessor');
+        if (!selectProfessor) return;
+
+        selectProfessor.innerHTML = '<option value="">Todos os professores</option>';
+        professores.forEach(prof => {
+            const option = document.createElement('option');
+            option.value = prof.id;
+            option.textContent = prof.nome;
+            selectProfessor.appendChild(option);
+        });
+    } catch (erro) {
+        console.error("Erro ao carregar professores:", erro);
+    }
+}
+
 async function carregarDisciplinasNoPreCadastro() {
     try {
         const { data: disciplinas, error } = await supabase
@@ -230,18 +257,21 @@ window.salvarPreCadastro = async function() {
 window.carregarRelatorioGeral = async function() {
     const filtroData = document.getElementById('filtroData');
     const filtroSala = document.getElementById('filtroSala');
+    const filtroProfessor = document.getElementById('filtroProfessor');
     const tabela = document.getElementById('listaAgendamentos');
 
     if (!filtroData || !tabela) return;
 
     const dataFiltro = filtroData.value;
     const salaFiltro = filtroSala?.value || '';
+    const professorFiltro = filtroProfessor?.value || '';
 
     tabela.innerHTML = '';
     dadosAtuaisParaExportar = [];
 
-    if (!dataFiltro) {
-        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Selecione uma data para ver os agendamentos.</td></tr>`;
+    // Exige pelo menos um filtro para evitar carregar a tabela inteira
+    if (!dataFiltro && !salaFiltro && !professorFiltro) {
+        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Selecione uma data, sala ou professor para ver os agendamentos.</td></tr>`;
         return;
     }
 
@@ -249,14 +279,23 @@ window.carregarRelatorioGeral = async function() {
 
     let query = supabase
         .from('agendamentos')
-        .select('id, data, aula_numero, professor_id, salas(nome), professores(nome), turmas(nome)')
-        .eq('data', dataFiltro);
+        .select('id, data, aula_numero, professor_id, salas(nome), professores(nome), turmas(nome)');
+
+    if (dataFiltro) {
+        query = query.eq('data', dataFiltro);
+    }
 
     if (salaFiltro) {
         query = query.eq('sala_id', salaFiltro);
     }
 
-    const { data: agendamentos, error } = await query.order('aula_numero', { ascending: true });
+    if (professorFiltro) {
+        query = query.eq('professor_id', professorFiltro);
+    }
+
+    const { data: agendamentos, error } = await query
+        .order('data', { ascending: true })
+        .order('aula_numero', { ascending: true });
 
     if (error) {
         dispararAlerta({
@@ -296,6 +335,18 @@ window.carregarRelatorioGeral = async function() {
         `;
         tabela.appendChild(tr);
     });
+}
+
+window.limparFiltros = function() {
+    const filtroData = document.getElementById('filtroData');
+    const filtroSala = document.getElementById('filtroSala');
+    const filtroProfessor = document.getElementById('filtroProfessor');
+
+    if (filtroData) filtroData.value = '';
+    if (filtroSala) filtroSala.value = '';
+    if (filtroProfessor) filtroProfessor.value = '';
+
+    carregarRelatorioGeral();
 }
 
 window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula, professorId, dataBr) {
