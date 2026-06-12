@@ -8,6 +8,7 @@ const ASSETS = [
   './manifest.json',
   './locus.css',
   './utils.js',
+  './push.js',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 ];
@@ -38,6 +39,42 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(e.request).then(cachedResponse => {
       return cachedResponse || fetch(e.request);
+    })
+  );
+});
+
+// ------------------------------------------------------------
+// Notificações push
+// ------------------------------------------------------------
+self.addEventListener('push', e => {
+  let dados = { title: 'Locus', body: 'Você tem uma nova atualização.' };
+
+  if (e.data) {
+    try {
+      dados = e.data.json();
+    } catch (err) {
+      dados.body = e.data.text();
+    }
+  }
+
+  e.waitUntil(
+    self.registration.showNotification(dados.title, {
+      body: dados.body,
+      icon: './icon-192.png',
+      badge: './icon-192.png',
+      vibrate: [100, 50, 100]
+    })
+  );
+});
+
+// Clica na notificação → abre/foca o app
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then(clientsArr => {
+      const clienteExistente = clientsArr.find(c => c.url.includes(self.registration.scope));
+      if (clienteExistente) return clienteExistente.focus();
+      return self.clients.openWindow('./');
     })
   );
 });
