@@ -5,7 +5,7 @@
 import { supabase, dispararAlerta } from './utils.js'
 
 // Substitua pela sua chave pública VAPID (gerada com `npx web-push generate-vapid-keys`)
-const VAPID_PUBLIC_KEY = 'COLE_AQUI_SUA_VAPID_PUBLIC_KEY';
+const VAPID_PUBLIC_KEY = 'BHweJ-6fq5qkclX2bcySbRjfkqAItvHfxrano1xatzoZJW7eyR621fcQ8xLstojUOdjJafsX5SSzVzr0hs7VlU0';
 
 const URL_FUNCAO_NOTIFICAR = 'https://ixhuqbfzwkobhrvlzwgm.supabase.co/functions/v1/enviar-notificacao';
 
@@ -34,7 +34,7 @@ export async function ativarNotificacoes(tipo, professorId = null) {
         return false;
     }
 
-    if (VAPID_PUBLIC_KEY === 'COLE_AQUI_SUA_VAPID_PUBLIC_KEY') {
+    if (VAPID_PUBLIC_KEY === 'BHweJ-6fq5qkclX2bcySbRjfkqAItvHfxrano1xatzoZJW7eyR621fcQ8xLstojUOdjJafsX5SSzVzr0hs7VlU0') {
         console.warn('VAPID_PUBLIC_KEY não configurada em push.js — notificações desativadas.');
         return false;
     }
