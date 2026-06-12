@@ -24,6 +24,20 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 // ------------------------------------------------------------
+// ID de dispositivo persistente — gerado uma vez e salvo no
+// localStorage. Usado para identificar e substituir a inscrição
+// antiga deste dispositivo quando o endpoint muda.
+// ------------------------------------------------------------
+function obterDeviceId() {
+    let id = localStorage.getItem('locus_device_id');
+    if (!id) {
+        id = 'dev_' + crypto.randomUUID();
+        localStorage.setItem('locus_device_id', id);
+    }
+    return id;
+}
+
+// ------------------------------------------------------------
 // Pede permissão e inscreve o dispositivo para push.
 // tipo: 'professor' (precisa de professorId) ou 'coordenacao'
 // ------------------------------------------------------------
@@ -56,16 +70,25 @@ export async function ativarNotificacoes(tipo, professorId = null) {
         }
 
         const subJson = subscription.toJSON();
+        const deviceId = obterDeviceId();
+
+        // Remove qualquer inscrição antiga deste mesmo dispositivo
+        // (endpoint pode ter mudado após reinstalar o app/limpar cache)
+        await supabase
+            .from('inscricoes_push')
+            .delete()
+            .eq('device_id', deviceId);
 
         const { error } = await supabase
             .from('inscricoes_push')
-            .upsert({
+            .insert({
                 professor_id: professorId,
                 endpoint: subJson.endpoint,
                 p256dh: subJson.keys.p256dh,
                 auth: subJson.keys.auth,
-                tipo: tipo
-            }, { onConflict: 'professor_id,endpoint' });
+                tipo: tipo,
+                device_id: deviceId
+            });
 
         if (error) {
             console.error('Erro ao salvar inscrição push:', error);
