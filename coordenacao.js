@@ -1,12 +1,4 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-
-function dispararAlerta(config) {
-    if (typeof Swal !== 'undefined') {
-        Swal.fire(config);
-    } else {
-        alert(`${config.title}: ${config.text}`);
-    }
-}
+import { supabase, toggleDarkMode, carregarPreferenciaModo, registrarServiceWorker, dispararAlerta } from './utils.js'
 
 window.addEventListener('error', function(e) {
     console.error("Erro capturado:", e);
@@ -18,11 +10,8 @@ window.addEventListener('error', function(e) {
     });
 });
 
-const supabaseUrl = 'https://ixhuqbfzwkobhrvlzwgm.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84'
 const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbw6fMtP880hmAdtRSj8tgBVCw-U9qGo-JnOqMD7DCb_I5q6Isooady17YNCmmUlKemhzQ/exec"
 
-const supabase = createClient(supabaseUrl, supabaseKey)
 let dadosAtuaisParaExportar = [];
 
 // ============================================================
@@ -30,24 +19,9 @@ let dadosAtuaisParaExportar = [];
 //  A senha nunca desce para o front-end
 // ============================================================
 
-window.toggleDarkMode = function() {
-    document.body.classList.toggle('dark-mode');
-    const isDark = document.body.classList.contains('dark-mode');
-    localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
-    const btn = document.getElementById('txt-modo');
-    if (btn) btn.innerText = isDark ? '☀️ Claro' : '🌙 Escuro';
-}
-
-function carregarPreferenciaModo() {
-    if (localStorage.getItem('darkMode') === 'enabled') {
-        document.body.classList.add('dark-mode');
-        const btn = document.getElementById('txt-modo');
-        if (btn) btn.innerText = '☀️ Claro';
-    }
-}
-
 document.addEventListener("DOMContentLoaded", () => {
     carregarPreferenciaModo();
+    registrarServiceWorker();
     if (sessionStorage.getItem('coord_logada') === 'true') {
         mostrarDashboard();
     }
