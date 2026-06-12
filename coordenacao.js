@@ -421,6 +421,223 @@ window.exportarParaPlanilha = async function() {
     }
 }
 
+// ============================================================
+//  GERENCIAR SALAS E TURMAS
+// ============================================================
+
+let gerenciamentoCarregado = false;
+
+window.alternarGerenciamento = function() {
+    const conteudo = document.getElementById('conteudo-gerenciar');
+    const toggle = document.querySelector('.card-gerenciar-toggle');
+
+    conteudo.classList.toggle('hidden');
+    toggle.classList.toggle('aberto');
+
+    if (!conteudo.classList.contains('hidden') && !gerenciamentoCarregado) {
+        gerenciamentoCarregado = true;
+        carregarListaSalas();
+        carregarListaTurmas();
+    }
+}
+
+async function carregarListaSalas() {
+    const container = document.getElementById('lista-salas');
+    container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>';
+
+    const { data: salas, error } = await supabase
+        .from('salas')
+        .select('id, nome')
+        .order('nome', { ascending: true });
+
+    if (error) {
+        container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar salas.</div>';
+        return;
+    }
+
+    if (!salas || salas.length === 0) {
+        container.innerHTML = '<div class="gerenciar-vazio">Nenhuma sala cadastrada.</div>';
+        return;
+    }
+
+    container.innerHTML = '';
+    salas.forEach(sala => {
+        const div = document.createElement('div');
+        div.classList.add('gerenciar-item');
+        div.innerHTML = `
+            <span>${sala.nome}</span>
+            <button onclick="excluirSala('${sala.id}', '${sala.nome.replace(/'/g, "\\'")}')">Excluir</button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+async function carregarListaTurmas() {
+    const container = document.getElementById('lista-turmas');
+    container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>';
+
+    const { data: turmas, error } = await supabase
+        .from('turmas')
+        .select('id, nome')
+        .order('nome', { ascending: true });
+
+    if (error) {
+        container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar turmas.</div>';
+        return;
+    }
+
+    if (!turmas || turmas.length === 0) {
+        container.innerHTML = '<div class="gerenciar-vazio">Nenhuma turma cadastrada.</div>';
+        return;
+    }
+
+    container.innerHTML = '';
+    turmas.forEach(turma => {
+        const div = document.createElement('div');
+        div.classList.add('gerenciar-item');
+        div.innerHTML = `
+            <span>${turma.nome}</span>
+            <button onclick="excluirTurma('${turma.id}', '${turma.nome.replace(/'/g, "\\'")}')">Excluir</button>
+        `;
+        container.appendChild(div);
+    });
+}
+
+window.adicionarSala = async function() {
+    const input = document.getElementById('nova-sala-nome');
+    const nome = input.value.trim();
+
+    if (!nome) {
+        dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Digite o nome da sala.', confirmButtonColor: 'var(--cor-primaria)' });
+        return;
+    }
+
+    const { error } = await supabase.from('salas').insert([{ nome }]);
+
+    if (error) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a sala.', confirmButtonColor: 'var(--cor-perigo)' });
+        return;
+    }
+
+    input.value = '';
+    carregarListaSalas();
+    carregarSalasNoFiltro();
+}
+
+window.adicionarTurma = async function() {
+    const input = document.getElementById('nova-turma-nome');
+    const nome = input.value.trim();
+
+    if (!nome) {
+        dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Digite o nome da turma.', confirmButtonColor: 'var(--cor-primaria)' });
+        return;
+    }
+
+    const { error } = await supabase.from('turmas').insert([{ nome }]);
+
+    if (error) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a turma.', confirmButtonColor: 'var(--cor-perigo)' });
+        return;
+    }
+
+    input.value = '';
+    carregarListaTurmas();
+}
+
+window.excluirSala = async function(id, nome) {
+    // Verifica se existem agendamentos vinculados a esta sala
+    const { data: vinculos, error: erroVinculo } = await supabase
+        .from('agendamentos')
+        .select('id')
+        .eq('sala_id', id)
+        .limit(1);
+
+    if (erroVinculo) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível verificar agendamentos desta sala.', confirmButtonColor: 'var(--cor-perigo)' });
+        return;
+    }
+
+    if (vinculos && vinculos.length > 0) {
+        dispararAlerta({
+            icon: 'warning',
+            title: 'Sala em uso',
+            text: `A sala "${nome}" possui agendamentos vinculados e não pode ser excluída. Cancele os agendamentos dela primeiro.`,
+            confirmButtonColor: 'var(--cor-primaria)'
+        });
+        return;
+    }
+
+    const confirmacao = await Swal.fire({
+        title: 'Excluir sala?',
+        text: `Tem certeza que deseja excluir "${nome}"? Esta ação não pode ser desfeita.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--cor-perigo)',
+        cancelButtonColor: 'var(--texto-secundario)',
+        confirmButtonText: 'Sim, excluir!',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (!confirmacao.isConfirmed) return;
+
+    const { error } = await supabase.from('salas').delete().eq('id', id);
+
+    if (error) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a sala.', confirmButtonColor: 'var(--cor-perigo)' });
+        return;
+    }
+
+    dispararAlerta({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false });
+    carregarListaSalas();
+    carregarSalasNoFiltro();
+}
+
+window.excluirTurma = async function(id, nome) {
+    const { data: vinculos, error: erroVinculo } = await supabase
+        .from('agendamentos')
+        .select('id')
+        .eq('turma_id', id)
+        .limit(1);
+
+    if (erroVinculo) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível verificar agendamentos desta turma.', confirmButtonColor: 'var(--cor-perigo)' });
+        return;
+    }
+
+    if (vinculos && vinculos.length > 0) {
+        dispararAlerta({
+            icon: 'warning',
+            title: 'Turma em uso',
+            text: `A turma "${nome}" possui agendamentos vinculados e não pode ser excluída. Cancele os agendamentos dela primeiro.`,
+            confirmButtonColor: 'var(--cor-primaria)'
+        });
+        return;
+    }
+
+    const confirmacao = await Swal.fire({
+        title: 'Excluir turma?',
+        text: `Tem certeza que deseja excluir "${nome}"? Esta ação não pode ser desfeita.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--cor-perigo)',
+        cancelButtonColor: 'var(--texto-secundario)',
+        confirmButtonText: 'Sim, excluir!',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (!confirmacao.isConfirmed) return;
+
+    const { error } = await supabase.from('turmas').delete().eq('id', id);
+
+    if (error) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a turma.', confirmButtonColor: 'var(--cor-perigo)' });
+        return;
+    }
+
+    dispararAlerta({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false });
+    carregarListaTurmas();
+}
+
 // Realtime — atualiza tabela automaticamente
 supabase
     .channel('mudancas-agendamentos-coord')
