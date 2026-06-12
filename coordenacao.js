@@ -1,4 +1,5 @@
 import { supabase, toggleDarkMode, carregarPreferenciaModo, registrarServiceWorker, dispararAlerta } from './utils.js'
+import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 window.addEventListener('error', function(e) {
     console.error("Erro capturado:", e);
@@ -131,6 +132,9 @@ function mostrarDashboard() {
     if (inputData) inputData.value = `${ano}-${mes}-${dia}`;
 
     carregarRelatorioGeral();
+
+    // Ativa notificações push para a coordenação
+    ativarNotificacoes('coordenacao');
 }
 
 async function carregarSalasNoFiltro() {
@@ -245,7 +249,7 @@ window.carregarRelatorioGeral = async function() {
 
     let query = supabase
         .from('agendamentos')
-        .select('id, data, aula_numero, salas(nome), professores(nome), turmas(nome)')
+        .select('id, data, aula_numero, professor_id, salas(nome), professores(nome), turmas(nome)')
         .eq('data', dataFiltro);
 
     if (salaFiltro) {
@@ -285,7 +289,7 @@ window.carregarRelatorioGeral = async function() {
             <td>Prof. ${item.professores?.nome || 'Desconhecido'}</td>
             <td>${item.turmas?.nome || 'Geral'}</td>
             <td>
-                <button class="btn-revogar" onclick="revogarAgendamento('${item.id}', '${item.salas?.nome}', '${item.aula_numero}')">
+                <button class="btn-revogar" onclick="revogarAgendamento('${item.id}', '${item.salas?.nome}', '${item.aula_numero}', '${item.professor_id}', '${dataBr}')">
                     Cancelar
                 </button>
             </td>
@@ -294,7 +298,7 @@ window.carregarRelatorioGeral = async function() {
     });
 }
 
-window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula) {
+window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula, professorId, dataBr) {
     const confirmacao = await Swal.fire({
         title: 'Tem certeza?',
         text: `Cancelar reserva de ${nomeSala} — Aula ${numeroAula}?`,
@@ -315,6 +319,16 @@ window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula) 
     } else {
         dispararAlerta({ icon: 'success', title: 'Cancelado!', text: 'Reserva removida.', timer: 1500, showConfirmButton: false });
         carregarRelatorioGeral();
+
+        // Notifica o professor que a coordenação cancelou a reserva dele
+        if (professorId && professorId !== 'undefined' && professorId !== 'null') {
+            enviarNotificacao(
+                'Reserva cancelada pela coordenação',
+                `Sua reserva de ${nomeSala} (Aula ${numeroAula}) em ${dataBr} foi cancelada pela coordenação.`,
+                'professor',
+                professorId
+            );
+        }
     }
 }
 
