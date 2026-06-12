@@ -1,15 +1,12 @@
 /* cadastro.js */
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-
-const supabaseUrl = 'https://ixhuqbfzwkobhrvlzwgm.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84' // Lembre de colar sua chave do Supabase
-const supabase = createClient(supabaseUrl, supabaseKey)
+import { supabase, carregarPreferenciaModo, registrarServiceWorker, dispararAlerta } from './utils.js'
 
 // Array para guardar temporariamente os professores vindos do banco
 let professoresSemPin = [];
 
 document.addEventListener("DOMContentLoaded", () => {
     carregarPreferenciaModo();
+    registrarServiceWorker();
     buscarProfessoresLiberados();
     
     // Escuta quando o professor muda a seleção do nome para mostrar a disciplina correspondente
@@ -161,18 +158,4 @@ window.cadastrarProfessor = async function() {
 function restaurarBotao(botao) {
     botao.innerText = 'Concluir Ativação';
     botao.disabled = false;
-}
-
-// Funções de Tema Escuro permanecem iguais...
-window.toggleDarkMode = function() {
-    document.body.classList.toggle('dark-mode');
-    const estauradoDark = document.body.classList.contains('dark-mode');
-    localStorage.setItem('darkMode', estauradoDark ? 'enabled' : 'disabled');
-    document.getElementById('txt-modo').innerText = estauradoDark ? '☀️ Claro' : '🌙 Escuro';
-}
-function carregarPreferenciaModo() {
-    if (localStorage.getItem('darkMode') === 'enabled') {
-        document.body.classList.add('dark-mode');
-        document.getElementById('txt-modo').innerText = '☀️ Claro';
-    }
 }
