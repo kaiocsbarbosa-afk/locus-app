@@ -1,230 +1,240 @@
-// professor.js
-import { supabase } from './supabase-client.js'
-import { toggleDarkMode, carregarPreferenciaModo, registrarServiceWorker } from './utils.js'
+/* professor.js */
+import { supabase, toggleDarkMode, carregarPreferenciaModo, registrarServiceWorker, dispararAlerta, formatarData } from './utils.js'
 
-// Expõe toggleDarkMode para o onclick no HTML
-window.toggleDarkMode = toggleDarkMode
+let professorLogado = null;
+let buscandoAulasAtualmente = false;
 
-let professorLogado = null
-let buscandoAulasAtualmente = false
-
-document.addEventListener('DOMContentLoaded', () => {
-    carregarPreferenciaModo()
-    registrarServiceWorker()
-    verificarPinSalvo()
-})
+// Inicialização do Sistema
+document.addEventListener("DOMContentLoaded", () => {
+    carregarPreferenciaModo();
+    verificarPinSalvo();
+    registrarServiceWorker();
+});
 
 async function verificarPinSalvo() {
-    const pinSalvo = localStorage.getItem('prof_pin')
-    if (pinSalvo) await fazerLogin(pinSalvo)
+    const pinSalvo = localStorage.getItem('prof_pin');
+    if (pinSalvo) {
+        await fazerLogin(pinSalvo);
+    }
 }
 
 window.fazerLogin = async function(pinAutomatico) {
-    const pin = pinAutomatico || document.getElementById('pin-professor').value
-
+    const pin = pinAutomatico || document.getElementById('pin-professor').value;
+    
     if (!pin) {
         return Swal.fire({
-            icon: 'warning', title: 'Atenção!',
+            icon: 'warning',
+            title: 'Atenção!',
             text: 'Por favor, informe seu PIN numérico.',
-            confirmButtonColor: 'var(--cor-primaria)'
-        })
+            confirmButtonColor: '#6C63FF'
+        });
     }
 
-    const btnLogin = document.getElementById('btn-login')
+    const btnLogin = document.getElementById('btn-login');
     if (btnLogin) {
-        btnLogin.innerText = 'Carregando... ⏳'
-        btnLogin.disabled = true
+        btnLogin.innerText = 'Carregando... ⏳';
+        btnLogin.disabled = true;
+        btnLogin.style.opacity = '0.8';
     }
 
     const { data, error } = await supabase
         .from('professores')
         .select('*')
         .eq('pin', pin)
-        .single()
-
-    if (btnLogin) {
-        btnLogin.innerText = 'Entrar no sistema'
-        btnLogin.disabled = false
-    }
+        .single();
 
     if (error || !data) {
+        if (btnLogin) {
+            btnLogin.innerText = 'Entrar Sistema';
+            btnLogin.disabled = false;
+            btnLogin.style.opacity = '1';
+        }
+        
         if (!pinAutomatico) {
             Swal.fire({
-                icon: 'error', title: 'Ops!',
+                icon: 'error',
+                title: 'Ops!',
                 text: 'PIN incorreto ou não localizado.',
-                confirmButtonColor: 'var(--cor-primaria)'
-            })
+                confirmButtonColor: '#6C63FF'
+            });
         }
-        localStorage.removeItem('prof_pin')
-        return
+        localStorage.removeItem('prof_pin');
+        return;
     }
 
-    professorLogado = data
-    localStorage.setItem('prof_pin', pin)
-    configurarInterfaceParaLogado()
-    configurarCalendarioSemana()
-    carregarHistorico()
+    if (btnLogin) {
+        btnLogin.innerText = 'Entrar Sistema';
+        btnLogin.disabled = false;
+        btnLogin.style.opacity = '1';
+    }
+
+    professorLogado = data;
+    localStorage.setItem('prof_pin', pin);
+
+    configurarInterfaceParaLogado();
+    configurarCalendarioSemana();
+    carregarHistorico();
 }
 
 window.fazerLogout = function() {
-    localStorage.removeItem('prof_pin')
-    window.location.reload()
+    localStorage.removeItem('prof_pin');
+    window.location.reload();
 }
 
 function configurarInterfaceParaLogado() {
-    document.getElementById('status-usuario').innerHTML =
-        `Olá, <strong>${professorLogado.nome}</strong>! 👋`
-    document.getElementById('container-turma').classList.remove('hidden')
-    document.getElementById('secao-historico').classList.remove('hidden')
-    document.getElementById('btn-sair').classList.remove('hidden')
-    document.getElementById('secao-login').classList.add('hidden')
-    document.getElementById('secao-agendamento').classList.remove('hidden')
-    carregarTurmas()
-    carregarSalas()
+    document.getElementById('titulo-app').innerText = "Locus";
+    document.getElementById('status-usuario').innerHTML = `Olá, <strong>${professorLogado.nome}</strong>! 👋`;
+    document.getElementById('container-turma').classList.remove('hidden');
+    document.getElementById('secao-historico').classList.remove('hidden');
+    document.getElementById('btn-sair').classList.remove('hidden');
+    
+    document.getElementById('secao-login').classList.add('hidden');
+    document.getElementById('secao-agendamento').classList.remove('hidden');
+
+    carregarTurmas();
+    carregarSalas();
 }
 
 async function carregarTurmas() {
-    const selectTurma = document.getElementById('select-turma')
+    const selectTurma = document.getElementById('select-turma');
     try {
         const { data: turmas, error } = await supabase
-            .from('turmas').select('id, nome').order('nome', { ascending: true })
-        if (error) throw error
-        selectTurma.innerHTML = '<option value="">Selecione a turma...</option>'
-        turmas.forEach(t => {
-            const o = document.createElement('option')
-            o.value = t.id; o.textContent = t.nome
-            selectTurma.appendChild(o)
-        })
+            .from('turmas')
+            .select('id, nome')
+            .order('nome', { ascending: true });
+        if (error) throw error;
+        selectTurma.innerHTML = '<option value="">Selecione a turma...</option>';
+        turmas.forEach(turma => {
+            const option = document.createElement('option');
+            option.value = turma.id;
+            option.textContent = turma.nome;
+            selectTurma.appendChild(option);
+        });
     } catch (err) {
-        console.error('Erro ao carregar turmas:', err)
-        Swal.fire({ icon: 'error', title: 'Erro', text: 'Falha ao carregar turmas.', confirmButtonColor: 'var(--cor-primaria)' })
+        console.error("Erro ao carregar turmas:", err);
+        Swal.fire({ icon: 'error', title: 'Erro', text: 'Falha ao carregar turmas.', confirmButtonColor: '#6C63FF' });
     }
 }
 
 async function carregarSalas() {
-    const selectSala = document.getElementById('select-sala')
+    const selectSala = document.getElementById('select-sala');
     try {
         const { data: salas, error } = await supabase
-            .from('salas').select('id, nome').order('nome', { ascending: true })
-        if (error) throw error
-        selectSala.innerHTML = '<option value="">Selecione uma sala...</option>'
-        salas.forEach(s => {
-            const o = document.createElement('option')
-            o.value = s.id; o.textContent = s.nome
-            selectSala.appendChild(o)
-        })
+            .from('salas')
+            .select('id, nome')
+            .order('nome', { ascending: true });
+        if (error) throw error;
+        selectSala.innerHTML = '<option value="">Selecione uma sala...</option>';
+        salas.forEach(sala => {
+            const option = document.createElement('option');
+            option.value = sala.id;
+            option.textContent = sala.nome;
+            selectSala.appendChild(option);
+        });
     } catch (err) {
-        console.error('Erro ao carregar salas:', err)
-        Swal.fire({ icon: 'error', title: 'Erro', text: 'Falha ao carregar salas.', confirmButtonColor: 'var(--cor-primaria)' })
+        console.error("Erro ao carregar salas:", err);
+        Swal.fire({ icon: 'error', title: 'Erro', text: 'Falha ao carregar salas.', confirmButtonColor: '#6C63FF' });
     }
-}
-
-function formatarData(dataObj) {
-    const ano = dataObj.getFullYear()
-    const mes = String(dataObj.getMonth() + 1).padStart(2, '0')
-    const dia = String(dataObj.getDate()).padStart(2, '0')
-    return `${ano}-${mes}-${dia}`
 }
 
 function configurarCalendarioSemana() {
-    const hoje = new Date()
-    const diaSemana = hoje.getDay()
-    let minData = new Date(hoje)
-    let maxData = new Date(hoje)
-
+    const hoje = new Date();
+    const diaSemana = hoje.getDay(); 
+    let minData = new Date(hoje);
+    let maxData = new Date(hoje);
+    
     if (diaSemana === 0) {
-        minData.setDate(hoje.getDate() + 1)
-        maxData.setDate(hoje.getDate() + 5)
+        minData.setDate(hoje.getDate() + 1);
+        maxData.setDate(hoje.getDate() + 5);
     } else if (diaSemana === 6) {
-        minData.setDate(hoje.getDate() + 2)
-        maxData.setDate(hoje.getDate() + 6)
+        minData.setDate(hoje.getDate() + 2);
+        maxData.setDate(hoje.getDate() + 6);
     } else {
-        const resto = 5 - diaSemana
-        maxData.setDate(hoje.getDate() + resto)
+        minData = hoje;
+        const resto = 5 - diaSemana;
+        maxData.setDate(hoje.getDate() + resto);
     }
 
-    const input = document.getElementById('data-agendamento')
-    input.min = formatarData(minData)
-    input.max = formatarData(maxData)
-    input.value = formatarData(minData)
+    const input = document.getElementById('data-agendamento');
+    input.min = formatarData(minData);
+    input.max = formatarData(maxData);
+    input.value = formatarData(minData);
 }
 
 window.buscarAulas = async function() {
-    const salaId = document.getElementById('select-sala').value
-    const dataEscolhida = document.getElementById('data-agendamento').value
-    const grid = document.getElementById('grid-aulas')
-
-    if (buscandoAulasAtualmente) return
-
+    const salaId = document.getElementById('select-sala').value;
+    const dataEscolhida = document.getElementById('data-agendamento').value;
+    const grid = document.getElementById('grid-aulas');
+    
+    if (buscandoAulasAtualmente) return;
+    
     if (!salaId || !dataEscolhida) {
-        grid.innerHTML = `
-            <div class="grid-vazio">
-                <div class="icone-vazio">🗓️</div>
-                <p>Selecione uma data e uma sala para ver os horários disponíveis.</p>
-            </div>`
-        return
+        grid.innerHTML = '';
+        return;
     }
 
     grid.innerHTML = `
         <div class="spinner-container">
             <div class="spinner"></div>
             <div class="spinner-texto">Buscando grade...</div>
-        </div>`
+        </div>
+    `;
 
     try {
-        buscandoAulasAtualmente = true
+        buscandoAulasAtualmente = true;
         const { data: agendamentos, error } = await supabase
             .from('agendamentos')
             .select('aula_numero, professores(nome), turmas(nome)')
             .eq('sala_id', salaId)
-            .eq('data', dataEscolhida)
+            .eq('data', dataEscolhida);
 
-        if (error) throw error
+        if (error) throw error;
 
-        const mapaOcupacao = {}
+        const mapaOcupacao = {};
         agendamentos.forEach(a => {
             mapaOcupacao[a.aula_numero] = {
                 prof: a.professores?.nome || 'Desconhecido',
                 turma: a.turmas?.nome || 'Turma'
-            }
-        })
+            };
+        });
 
-        grid.innerHTML = ''
+        grid.innerHTML = '';
         for (let i = 1; i <= 7; i++) {
-            const btn = document.createElement('button')
-            btn.classList.add('btn-aula')
+            const btn = document.createElement('button');
+            btn.classList.add('btn-aula');
+            
             if (mapaOcupacao[i]) {
-                btn.classList.add('ocupada')
-                btn.innerHTML = `Aula ${i}<br><span style="font-size:.7rem;font-weight:400">🔒 ${mapaOcupacao[i].turma}<br>(${mapaOcupacao[i].prof})</span>`
-                btn.disabled = true
+                btn.classList.add('ocupada');
+                btn.innerHTML = `Aula ${i}<br><span style="font-size:0.7rem; font-weight:400;">🔒 ${mapaOcupacao[i].turma}<br>(${mapaOcupacao[i].prof})</span>`;
+                btn.disabled = true;
             } else {
-                btn.classList.add('disponivel')
-                btn.innerHTML = `Aula ${i}<br><span style="font-size:.7rem;font-weight:400">✨ Livre</span>`
-                btn.onclick = () => agendarAula(i)
+                btn.classList.add('disponivel');
+                btn.innerHTML = `Aula ${i}<br><span style="font-size:0.7rem; font-weight:400;">✨ Livre</span>`;
+                btn.onclick = () => agendarAula(i);
             }
-            grid.appendChild(btn)
+            grid.appendChild(btn);
         }
     } catch (err) {
-        console.error('Erro ao buscar aulas:', err)
-        grid.innerHTML = `<div class="grid-vazio"><p>Erro ao carregar a grade. Tente novamente.</p></div>`
+        console.error("Erro ao buscar aulas:", err);
     } finally {
-        buscandoAulasAtualmente = false
+        buscandoAulasAtualmente = false;
     }
 }
 
 window.agendarAula = async function(numeroAula) {
-    if (!professorLogado) return
-    const salaId = document.getElementById('select-sala').value
-    const turmaId = document.getElementById('select-turma').value
-    const dataEscolhida = document.getElementById('data-agendamento').value
+    if (!professorLogado) return;
+    const salaId = document.getElementById('select-sala').value;
+    const turmaId = document.getElementById('select-turma').value;
+    const dataEscolhida = document.getElementById('data-agendamento').value;
 
     if (!turmaId) {
         Swal.fire({
-            icon: 'warning', title: 'Atenção!',
-            text: 'Selecione a turma antes de escolher o horário.',
-            confirmButtonColor: 'var(--cor-primaria)'
-        }).then(() => document.getElementById('select-turma').focus())
-        return
+            icon: 'warning',
+            title: 'Atenção!',
+            text: 'Selecione a TURMA antes de escolher o horário da aula!',
+            confirmButtonColor: '#6C63FF'
+        }).then(() => { document.getElementById('select-turma').focus(); });
+        return;
     }
 
     const { data: choqueProf } = await supabase
@@ -232,30 +242,31 @@ window.agendarAula = async function(numeroAula) {
         .select('id, salas(nome)')
         .eq('professor_id', professorLogado.id)
         .eq('data', dataEscolhida)
-        .eq('aula_numero', numeroAula)
+        .eq('aula_numero', numeroAula);
 
     if (choqueProf && choqueProf.length > 0) {
         Swal.fire({
-            icon: 'error', title: 'Conflito de horário!',
-            text: `Você já reservou "${choqueProf[0].salas.nome}" neste mesmo dia e horário.`,
-            confirmButtonColor: 'var(--cor-primaria)'
-        })
-        return
+            icon: 'error',
+            title: 'Conflito de Horário!',
+            text: `Você já reservou a sala "${choqueProf[0].salas.nome}" neste mesmo dia e horário.`,
+            confirmButtonColor: '#6C63FF'
+        });
+        return;
     }
 
-    const dataBr = dataEscolhida.split('-').reverse().join('/')
+    const dataBr = dataEscolhida.split('-').reverse().join('/');
     const confirmacao = await Swal.fire({
         title: 'Confirmar reserva?',
-        text: `Aula ${numeroAula} — ${dataBr}`,
+        text: `Deseja agendar a Aula ${numeroAula} no dia ${dataBr}?`,
         icon: 'question',
         showCancelButton: true,
-        confirmButtonColor: 'var(--cor-primaria)',
-        cancelButtonColor: 'var(--cor-perigo)',
+        confirmButtonColor: '#6C63FF',
+        cancelButtonColor: '#ff4d4d',
         confirmButtonText: 'Sim, agendar!',
         cancelButtonText: 'Cancelar'
-    })
+    });
 
-    if (!confirmacao.isConfirmed) return
+    if (!confirmacao.isConfirmed) return;
 
     const { error } = await supabase.from('agendamentos').insert([{
         professor_id: professorLogado.id,
@@ -263,91 +274,111 @@ window.agendarAula = async function(numeroAula) {
         turma_id: turmaId,
         data: dataEscolhida,
         aula_numero: numeroAula
-    }])
+    }]);
 
     if (error) {
         Swal.fire({
-            icon: 'error', title: 'Vaga indisponível',
-            text: 'Essa vaga pode ter sido preenchida agora por outro professor.',
-            confirmButtonColor: 'var(--cor-primaria)'
-        })
+            icon: 'error',
+            title: 'Vaga Indisponível',
+            text: 'Erro! Essa vaga pode ter sido preenchida agora há pouco por outro professor.',
+            confirmButtonColor: '#6C63FF'
+        });
     } else {
         Swal.fire({
-            icon: 'success', title: 'Agendado!',
-            text: 'Aula reservada com sucesso! 🎉',
-            confirmButtonColor: 'var(--cor-sucesso)',
-            timer: 2000, showConfirmButton: false
-        })
-        buscarAulas()
-        carregarHistorico()
+            icon: 'success',
+            title: 'Show!',
+            text: 'Aula agendada com êxito! 🎉',
+            confirmButtonColor: '#00b09b',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        buscarAulas();
+        carregarHistorico();
     }
 }
 
 window.carregarHistorico = async function() {
-    if (!professorLogado) return
-    const listaHtml = document.getElementById('historico-lista')
-    listaHtml.innerHTML = '<span style="font-size:.85rem;color:var(--texto-secundario)">Carregando...</span>'
+    if (!professorLogado) return;
+    const listaHtml = document.getElementById('historico-lista');
+    listaHtml.innerHTML = '<span style="font-size:0.85rem;color:var(--texto-secundario)">Carregando agenda...</span>';
 
-    const hojeIso = formatarData(new Date())
+    const hojeIso = formatarData(new Date());
     const { data: historico, error } = await supabase
         .from('agendamentos')
         .select('id, data, aula_numero, salas(nome), turmas(nome)')
         .eq('professor_id', professorLogado.id)
         .gte('data', hojeIso)
-        .order('data', { ascending: true })
+        .order('data', { ascending: true });
 
-    if (error) { listaHtml.innerHTML = 'Erro ao carregar histórico.'; return }
-
-    if (historico.length === 0) {
-        listaHtml.innerHTML = '<span style="font-size:.85rem;color:var(--texto-secundario)">Nenhum agendamento ativo.</span>'
-        return
+    if (error) {
+        listaHtml.innerHTML = 'Erro ao carregar histórico.';
+        return;
     }
 
-    listaHtml.innerHTML = ''
+    if (historico.length === 0) {
+        listaHtml.innerHTML = '<span style="font-size:0.85rem;color:var(--texto-secundario)">Nenhum agendamento ativo nesta semana.</span>';
+        return;
+    }
+
+    listaHtml.innerHTML = '';
     historico.forEach(item => {
-        const dataBr = item.data.split('-').reverse().join('/')
-        const div = document.createElement('div')
-        div.classList.add('historico-item')
-        div.innerHTML = `
+        const dataBr = item.data.split('-').reverse().join('/');
+        const divItem = document.createElement('div');
+        divItem.classList.add('historico-item');
+        divItem.innerHTML = `
             <div class="historico-info">
-                <strong>${item.salas.nome} — Aula ${item.aula_numero}º</strong>
-                <span>${dataBr} · ${item.turmas.nome}</span>
+                <strong>${item.salas.nome} - Aula ${item.aula_numero}º</strong>
+                <span>Dia: ${dataBr} | Turma: ${item.turmas.nome}</span>
             </div>
-            <button class="btn-cancelar" onclick="cancelarAgendamento('${item.id}')">Cancelar</button>`
-        listaHtml.appendChild(div)
-    })
+            <button class="btn-cancelar" onclick="cancelarAgendamento('${item.id}')">Excluir</button>
+        `;
+        listaHtml.appendChild(divItem);
+    });
 }
 
 window.cancelarAgendamento = async function(idAgendamento) {
     const confirmacao = await Swal.fire({
-        title: 'Cancelar reserva?',
-        text: 'Tem certeza que deseja remover este agendamento?',
+        title: 'Cancelar Reserva?',
+        text: "Tem certeza que deseja cancelar esta reserva de sala?",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: 'var(--cor-perigo)',
-        cancelButtonColor: 'var(--texto-secundario)',
+        confirmButtonColor: '#ff4d4d',
+        cancelButtonColor: '#6c757d',
         confirmButtonText: 'Sim, cancelar!',
-        cancelButtonText: 'Manter'
-    })
+        cancelButtonText: 'Manter reserva'
+    });
 
-    if (!confirmacao.isConfirmed) return
+    if (!confirmacao.isConfirmed) return;
 
-    const { error } = await supabase.from('agendamentos').delete().eq('id', idAgendamento)
+    const { error } = await supabase.from('agendamentos').delete().eq('id', idAgendamento);
 
     if (error) {
-        Swal.fire({ icon: 'error', title: 'Erro!', text: 'Não foi possível cancelar.', confirmButtonColor: 'var(--cor-primaria)' })
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro!',
+            text: 'Não foi possível cancelar a reserva no momento.',
+            confirmButtonColor: '#6C63FF'
+        });
     } else {
-        Swal.fire({ icon: 'success', title: 'Cancelado!', text: 'Reserva removida.', timer: 1500, showConfirmButton: false })
-        buscarAulas()
-        carregarHistorico()
+        Swal.fire({
+            icon: 'success',
+            title: 'Cancelada!',
+            text: 'Reserva removida com sucesso.',
+            confirmButtonColor: '#00b09b',
+            timer: 2000,
+            showConfirmButton: false
+        });
+        buscarAulas();
+        carregarHistorico();
     }
 }
 
-// Realtime — FIX: verifica professorLogado antes de chamar carregarHistorico
+// SINCRO_TEMPO_REAL
 supabase
-    .channel('agendamentos-prof')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, () => {
-        buscarAulas()
-        if (professorLogado) carregarHistorico()  // ← bug corrigido
+    .channel('mudancas-agendamentos-prof')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, (payload) => {
+        console.log('Grade atualizada em tempo real!');
+        buscarAulas();
+        if (professorLogado) carregarHistorico();
     })
-    .subscribe()
+    .subscribe();
