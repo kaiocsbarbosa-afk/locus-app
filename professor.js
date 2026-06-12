@@ -3,6 +3,7 @@ import { supabase, toggleDarkMode, carregarPreferenciaModo, registrarServiceWork
 
 let professorLogado = null;
 let buscandoAulasAtualmente = false;
+let visualizacaoAtual = 'dia';
 
 // Inicialização do Sistema
 document.addEventListener("DOMContentLoaded", () => {
@@ -165,7 +166,12 @@ window.buscarAulas = async function() {
     const salaId = document.getElementById('select-sala').value;
     const dataEscolhida = document.getElementById('data-agendamento').value;
     const grid = document.getElementById('grid-aulas');
-    
+
+    // Se a visão semanal estiver ativa, atualiza ela também
+    if (visualizacaoAtual === 'semana') {
+        carregarVisaoSemanal();
+    }
+
     if (buscandoAulasAtualmente) return;
     
     if (!salaId || !dataEscolhida) {
@@ -373,6 +379,155 @@ window.cancelarAgendamento = async function(idAgendamento) {
     }
 }
 
+// ============================================================
+//  VISUALIZAÇÃO SEMANAL
+// ============================================================
+
+window.alternarVisualizacao = function(modo) {
+    visualizacaoAtual = modo;
+
+    const btnDia = document.getElementById('btn-view-dia');
+    const btnSemana = document.getElementById('btn-view-semana');
+    const gridDia = document.getElementById('grid-aulas');
+    const gridSemana = document.getElementById('visao-semanal');
+
+    if (modo === 'semana') {
+        btnDia.classList.remove('active');
+        btnSemana.classList.add('active');
+        gridDia.classList.add('hidden');
+        gridSemana.classList.remove('hidden');
+        carregarVisaoSemanal();
+    } else {
+        btnSemana.classList.remove('active');
+        btnDia.classList.add('active');
+        gridSemana.classList.add('hidden');
+        gridDia.classList.remove('hidden');
+    }
+}
+
+// Calcula a segunda-feira da semana atual (ou da semana da data escolhida)
+function obterSegundaFeiraDaSemana(dataBase) {
+    const data = new Date(dataBase);
+    const dia = data.getDay(); // 0 = domingo, 1 = segunda...
+    const diff = dia === 0 ? -6 : 1 - dia; // volta até a segunda
+    data.setDate(data.getDate() + diff);
+    return data;
+}
+
+window.carregarVisaoSemanal = async function() {
+    const salaId = document.getElementById('select-sala').value;
+    const container = document.getElementById('visao-semanal');
+
+    if (!salaId) {
+        container.innerHTML = `
+            <div class="grid-vazio">
+                <div class="icone-vazio">🏫</div>
+                <p>Selecione uma sala para ver a semana inteira.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="spinner-container">
+            <div class="spinner"></div>
+            <div class="spinner-texto">Montando a semana...</div>
+        </div>
+    `;
+
+    // Usa a data já escolhida no input (ou hoje) para achar a semana
+    const dataInput = document.getElementById('data-agendamento').value;
+    const dataBase = dataInput ? new Date(dataInput + 'T00:00:00') : new Date();
+    const segunda = obterSegundaFeiraDaSemana(dataBase);
+
+    const diasDaSemana = [];
+    const nomesDias = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
+    for (let i = 0; i < 5; i++) {
+        const d = new Date(segunda);
+        d.setDate(segunda.getDate() + i);
+        diasDaSemana.push({ data: formatarData(d), nome: nomesDias[i], diaNum: d.getDate() });
+    }
+
+    try {
+        const dataInicio = diasDaSemana[0].data;
+        const dataFim = diasDaSemana[4].data;
+
+        const { data: agendamentos, error } = await supabase
+            .from('agendamentos')
+            .select('data, aula_numero, professor_id, professores(nome), turmas(nome)')
+            .eq('sala_id', salaId)
+            .gte('data', dataInicio)
+            .lte('data', dataFim);
+
+        if (error) throw error;
+
+        // Mapa: "data|aula" -> { prof, turma, minha }
+        const mapa = {};
+        agendamentos.forEach(a => {
+            const chave = `${a.data}|${a.aula_numero}`;
+            mapa[chave] = {
+                prof: a.professores?.nome || 'Desconhecido',
+                turma: a.turmas?.nome || 'Turma',
+                minha: professorLogado && a.professor_id === professorLogado.id
+            };
+        });
+
+        // Monta a tabela: linhas = aulas 1-7, colunas = dias da semana
+        let html = '<div class="semana-wrapper"><table class="semana-tabela"><thead><tr><th>Aula</th>';
+        diasDaSemana.forEach(d => {
+            html += `<th>${d.nome}<br>${d.diaNum}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+
+        for (let aula = 1; aula <= 7; aula++) {
+            html += `<tr><td>${aula}ª</td>`;
+            diasDaSemana.forEach(d => {
+                const chave = `${d.data}|${aula}`;
+                const info = mapa[chave];
+
+                if (info && info.minha) {
+                    html += `<td><div class="semana-celula minha" title="Sua reserva — Turma ${info.turma}">★</div></td>`;
+                } else if (info) {
+                    html += `<td><div class="semana-celula ocupada" title="${info.prof} — Turma ${info.turma}">●</div></td>`;
+                } else {
+                    html += `<td><div class="semana-celula livre" title="Horário livre">○</div></td>`;
+                }
+            });
+            html += '</tr>';
+        }
+
+        html += '</tbody></table></div>';
+
+        html += `
+            <div class="semana-legenda">
+                <div class="semana-legenda-item">
+                    <div class="semana-legenda-cor" style="background:var(--cor-sucesso-clara); border-color:var(--cor-sucesso-borda);"></div>
+                    Livre
+                </div>
+                <div class="semana-legenda-item">
+                    <div class="semana-legenda-cor" style="background:var(--cor-perigo-clara); border-color:var(--cor-perigo-borda);"></div>
+                    Ocupada por outro professor
+                </div>
+                <div class="semana-legenda-item">
+                    <div class="semana-legenda-cor" style="background:var(--cor-primaria-clara); border-color:var(--cor-primaria);"></div>
+                    Sua reserva
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
+
+    } catch (err) {
+        console.error("Erro ao carregar visão semanal:", err);
+        container.innerHTML = `
+            <div class="grid-vazio">
+                <div class="icone-vazio">⚠️</div>
+                <p>Não foi possível carregar a semana. Tente novamente.</p>
+            </div>
+        `;
+    }
+}
+
 // SINCRO_TEMPO_REAL
 supabase
     .channel('mudancas-agendamentos-prof')
@@ -380,5 +535,6 @@ supabase
         console.log('Grade atualizada em tempo real!');
         buscarAulas();
         if (professorLogado) carregarHistorico();
+        if (visualizacaoAtual === 'semana') carregarVisaoSemanal();
     })
     .subscribe();
