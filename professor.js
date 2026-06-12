@@ -1,5 +1,6 @@
 /* professor.js */
 import { supabase, toggleDarkMode, carregarPreferenciaModo, registrarServiceWorker, dispararAlerta, formatarData } from './utils.js'
+import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 let professorLogado = null;
 let buscandoAulasAtualmente = false;
@@ -75,6 +76,9 @@ window.fazerLogin = async function(pinAutomatico) {
     configurarInterfaceParaLogado();
     configurarCalendarioSemana();
     carregarHistorico();
+
+    // Ativa notificações push para este professor (pede permissão se necessário)
+    ativarNotificacoes('professor', professorLogado.id);
 }
 
 window.fazerLogout = function() {
@@ -300,6 +304,14 @@ window.agendarAula = async function(numeroAula) {
         });
         buscarAulas();
         carregarHistorico();
+
+        // Notifica a coordenação sobre o novo agendamento
+        const nomeSala = document.getElementById('select-sala').selectedOptions[0]?.textContent || 'uma sala';
+        enviarNotificacao(
+            'Novo agendamento',
+            `${professorLogado.nome} reservou ${nomeSala} (Aula ${numeroAula}) em ${dataBr}.`,
+            'coordenacao'
+        );
     }
 }
 
@@ -336,13 +348,13 @@ window.carregarHistorico = async function() {
                 <strong>${item.salas.nome} - Aula ${item.aula_numero}º</strong>
                 <span>Dia: ${dataBr} | Turma: ${item.turmas.nome}</span>
             </div>
-            <button class="btn-cancelar" onclick="cancelarAgendamento('${item.id}')">Excluir</button>
+            <button class="btn-cancelar" onclick="cancelarAgendamento('${item.id}', '${item.salas.nome}', ${item.aula_numero}, '${dataBr}')">Excluir</button>
         `;
         listaHtml.appendChild(divItem);
     });
 }
 
-window.cancelarAgendamento = async function(idAgendamento) {
+window.cancelarAgendamento = async function(idAgendamento, nomeSala, numeroAula, dataBr) {
     const confirmacao = await Swal.fire({
         title: 'Cancelar Reserva?',
         text: "Tem certeza que deseja cancelar esta reserva de sala?",
@@ -374,6 +386,13 @@ window.cancelarAgendamento = async function(idAgendamento) {
             timer: 2000,
             showConfirmButton: false
         });
+
+        // Notifica a coordenação sobre o cancelamento
+        enviarNotificacao(
+            'Reserva cancelada',
+            `${professorLogado.nome} cancelou ${nomeSala} (Aula ${numeroAula}) em ${dataBr}.`,
+            'coordenacao'
+        );
         buscarAulas();
         carregarHistorico();
     }
