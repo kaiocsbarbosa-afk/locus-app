@@ -84,9 +84,19 @@
                     <option value="">Todas as salas</option>
                 </select>
             </div>
+            <div class="filtro-item">
+                <label for="filtroProfessor">Professor</label>
+                <select id="filtroProfessor">
+                    <option value="">Todos os professores</option>
+                </select>
+            </div>
             <button class="btn-exportar" onclick="exportarParaPlanilha()">
                 📊 Exportar planilha
             </button>
+        </div>
+
+        <div class="filtros-acoes">
+            <button class="btn-limpar-filtros" onclick="limparFiltros()">✕ Limpar filtros</button>
         </div>
 
         <div class="table-responsive">
