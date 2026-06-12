@@ -957,6 +957,32 @@ body.dark-mode .badge-admin {
     box-shadow: var(--shadow-sm);
 }
 
+.filtros-acoes {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 18px;
+    margin-top: -8px;
+}
+
+.btn-limpar-filtros {
+    background: transparent;
+    color: var(--texto-secundario);
+    border: 1px solid var(--borda);
+    padding: 7px 14px;
+    border-radius: var(--raio-xs);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    transition: var(--trans);
+}
+
+.btn-limpar-filtros:hover {
+    background: var(--bg-body);
+    color: var(--texto-principal);
+    border-color: var(--texto-secundario);
+}
+
 /* Tabela responsiva */
 .table-responsive {
     width: 100%;
