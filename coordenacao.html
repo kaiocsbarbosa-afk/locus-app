@@ -70,6 +70,44 @@
         </button>
     </div>
 
+    <!-- Gerenciar salas e turmas -->
+    <div class="card-gerenciar">
+        <button class="card-gerenciar-toggle" onclick="alternarGerenciamento()">
+            <span>🏫 Gerenciar salas e turmas</span>
+            <span id="icone-gerenciar">▾</span>
+        </button>
+
+        <div id="conteudo-gerenciar" class="card-gerenciar-conteudo hidden">
+            <div class="gerenciar-grid">
+
+                <!-- SALAS -->
+                <div class="gerenciar-coluna">
+                    <h4>Salas</h4>
+                    <div class="gerenciar-form">
+                        <input type="text" id="nova-sala-nome" placeholder="Nome da nova sala">
+                        <button onclick="adicionarSala()">➕ Adicionar</button>
+                    </div>
+                    <div class="gerenciar-lista" id="lista-salas">
+                        <div class="gerenciar-vazio">Carregando...</div>
+                    </div>
+                </div>
+
+                <!-- TURMAS -->
+                <div class="gerenciar-coluna">
+                    <h4>Turmas</h4>
+                    <div class="gerenciar-form">
+                        <input type="text" id="nova-turma-nome" placeholder="Nome da nova turma">
+                        <button onclick="adicionarTurma()">➕ Adicionar</button>
+                    </div>
+                    <div class="gerenciar-lista" id="lista-turmas">
+                        <div class="gerenciar-vazio">Carregando...</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
     <!-- Tabela de agendamentos -->
     <div class="tabela-larga">
 
