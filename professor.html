@@ -50,12 +50,20 @@
         </div>
 
         <h3 id="titulo-grade">Grade horária</h3>
+
+        <div class="view-toggle">
+            <button class="view-toggle-btn active" id="btn-view-dia" onclick="alternarVisualizacao('dia')">Dia</button>
+            <button class="view-toggle-btn" id="btn-view-semana" onclick="alternarVisualizacao('semana')">Semana</button>
+        </div>
+
         <div id="grid-aulas">
             <div class="grid-vazio">
                 <div class="icone-vazio">🗓️</div>
                 <p>Selecione uma data e uma sala para ver os horários disponíveis.</p>
             </div>
         </div>
+
+        <div id="visao-semanal" class="hidden"></div>
 
         <div class="historico-secao hidden" id="secao-historico">
             <div class="historico-titulo">📅 Seus agendamentos ativos</div>
