@@ -1,11 +1,13 @@
-const CACHE_NAME = 'sistemagil-cache-v1';
+const CACHE_NAME = 'locus-cache-v2';
 const ASSETS = [
   './',
   './index.html',
-  './cadasto.html',      // ➕ Adicionado
-  './professor.html',     // ➕ Adicionado
-  './coordenaçao.html',   // ➕ Adicionado (Atenção à acentuação aqui!)
+  './cadasto.html',
+  './professor.html',
+  './coordenacao.html',
   './manifest.json',
+  './locus.css',
+  './utils.js',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 ];
@@ -20,6 +22,15 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
+  // Remove caches antigos de versões anteriores do app
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(
+        keys.filter(key => key !== CACHE_NAME)
+            .map(key => caches.delete(key))
+      )
+    )
+  );
   console.log('Service Worker ativado com sucesso.');
 });
 
