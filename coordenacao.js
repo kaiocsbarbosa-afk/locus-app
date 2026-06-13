@@ -135,7 +135,6 @@ function mostrarDashboard() {
     if (inputData) inputData.value = `${ano}-${mes}-${dia}`;
 
     carregarRelatorioGeral();
-    inicializarGerenciamentoProfessores();
 
     // Ativa notificações push para a coordenação
     ativarNotificacoes('coordenacao');
@@ -653,11 +652,20 @@ supabase
 //  GERENCIAR PROFESSORES
 // ============================================================
 
+let gerenciamentoProfessoresCarregado = false;
 let disciplinasCache = [];
 
-// Carrega a lista de professores ao abrir o dashboard
-function inicializarGerenciamentoProfessores() {
-    carregarListaProfessores();
+window.alternarGerenciamentoProfessores = function(event) {
+    const conteudo = document.getElementById('conteudo-gerenciar-professores');
+    const toggle = event.currentTarget;
+
+    conteudo.classList.toggle('hidden');
+    toggle.classList.toggle('aberto');
+
+    if (!conteudo.classList.contains('hidden') && !gerenciamentoProfessoresCarregado) {
+        gerenciamentoProfessoresCarregado = true;
+        carregarListaProfessores();
+    }
 }
 
 async function obterDisciplinasCache() {
