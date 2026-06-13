@@ -648,6 +648,22 @@ supabase
     })
     .subscribe();
 
+// Realtime — lista de professores atualiza sozinha (outras abas/dispositivos)
+supabase
+    .channel('mudancas-professores-coord')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'professores' }, () => {
+        if (sessionStorage.getItem('coord_logada') === 'true') {
+            // Só recarrega se o card de professores já estiver aberto
+            const conteudo = document.getElementById('conteudo-gerenciar-professores');
+            if (conteudo && !conteudo.classList.contains('hidden')) {
+                carregarListaProfessores();
+            }
+            // Mantém o select de filtro sempre atualizado
+            carregarProfessoresNoFiltro();
+        }
+    })
+    .subscribe();
+
 // ============================================================
 //  GERENCIAR PROFESSORES
 // ============================================================
