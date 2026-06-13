@@ -48,10 +48,10 @@
         </div>
     </div>
 
-    <!-- Pré-cadastro -->
+    <!-- Gerenciar professores (cadastro + lista juntos) -->
     <div class="card-precadastro">
-        <h3>📋 Autorizar novo professor</h3>
-        <p class="card-subtitulo">O professor vai aparecer na lista de ativação e criará o próprio PIN depois.</p>
+        <h3>👨‍🏫 Professores</h3>
+        <p class="card-subtitulo">Autorize novos professores e gerencie os existentes — edite dados, resete PINs ou remova acessos.</p>
 
         <div class="form-group">
             <label for="coord-nome-professor">Nome completo</label>
@@ -68,19 +68,13 @@
         <button type="button" class="btn-liberar-cadastro" onclick="salvarPreCadastro()">
             ➕ Liberar cadastro
         </button>
-    </div>
 
-    <!-- Gerenciar professores -->
-    <div class="card-gerenciar">
-        <button class="card-gerenciar-toggle" onclick="alternarGerenciamentoProfessores(event)">
-            <span>👨‍🏫 Gerenciar professores</span>
-            <span id="icone-gerenciar-professores">▾</span>
-        </button>
+        <div class="separador-gerenciar">
+            <span>Professores cadastrados</span>
+        </div>
 
-        <div id="conteudo-gerenciar-professores" class="card-gerenciar-conteudo hidden">
-            <div class="gerenciar-lista-professores" id="lista-professores">
-                <div class="gerenciar-vazio">Carregando...</div>
-            </div>
+        <div class="gerenciar-lista-professores" id="lista-professores">
+            <div class="gerenciar-vazio">Carregando...</div>
         </div>
     </div>
 
