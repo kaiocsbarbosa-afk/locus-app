@@ -70,9 +70,23 @@
         </button>
     </div>
 
+    <!-- Gerenciar professores -->
+    <div class="card-gerenciar">
+        <button class="card-gerenciar-toggle" onclick="alternarGerenciamentoProfessores(event)">
+            <span>👨‍🏫 Gerenciar professores</span>
+            <span id="icone-gerenciar-professores">▾</span>
+        </button>
+
+        <div id="conteudo-gerenciar-professores" class="card-gerenciar-conteudo hidden">
+            <div class="gerenciar-lista-professores" id="lista-professores">
+                <div class="gerenciar-vazio">Carregando...</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Gerenciar salas e turmas -->
     <div class="card-gerenciar">
-        <button class="card-gerenciar-toggle" onclick="alternarGerenciamento()">
+        <button class="card-gerenciar-toggle" onclick="alternarGerenciamento(event)">
             <span>🏫 Gerenciar salas e turmas</span>
             <span id="icone-gerenciar">▾</span>
         </button>
