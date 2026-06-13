@@ -49,32 +49,38 @@
     </div>
 
     <!-- Gerenciar professores (cadastro + lista juntos) -->
-    <div class="card-precadastro">
-        <h3>👨‍🏫 Professores</h3>
-        <p class="card-subtitulo">Autorize novos professores e gerencie os existentes — edite dados, resete PINs ou remova acessos.</p>
-
-        <div class="form-group">
-            <label for="coord-nome-professor">Nome completo</label>
-            <input type="text" id="coord-nome-professor" placeholder="Ex: Prof. Carlos Silva">
-        </div>
-
-        <div class="form-group">
-            <label for="coord-disciplina-professor">Disciplina</label>
-            <select id="coord-disciplina-professor">
-                <option value="">Selecione a disciplina...</option>
-            </select>
-        </div>
-
-        <button type="button" class="btn-liberar-cadastro" onclick="salvarPreCadastro()">
-            ➕ Liberar cadastro
+    <div class="card-gerenciar">
+        <button class="card-gerenciar-toggle" onclick="alternarGerenciamentoProfessores(event)">
+            <span>👨‍🏫 Professores</span>
+            <span id="icone-gerenciar-professores">▾</span>
         </button>
 
-        <div class="separador-gerenciar">
-            <span>Professores cadastrados</span>
-        </div>
+        <div id="conteudo-gerenciar-professores" class="card-gerenciar-conteudo hidden">
+            <p class="card-subtitulo" style="margin-top:0;">Autorize novos professores e gerencie os existentes — edite dados, resete PINs ou remova acessos.</p>
 
-        <div class="gerenciar-lista-professores" id="lista-professores">
-            <div class="gerenciar-vazio">Carregando...</div>
+            <div class="form-group">
+                <label for="coord-nome-professor">Nome completo</label>
+                <input type="text" id="coord-nome-professor" placeholder="Ex: Prof. Carlos Silva">
+            </div>
+
+            <div class="form-group">
+                <label for="coord-disciplina-professor">Disciplina</label>
+                <select id="coord-disciplina-professor">
+                    <option value="">Selecione a disciplina...</option>
+                </select>
+            </div>
+
+            <button type="button" class="btn-liberar-cadastro" onclick="salvarPreCadastro()">
+                ➕ Liberar cadastro
+            </button>
+
+            <div class="separador-gerenciar">
+                <span>Professores cadastrados</span>
+            </div>
+
+            <div class="gerenciar-lista-professores" id="lista-professores">
+                <div class="gerenciar-vazio">Carregando...</div>
+            </div>
         </div>
     </div>
 
