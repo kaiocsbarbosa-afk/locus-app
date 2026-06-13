@@ -427,9 +427,9 @@ window.exportarParaPlanilha = async function() {
 
 let gerenciamentoCarregado = false;
 
-window.alternarGerenciamento = function() {
+window.alternarGerenciamento = function(event) {
     const conteudo = document.getElementById('conteudo-gerenciar');
-    const toggle = document.querySelector('.card-gerenciar-toggle');
+    const toggle = event.currentTarget;
 
     conteudo.classList.toggle('hidden');
     toggle.classList.toggle('aberto');
@@ -647,3 +647,196 @@ supabase
         }
     })
     .subscribe();
+
+// ============================================================
+//  GERENCIAR PROFESSORES
+// ============================================================
+
+let gerenciamentoProfessoresCarregado = false;
+let disciplinasCache = [];
+
+window.alternarGerenciamentoProfessores = function(event) {
+    const conteudo = document.getElementById('conteudo-gerenciar-professores');
+    const toggle = event.currentTarget;
+
+    conteudo.classList.toggle('hidden');
+    toggle.classList.toggle('aberto');
+
+    if (!conteudo.classList.contains('hidden') && !gerenciamentoProfessoresCarregado) {
+        gerenciamentoProfessoresCarregado = true;
+        carregarListaProfessores();
+    }
+}
+
+async function obterDisciplinasCache() {
+    if (disciplinasCache.length > 0) return disciplinasCache;
+
+    const { data, error } = await supabase
+        .from('disciplinas')
+        .select('id, nome')
+        .order('nome', { ascending: true });
+
+    if (!error && data) disciplinasCache = data;
+    return disciplinasCache;
+}
+
+async function carregarListaProfessores() {
+    const container = document.getElementById('lista-professores');
+    container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>';
+
+    const [{ data: professores, error }, disciplinas] = await Promise.all([
+        supabase.from('professores').select('id, nome, disciplina, pin').order('nome', { ascending: true }),
+        obterDisciplinasCache()
+    ]);
+
+    if (error) {
+        container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar professores.</div>';
+        return;
+    }
+
+    if (!professores || professores.length === 0) {
+        container.innerHTML = '<div class="gerenciar-vazio">Nenhum professor cadastrado.</div>';
+        return;
+    }
+
+    container.innerHTML = '';
+
+    professores.forEach(prof => {
+        const temPin = prof.pin !== null && prof.pin !== '';
+        const opcoesDisciplina = disciplinas.map(d =>
+            `<option value="${d.nome}" ${d.nome === prof.disciplina ? 'selected' : ''}>${d.nome}</option>`
+        ).join('');
+
+        const div = document.createElement('div');
+        div.classList.add('professor-card');
+        div.innerHTML = `
+            <div class="professor-card-topo">
+                <div class="professor-card-info">
+                    <div class="professor-nome">${prof.nome}</div>
+                    <div class="professor-disciplina">${prof.disciplina || 'Sem disciplina'}</div>
+                </div>
+                <span class="status-pin ${temPin ? 'ativo' : 'pendente'}">
+                    ${temPin ? '✓ Acesso ativo' : '⏳ Aguardando PIN'}
+                </span>
+            </div>
+
+            <div class="professor-card-edicao">
+                <input type="text" value="${prof.nome.replace(/"/g, '&quot;')}" id="edit-nome-${prof.id}" placeholder="Nome completo">
+                <select id="edit-disciplina-${prof.id}">
+                    <option value="">Selecione a disciplina...</option>
+                    ${opcoesDisciplina}
+                </select>
+            </div>
+
+            <div class="professor-card-acoes">
+                <button class="btn-salvar-professor" onclick="salvarEdicaoProfessor('${prof.id}')">💾 Salvar</button>
+                ${temPin ? `<button class="btn-resetar-pin" onclick="resetarPinProfessor('${prof.id}', '${prof.nome.replace(/'/g, "\\'")}')">🔑 Resetar PIN</button>` : ''}
+                <button class="btn-excluir-professor" onclick="excluirProfessor('${prof.id}', '${prof.nome.replace(/'/g, "\\'")}')">🗑️ Excluir</button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+window.salvarEdicaoProfessor = async function(id) {
+    const nomeInput = document.getElementById(`edit-nome-${id}`);
+    const disciplinaSelect = document.getElementById(`edit-disciplina-${id}`);
+
+    const nome = nomeInput.value.trim();
+    const disciplina = disciplinaSelect.value;
+
+    if (!nome) {
+        dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'O nome não pode ficar vazio.', confirmButtonColor: 'var(--cor-primaria)' });
+        return;
+    }
+
+    const { error } = await supabase
+        .from('professores')
+        .update({ nome, disciplina })
+        .eq('id', id);
+
+    if (error) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível salvar as alterações.', confirmButtonColor: 'var(--cor-perigo)' });
+        return;
+    }
+
+    dispararAlerta({ icon: 'success', title: 'Salvo!', timer: 1200, showConfirmButton: false });
+    carregarListaProfessores();
+    carregarProfessoresNoFiltro();
+}
+
+window.resetarPinProfessor = async function(id, nome) {
+    const confirmacao = await Swal.fire({
+        title: 'Resetar PIN?',
+        text: `O professor "${nome}" precisará criar um novo PIN em "Ativar Meu Acesso" para entrar de novo.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--cor-aviso)',
+        cancelButtonColor: 'var(--texto-secundario)',
+        confirmButtonText: 'Sim, resetar',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (!confirmacao.isConfirmed) return;
+
+    const { error } = await supabase
+        .from('professores')
+        .update({ pin: null })
+        .eq('id', id);
+
+    if (error) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível resetar o PIN.', confirmButtonColor: 'var(--cor-perigo)' });
+        return;
+    }
+
+    dispararAlerta({ icon: 'success', title: 'PIN resetado!', text: 'O professor pode criar um novo PIN.', timer: 1800, showConfirmButton: false });
+    carregarListaProfessores();
+}
+
+window.excluirProfessor = async function(id, nome) {
+    // Verifica se existem agendamentos vinculados a este professor
+    const { data: vinculos, error: erroVinculo } = await supabase
+        .from('agendamentos')
+        .select('id')
+        .eq('professor_id', id)
+        .limit(1);
+
+    if (erroVinculo) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível verificar agendamentos deste professor.', confirmButtonColor: 'var(--cor-perigo)' });
+        return;
+    }
+
+    if (vinculos && vinculos.length > 0) {
+        dispararAlerta({
+            icon: 'warning',
+            title: 'Professor com reservas ativas',
+            text: `"${nome}" possui agendamentos vinculados e não pode ser excluído. Cancele os agendamentos dele primeiro.`,
+            confirmButtonColor: 'var(--cor-primaria)'
+        });
+        return;
+    }
+
+    const confirmacao = await Swal.fire({
+        title: 'Excluir professor?',
+        text: `Tem certeza que deseja excluir "${nome}"? Esta ação não pode ser desfeita e ele perderá o acesso ao sistema.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--cor-perigo)',
+        cancelButtonColor: 'var(--texto-secundario)',
+        confirmButtonText: 'Sim, excluir!',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (!confirmacao.isConfirmed) return;
+
+    const { error } = await supabase.from('professores').delete().eq('id', id);
+
+    if (error) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir o professor.', confirmButtonColor: 'var(--cor-perigo)' });
+        return;
+    }
+
+    dispararAlerta({ icon: 'success', title: 'Excluído!', timer: 1200, showConfirmButton: false });
+    carregarListaProfessores();
+    carregarProfessoresNoFiltro();
+}
