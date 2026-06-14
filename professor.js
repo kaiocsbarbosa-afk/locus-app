@@ -105,12 +105,73 @@ function atualizarPerfil() {
     if (nome) nome.textContent = professorLogado.nome;
     if (disc) disc.textContent = professorLogado.disciplina || 'Sem disciplina';
 
-    // Status notificações
-    const statusNotif = document.getElementById('status-notif');
-    if (statusNotif) {
-        const perm = Notification?.permission;
-        statusNotif.textContent = perm === 'granted' ? 'Ativas' : perm === 'denied' ? 'Bloqueadas' : 'Não configuradas';
+    atualizarStatusNotificacoes();
+}
+
+function atualizarStatusNotificacoes() {
+    const desc = document.getElementById('status-notif-desc');
+    const btn = document.getElementById('btn-notif');
+    if (!desc || !btn) return;
+
+    const perm = Notification?.permission;
+
+    if (perm === 'granted') {
+        desc.textContent = 'Ativas — lembretes e avisos habilitados';
+        btn.textContent = 'Reativar';
+        btn.style.color = 'var(--cor-sucesso)';
+        btn.style.borderColor = 'var(--cor-sucesso-borda)';
+    } else if (perm === 'denied') {
+        desc.textContent = 'Bloqueadas — habilite nas configurações do navegador';
+        btn.textContent = 'Bloqueadas';
+        btn.style.color = 'var(--cor-perigo)';
+        btn.style.borderColor = 'var(--cor-perigo-borda)';
+        btn.disabled = true;
+    } else {
+        desc.textContent = 'Toque para ativar lembretes de aula';
+        btn.textContent = 'Ativar';
+        btn.style.color = 'var(--cor-primaria)';
+        btn.style.borderColor = 'var(--cor-primaria)';
     }
+}
+
+window.gerenciarNotificacoes = async function() {
+    const perm = Notification?.permission;
+
+    if (perm === 'denied') {
+        Swal.fire({
+            icon: 'info',
+            title: 'Notificações bloqueadas',
+            text: 'Para ativar, vá em Configurações do navegador → Notificações → encontre o Locus e permita.',
+            confirmButtonColor: '#7c3aed'
+        });
+        return;
+    }
+
+    const btn = document.getElementById('btn-notif');
+    if (btn) { btn.textContent = 'Ativando...'; btn.disabled = true; }
+
+    const sucesso = await ativarNotificacoes('professor', professorLogado?.id);
+
+    if (sucesso) {
+        Swal.fire({
+            icon: 'success',
+            title: 'Notificações ativas!',
+            text: 'Você receberá lembretes 5 minutos antes de cada aula.',
+            confirmButtonColor: '#059669',
+            timer: 2500,
+            showConfirmButton: false
+        });
+    } else {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Permissão necessária',
+            text: 'Permita as notificações quando o navegador perguntar.',
+            confirmButtonColor: '#7c3aed'
+        });
+    }
+
+    if (btn) btn.disabled = false;
+    atualizarStatusNotificacoes();
 }
 
 // ============================================================
@@ -512,5 +573,54 @@ supabase
         buscarAulas();
         if (professorLogado) carregarHistorico();
         if (telaAtual === 'semana') carregarVisaoSemanal();
+    })
+    .subscribe();
+
+// Detecta quando a coordenação apaga ou reseta o PIN do professor logado
+supabase
+    .channel('mudancas-professor-logado')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'professores' }, async (payload) => {
+        if (!professorLogado) return;
+
+        const id = payload.new?.id || payload.old?.id;
+        if (id !== professorLogado.id) return; // só reage ao próprio professor
+
+        if (payload.eventType === 'DELETE') {
+            // Professor foi excluído — força logout com aviso
+            await Swal.fire({
+                icon: 'warning',
+                title: 'Acesso removido',
+                text: 'Sua conta foi removida pela coordenação. Você será desconectado.',
+                confirmButtonColor: '#7c3aed',
+                allowOutsideClick: false
+            });
+            localStorage.removeItem('prof_pin');
+            window.location.href = 'index.html';
+            return;
+        }
+
+        if (payload.eventType === 'UPDATE') {
+            const pinResetado = payload.new?.pin === null && professorLogado.pin !== null;
+            if (pinResetado) {
+                // PIN foi resetado — força logout com aviso
+                await Swal.fire({
+                    icon: 'info',
+                    title: 'PIN redefinido',
+                    text: 'Seu PIN foi redefinido pela coordenação. Crie um novo PIN para continuar.',
+                    confirmButtonColor: '#7c3aed',
+                    confirmButtonText: 'Ir para ativação',
+                    allowOutsideClick: false
+                });
+                localStorage.removeItem('prof_pin');
+                window.location.href = 'cadasto.html';
+                return;
+            }
+
+            // Atualiza dados locais se nome/disciplina mudaram
+            professorLogado = { ...professorLogado, ...payload.new };
+            if (telaAtual === 'perfil') atualizarPerfil();
+            const status = document.getElementById('status-usuario');
+            if (status) status.innerHTML = `Olá, <strong>${professorLogado.nome}</strong>! 👋`;
+        }
     })
     .subscribe();
