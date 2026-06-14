@@ -1,4 +1,4 @@
-const CACHE_NAME = 'locus-cache-v3';
+const CACHE_NAME = 'locus-cache-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -12,6 +12,7 @@ const ASSETS = [
   './icon-96.png',
   './icon-192.png',
   './icon-512.png',
+  './icon-notification.png',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 ];
@@ -64,7 +65,7 @@ self.addEventListener('push', e => {
     self.registration.showNotification(dados.title, {
       body: dados.body,
       icon: './icon-192.png',
-      badge: './icon-96.png',
+      badge: './icon-notification.png',
       vibrate: [100, 50, 100]
     })
   );
