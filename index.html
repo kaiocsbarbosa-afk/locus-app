@@ -2,107 +2,435 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Locus — Agendamento de Salas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Locus</title>
     <link rel="manifest" href="./manifest.json">
-    <link rel="apple-touch-icon" href="./icon-192.png">
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+    <meta name="theme-color" content="#7c3aed">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Locus">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    *, *::before, *::after {
+        box-sizing: border-box; margin: 0; padding: 0;
+        -webkit-tap-highlight-color: transparent;
+    }
+
     :root {
-        --roxo: #6d28d9; --roxo-escuro: #4c1d95; --roxo-claro: #ede9fe;
-        --verde: #059669; --verde-claro: #d1fae5;
-        --texto: #1e1b4b; --subtexto: #6b7280; --borda: #e5e7eb; --bg: #f5f3ff;
+        --roxo:        #7c3aed;
+        --roxo-escuro: #4c1d95;
+        --roxo-claro:  #ede9fe;
+        --verde:       #059669;
+        --verde-claro: #d1fae5;
+        --texto:       #1e1b4b;
+        --subtexto:    #6b7280;
+        --borda:       #e5e7eb;
+        --bg:          #f5f3ff;
+        --card:        #ffffff;
     }
+
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --texto:    #f0eeff;
+            --subtexto: #9ca3af;
+            --borda:    #2d2a45;
+            --bg:       #0f0d1a;
+            --card:     #1a1730;
+        }
+    }
+
+    html { height: 100%; overflow: hidden; }
+
     body {
-        font-family: 'Poppins', sans-serif; background: var(--bg);
-        min-height: 100dvh; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; padding: 28px 20px; color: var(--texto);
+        font-family: 'Poppins', sans-serif;
+        height: 100dvh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        color: var(--texto);
     }
-    body::before {
-        content: ''; position: fixed; inset: 0;
-        background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(109,40,217,.09) 0%, transparent 70%);
-        pointer-events: none; z-index: 0;
+
+    /* ── SPLASH ─────────────────────────────────── */
+    #splash {
+        position: fixed;
+        inset: 0;
+        background: linear-gradient(160deg, #7c3aed 0%, #4c1d95 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity .5s ease, transform .5s ease;
     }
-    .conteudo { position: relative; z-index: 1; width: 100%; max-width: 1000px; display: flex; flex-direction: column; align-items: center; }
-    .header-home { text-align: center; margin-bottom: 52px; animation: entrar .7s ease-out both; }
-    .logo-marca { display: inline-flex; align-items: center; gap: 14px; margin-bottom: 16px; }
-    .logo-icone {
-        width: 52px; height: 52px;
-        background: linear-gradient(135deg, var(--roxo), #a855f7);
-        border-radius: 16px; display: flex; align-items: center; justify-content: center;
-        font-size: 1.6rem; box-shadow: 0 8px 24px rgba(109,40,217,.25);
+
+    #splash.saindo {
+        opacity: 0;
+        transform: scale(1.04);
+        pointer-events: none;
     }
-    .header-home h1 {
-        font-size: 3.8rem; font-weight: 800; letter-spacing: -2px; line-height: 1;
-        background: linear-gradient(135deg, var(--roxo) 0%, #a855f7 100%);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+
+    .splash-icon {
+        width: 96px;
+        height: 96px;
+        border-radius: 26px;
+        background: rgba(255,255,255,.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+        animation: pulsar 1.6s ease-in-out infinite;
     }
-    .header-home p { font-size: 1.05rem; color: var(--subtexto); max-width: 440px; margin: 12px auto 0; line-height: 1.65; }
-    .cards-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; width: 100%; }
-    .card-link {
-        background: #fff; padding: 36px 28px; border-radius: 20px; text-decoration: none;
-        border: 1px solid var(--borda); border-top: 4px solid var(--roxo);
-        display: flex; flex-direction: column; align-items: flex-start;
-        transition: all .25s ease-out; animation: subir .5s ease-out backwards; position: relative; overflow: hidden;
+
+    .splash-icon img {
+        width: 68px;
+        height: 68px;
+        border-radius: 16px;
     }
-    .card-link::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(109,40,217,.03) 0%, transparent 60%); pointer-events: none; }
-    .card-link.destaque-verde { border-top-color: var(--verde); }
-    .card-link:nth-child(1) { animation-delay: .1s; }
-    .card-link:nth-child(2) { animation-delay: .18s; }
-    .card-link:nth-child(3) { animation-delay: .26s; }
-    .card-link:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(109,40,217,.12); border-color: rgba(109,40,217,.25); }
-    .card-link.destaque-verde:hover { box-shadow: 0 16px 40px rgba(5,150,105,.12); border-color: rgba(5,150,105,.25); }
-    .card-badge { width: 56px; height: 56px; background: var(--roxo-claro); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; font-size: 1.6rem; transition: transform .25s ease; }
-    .card-link.destaque-verde .card-badge { background: var(--verde-claro); }
-    .card-link:hover .card-badge { transform: scale(1.08); }
-    .card-link h2 { color: var(--texto); font-size: 1.15rem; font-weight: 700; margin-bottom: 10px; letter-spacing: -.3px; }
-    .card-link p { color: var(--subtexto); font-size: .9rem; line-height: 1.6; margin: 0; }
-    .card-seta { margin-top: 20px; font-size: .85rem; font-weight: 600; color: var(--roxo); display: flex; align-items: center; gap: 4px; transition: gap .2s ease; }
-    .card-link.destaque-verde .card-seta { color: var(--verde); }
-    .card-link:hover .card-seta { gap: 8px; }
-    @keyframes entrar { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes subir { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-    @media (max-width: 600px) {
-        body { padding: 24px 16px; justify-content: flex-start; }
-        .header-home { margin-top: 24px; margin-bottom: 36px; }
-        .header-home h1 { font-size: 2.8rem; letter-spacing: -1.5px; }
-        .card-link { padding: 28px 22px; } .cards-container { gap: 14px; }
+
+    .splash-nome {
+        font-size: 2.4rem;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -1.5px;
+        animation: surgir .6s ease-out both;
+        animation-delay: .2s;
+    }
+
+    .splash-sub {
+        font-size: .9rem;
+        color: rgba(255,255,255,.65);
+        margin-top: 6px;
+        animation: surgir .6s ease-out both;
+        animation-delay: .32s;
+    }
+
+    .splash-loader {
+        margin-top: 52px;
+        width: 40px;
+        height: 4px;
+        background: rgba(255,255,255,.2);
+        border-radius: 2px;
+        overflow: hidden;
+        animation: surgir .6s ease-out both;
+        animation-delay: .5s;
+    }
+
+    .splash-loader-barra {
+        height: 100%;
+        background: #fff;
+        border-radius: 2px;
+        animation: carregar 1.8s ease-in-out forwards;
+    }
+
+    @keyframes pulsar {
+        0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,.15); }
+        50%       { transform: scale(1.06); box-shadow: 0 0 0 16px rgba(255,255,255,0); }
+    }
+
+    @keyframes surgir {
+        from { opacity: 0; transform: translateY(12px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes carregar {
+        from { width: 0%; }
+        to   { width: 100%; }
+    }
+
+    /* ── HERO (topo roxo) ───────────────────────── */
+    .hero {
+        background: linear-gradient(135deg, #7c3aed, #4c1d95);
+        padding: 24px 24px 36px;
+        padding-top: calc(24px + env(safe-area-inset-top));
+        flex-shrink: 0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero::after {
+        content: '';
+        position: absolute;
+        bottom: -30px;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: var(--bg);
+        border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    }
+
+    .hero-logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+
+    .hero-logo img {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+    }
+
+    .hero-logo span {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -.5px;
+    }
+
+    .hero-titulo {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -.5px;
+        line-height: 1.25;
+        margin-bottom: 6px;
+    }
+
+    .hero-sub {
+        font-size: .88rem;
+        color: rgba(255,255,255,.7);
+        line-height: 1.5;
+    }
+
+    /* ── CONTEÚDO ───────────────────────────────── */
+    #app-content {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+        padding: 8px 20px calc(20px + env(safe-area-inset-bottom));
+        min-height: 0;
+    }
+
+    /* ── LABEL DE SEÇÃO ─────────────────────────── */
+    .secao-label {
+        font-size: .72rem;
+        font-weight: 600;
+        color: var(--subtexto);
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        margin: 24px 0 12px;
+    }
+
+    /* ── CARDS DE NAVEGAÇÃO ─────────────────────── */
+    .nav-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: var(--card);
+        border: 1px solid var(--borda);
+        border-radius: 16px;
+        padding: 18px 16px;
+        text-decoration: none;
+        margin-bottom: 12px;
+        transition: all .2s ease-out;
+        position: relative;
+        overflow: hidden;
+        animation: entrar .4s ease-out both;
+    }
+
+    .nav-card:nth-child(1) { animation-delay: .05s; }
+    .nav-card:nth-child(2) { animation-delay: .12s; }
+    .nav-card:nth-child(3) { animation-delay: .19s; }
+
+    .nav-card:active {
+        transform: scale(.98);
+        opacity: .9;
+    }
+
+    /* Borda colorida esquerda */
+    .nav-card::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 12px;
+        bottom: 12px;
+        width: 3px;
+        border-radius: 0 2px 2px 0;
+        background: var(--roxo);
+        transition: height .2s;
+    }
+
+    .nav-card.verde::before { background: var(--verde); }
+
+    .nav-card-icone {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        background: var(--roxo-claro);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        flex-shrink: 0;
+        transition: transform .2s;
+    }
+
+    .nav-card.verde .nav-card-icone { background: var(--verde-claro); }
+    .nav-card:active .nav-card-icone { transform: scale(.95); }
+
+    .nav-card-texto {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .nav-card-titulo {
+        font-size: .95rem;
+        font-weight: 600;
+        color: var(--texto);
+        letter-spacing: -.2px;
+        margin-bottom: 3px;
+    }
+
+    .nav-card-desc {
+        font-size: .8rem;
+        color: var(--subtexto);
+        line-height: 1.4;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .nav-card-seta {
+        font-size: 1.1rem;
+        color: var(--borda);
+        flex-shrink: 0;
+        transition: transform .2s, color .2s;
+    }
+
+    .nav-card:active .nav-card-seta {
+        transform: translateX(4px);
+        color: var(--subtexto);
+    }
+
+    /* ── RODAPÉ ─────────────────────────────────── */
+    .rodape {
+        text-align: center;
+        padding: 8px 0 4px;
+        font-size: .75rem;
+        color: var(--subtexto);
+        opacity: .7;
+    }
+
+    @keyframes entrar {
+        from { opacity: 0; transform: translateY(14px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
     </style>
 </head>
 <body>
-<div class="conteudo">
-    <div class="header-home">
-        <div class="logo-marca">
-            <div class="logo-icone">📍</div>
-            <h1>Locus</h1>
-        </div>
-        <p>Sistema ágil para agendamento de salas, pátios e laboratórios.</p>
+
+<!-- SPLASH -->
+<div id="splash">
+    <div class="splash-icon">
+        <img src="./icon-192.png" alt="Locus">
     </div>
-    <div class="cards-container">
-        <a href="professor.html" class="card-link">
-            <div class="card-badge">👨‍🏫</div>
-            <h2>Área do Professor</h2>
-            <p>Consulte a grade e reserve salas, pátios e laboratórios em poucos toques.</p>
-            <span class="card-seta">Acessar →</span>
-        </a>
-        <a href="cadasto.html" class="card-link destaque-verde">
-            <div class="card-badge">🚀</div>
-            <h2>Ativar Meu Acesso</h2>
-            <p>Primeiro acesso? Crie seu PIN após a liberação pela coordenação.</p>
-            <span class="card-seta">Começar →</span>
-        </a>
-        <a href="coordenacao.html" class="card-link">
-            <div class="card-badge">🛡️</div>
-            <h2>Painel da Coordenação</h2>
-            <p>Gerencie professores, audite reservas e exporte relatórios.</p>
-            <span class="card-seta">Acessar →</span>
-        </a>
+    <div class="splash-nome">Locus</div>
+    <div class="splash-sub">Agendamento de salas</div>
+    <div class="splash-loader">
+        <div class="splash-loader-barra"></div>
     </div>
 </div>
+
+<!-- HERO -->
+<div class="hero">
+    <div class="hero-logo">
+        <img src="./icon-192.png" alt="Locus">
+        <span>Locus</span>
+    </div>
+    <div class="hero-titulo">Bom dia! 👋<br>O que deseja fazer?</div>
+    <div class="hero-sub">Sistema de agendamento de salas e laboratórios.</div>
+</div>
+
+<!-- CONTEÚDO -->
+<main id="app-content">
+
+    <div class="secao-label">Acesso rápido</div>
+
+    <a href="professor.html" class="nav-card">
+        <div class="nav-card-icone">👨‍🏫</div>
+        <div class="nav-card-texto">
+            <div class="nav-card-titulo">Área do Professor</div>
+            <div class="nav-card-desc">Reserve salas, pátios e laboratórios</div>
+        </div>
+        <span class="nav-card-seta">›</span>
+    </a>
+
+    <a href="cadasto.html" class="nav-card verde">
+        <div class="nav-card-icone">🚀</div>
+        <div class="nav-card-texto">
+            <div class="nav-card-titulo">Ativar Meu Acesso</div>
+            <div class="nav-card-desc">Primeiro acesso? Crie seu PIN aqui</div>
+        </div>
+        <span class="nav-card-seta">›</span>
+    </a>
+
+    <div class="secao-label">Administração</div>
+
+    <a href="coordenacao.html" class="nav-card">
+        <div class="nav-card-icone">🛡️</div>
+        <div class="nav-card-texto">
+            <div class="nav-card-titulo">Painel da Coordenação</div>
+            <div class="nav-card-desc">Gerencie professores, salas e reservas</div>
+        </div>
+        <span class="nav-card-seta">›</span>
+    </a>
+
+    <div class="rodape">Locus v2.0 · Sistema de agendamento escolar</div>
+
+</main>
+
 <script>
-if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); }); }
+    // Splash: 2s depois some
+    setTimeout(() => {
+        const s = document.getElementById('splash');
+        s.classList.add('saindo');
+        setTimeout(() => s.style.display = 'none', 500);
+    }, 2000);
+
+    // Dark mode: respeita localStorage (mesma preferência das outras páginas)
+    if (localStorage.getItem('darkMode') === 'enabled') {
+        document.body.classList.add('dark-mode');
+    }
+
+    // Adiciona classe dark ao :root para as variáveis funcionarem
+    // (index usa suas próprias variáveis, não o locus.css)
+    const darkCSS = document.createElement('style');
+    darkCSS.id = 'dark-override';
+    document.head.appendChild(darkCSS);
+
+    function aplicarDark(ativo) {
+        darkCSS.textContent = ativo ? `
+            :root {
+                --texto:    #f0eeff !important;
+                --subtexto: #9ca3af !important;
+                --borda:    #2d2a45 !important;
+                --bg:       #0f0d1a !important;
+                --card:     #1a1730 !important;
+            }
+            body { background: #0f0d1a; color: #f0eeff; }
+            .hero::after { background: #0f0d1a; }
+        ` : '';
+    }
+
+    // Aplica ao carregar
+    aplicarDark(localStorage.getItem('darkMode') === 'enabled');
+
+    // Service Worker
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch(() => {});
+        });
+    }
+
+    // Saudação dinâmica baseada no horário
+    const hora = new Date().getHours();
+    const saudacao = hora < 12 ? 'Bom dia! 👋' : hora < 18 ? 'Boa tarde! 👋' : 'Boa noite! 👋';
+    document.querySelector('.hero-titulo').innerHTML = `${saudacao}<br>O que deseja fazer?`;
 </script>
 </body>
 </html>
