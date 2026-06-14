@@ -14,20 +14,28 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="locus.css">
     <style>
-        /* ── APP SHELL ─────────────────────────────── */
-        html, body {
+        /* ── RESET — sobrescreve locus.css que conflita com o app shell ── */
+        html {
             height: 100%;
             overflow: hidden;
-            margin: 0;
-            padding: 0;
-            background: var(--bg-body);
         }
 
         body {
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
+            /* Usa dvh que NÃO redimensiona quando o teclado abre */
+            height: 100dvh;
+            min-height: 100dvh;
+            overflow: hidden;
+            margin: 0;
+            padding: 0 !important; /* sobrescreve o padding do locus.css */
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: flex-start !important;
+            align-items: stretch !important;
+            background: var(--bg-body);
         }
+
+        /* Garante que o container do locus.css não interfira */
+        .container { all: unset; display: contents; }
 
         /* ── SPLASH SCREEN ─────────────────────────── */
         #splash {
@@ -121,12 +129,15 @@
         /* ── HEADER ────────────────────────────────── */
         #app-header {
             display: none;
+            flex-shrink: 0;
             background: linear-gradient(135deg, #7c3aed, #6d28d9);
             padding: 14px 20px 14px;
             padding-top: calc(14px + env(safe-area-inset-top));
             align-items: center;
             justify-content: space-between;
-            flex-shrink: 0;
+            width: 100%;
+            box-sizing: border-box;
+            z-index: 50;
         }
 
         #app-header.visivel {
@@ -180,19 +191,22 @@
         #app-content {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
-            padding: 16px 16px calc(72px + env(safe-area-inset-bottom)) 16px;
+            overscroll-behavior-y: contain;
+            /* dvh mantém altura estável mesmo com teclado aberto */
+            min-height: 0;
+            padding: 16px 16px calc(80px + env(safe-area-inset-bottom)) 16px;
         }
 
         /* ── LOGIN SCREEN ──────────────────────────── */
         #tela-login {
-            min-height: calc(100vh - 70px);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 24px 0;
+            padding: 32px 16px;
+            min-height: calc(100dvh - 32px);
         }
 
         .login-card {
@@ -250,8 +264,11 @@
             right: 0;
             background: var(--bg-card);
             border-top: 1px solid var(--borda);
-            padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+            padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
             z-index: 100;
+            /* Impede que o teclado virtual cubra o nav */
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
         }
 
         #bottom-nav.visivel { display: flex; }
