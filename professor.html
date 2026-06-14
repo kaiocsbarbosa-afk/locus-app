@@ -555,17 +555,17 @@
             <input type="date" id="data-agendamento" onchange="buscarAulas()">
         </div>
 
-        <div class="form-group">
-            <label for="select-sala">Sala</label>
-            <select id="select-sala" onchange="buscarAulas()">
-                <option value="">Selecione uma sala...</option>
-            </select>
-        </div>
-
         <div class="form-group" id="container-turma">
             <label for="select-turma">Turma</label>
             <select id="select-turma">
                 <option value="">Selecione a turma...</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="select-sala">Sala</label>
+            <select id="select-sala" onchange="buscarAulas()">
+                <option value="">Selecione uma sala...</option>
             </select>
         </div>
 
@@ -618,9 +618,12 @@
             <div class="perfil-item">
                 <div class="perfil-item-esq">
                     <div class="perfil-item-icone roxo">🔔</div>
-                    <span>Notificações</span>
+                    <div>
+                        <div style="font-size:.9rem;">Notificações</div>
+                        <div style="font-size:.75rem;color:var(--texto-secundario)" id="status-notif-desc">Verificando...</div>
+                    </div>
                 </div>
-                <span style="font-size:.82rem;color:var(--texto-secundario)" id="status-notif">Ativas</span>
+                <button class="perfil-toggle" id="btn-notif" onclick="gerenciarNotificacoes()">—</button>
             </div>
 
             <div class="perfil-item">
