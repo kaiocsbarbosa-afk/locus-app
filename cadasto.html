@@ -2,25 +2,374 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Locus — Ativar Acesso</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#6d28d9">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <meta name="theme-color" content="#7c3aed">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Locus">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="locus.css">
+    <style>
+        /* ── RESET locus.css ───────────────────────── */
+        html { height: 100%; overflow: hidden; }
+
+        body {
+            height: 100dvh !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: flex-start !important;
+            align-items: stretch !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box;
+        }
+
+        .container { all: unset; }
+
+        * { box-sizing: border-box; }
+
+        /* ── SPLASH ─────────────────────────────────── */
+        #splash {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(160deg, #6d28d9 0%, #4c1d95 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity .5s ease, transform .5s ease;
+        }
+
+        #splash.saindo {
+            opacity: 0;
+            transform: scale(1.04);
+            pointer-events: none;
+        }
+
+        .splash-icon {
+            width: 88px;
+            height: 88px;
+            border-radius: 22px;
+            background: rgba(255,255,255,.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 18px;
+            animation: pulsar 1.6s ease-in-out infinite;
+        }
+
+        .splash-icon img { width: 60px; height: 60px; border-radius: 12px; }
+
+        .splash-nome {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -1px;
+            animation: surgir .6s ease-out both;
+            animation-delay: .2s;
+        }
+
+        .splash-sub {
+            font-family: 'Poppins', sans-serif;
+            font-size: .88rem;
+            color: rgba(255,255,255,.65);
+            margin-top: 5px;
+            animation: surgir .6s ease-out both;
+            animation-delay: .3s;
+        }
+
+        .splash-loader {
+            margin-top: 44px;
+            width: 36px;
+            height: 4px;
+            background: rgba(255,255,255,.2);
+            border-radius: 2px;
+            overflow: hidden;
+            animation: surgir .6s ease-out both;
+            animation-delay: .45s;
+        }
+
+        .splash-loader-barra {
+            height: 100%;
+            background: #fff;
+            border-radius: 2px;
+            animation: carregar 1.8s ease-in-out forwards;
+        }
+
+        @keyframes pulsar {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,.15); }
+            50%       { transform: scale(1.06); box-shadow: 0 0 0 14px rgba(255,255,255,0); }
+        }
+
+        @keyframes surgir {
+            from { opacity: 0; transform: translateY(10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes carregar {
+            from { width: 0%; }
+            to   { width: 100%; }
+        }
+
+        /* ── HEADER ─────────────────────────────────── */
+        #app-header {
+            flex-shrink: 0;
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            padding: 14px 16px;
+            padding-top: calc(14px + env(safe-area-inset-top));
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header-back {
+            background: rgba(255,255,255,.15);
+            border: none;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #fff;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            transition: background .2s;
+        }
+
+        .header-back:hover { background: rgba(255,255,255,.25); }
+
+        .header-titulo {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -.3px;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .header-dark-btn {
+            background: rgba(255,255,255,.15);
+            border: none;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #fff;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            transition: background .2s;
+        }
+
+        .header-dark-btn:hover { background: rgba(255,255,255,.25); }
+
+        /* ── CONTEÚDO ───────────────────────────────── */
+        #app-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior-y: contain;
+            min-height: 0;
+            width: 100%;
+            padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+        }
+
+        /* ── CARD DE ATIVAÇÃO ───────────────────────── */
+        .ativacao-header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .ativacao-icone {
+            width: 64px;
+            height: 64px;
+            background: var(--cor-primaria-clara);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin: 0 auto 14px;
+        }
+
+        .ativacao-titulo {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--texto-principal);
+            letter-spacing: -.4px;
+            margin: 0 0 6px;
+        }
+
+        .ativacao-sub {
+            font-family: 'Poppins', sans-serif;
+            font-size: .88rem;
+            color: var(--texto-secundario);
+            line-height: 1.55;
+            margin: 0;
+        }
+
+        /* Passos visuais */
+        .passos {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 28px;
+        }
+
+        .passo {
+            height: 4px;
+            border-radius: 2px;
+            background: var(--borda);
+            transition: all .3s ease;
+        }
+
+        .passo.ativo { background: var(--cor-primaria); width: 24px; }
+        .passo:not(.ativo) { width: 8px; }
+
+        /* Formulário */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            font-family: 'Poppins', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 7px;
+            color: var(--texto-secundario);
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 14px 16px;
+            border: 1.5px solid var(--borda);
+            border-radius: var(--raio-sm);
+            font-size: 15px;
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg-input);
+            color: var(--texto-principal);
+            width: 100%;
+            outline: none;
+            transition: all .2s;
+            -webkit-appearance: none;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--borda-foco);
+            background: var(--bg-card);
+            box-shadow: 0 0 0 3px rgba(124,58,237,.12);
+        }
+
+        .form-group input:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+        }
+
+        .btn-concluir {
+            width: 100%;
+            background: var(--cor-primaria);
+            color: #fff;
+            border: none;
+            padding: 15px;
+            border-radius: var(--raio-sm);
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            margin-top: 8px;
+            box-shadow: 0 4px 14px rgba(109,40,217,.3);
+            transition: all .2s;
+        }
+
+        .btn-concluir:hover {
+            background: var(--cor-primaria-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(109,40,217,.35);
+        }
+
+        .btn-concluir:disabled {
+            opacity: .7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Nota de segurança */
+        .nota-seguranca {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: var(--cor-primaria-clara);
+            border-radius: var(--raio-sm);
+            padding: 12px 14px;
+            margin-top: 20px;
+            font-size: .82rem;
+            color: var(--cor-primaria);
+            line-height: 1.5;
+        }
+
+        body.dark-mode .nota-seguranca { color: #c4b5fd; }
+
+        .nota-seguranca .icone { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    </style>
 </head>
 <body>
-<div class="container">
-    <div class="header-controles">
-        <button class="btn-toggle-modo" onclick="toggleDarkMode()" id="txt-modo">🌙 Escuro</button>
-        <button class="btn-sair" onclick="window.location.href='index.html'">← Voltar</button>
+
+<!-- SPLASH -->
+<div id="splash">
+    <div class="splash-icon">
+        <img src="icon-192.png" alt="Locus">
+    </div>
+    <div class="splash-nome">Locus</div>
+    <div class="splash-sub">Ativar acesso</div>
+    <div class="splash-loader">
+        <div class="splash-loader-barra"></div>
+    </div>
+</div>
+
+<!-- HEADER -->
+<header id="app-header">
+    <button class="header-back" onclick="window.location.href='index.html'" title="Voltar">←</button>
+    <span class="header-titulo">Ativar meu acesso</span>
+    <button class="header-dark-btn" id="btn-dark-mode" onclick="toggleDarkMode()" title="Modo escuro">🌙</button>
+</header>
+
+<!-- CONTEÚDO -->
+<main id="app-content">
+
+    <div class="ativacao-header">
+        <div class="ativacao-icone">🚀</div>
+        <h1 class="ativacao-titulo">Primeiro acesso</h1>
+        <p class="ativacao-sub">Selecione seu nome na lista autorizada pela coordenação e crie seu PIN de segurança.</p>
     </div>
 
-    <h2 id="titulo-app">Ativar Acesso</h2>
-
-    <div class="status-card" style="margin-bottom:24px; color:var(--texto-secundario); background:transparent; border-color:transparent; font-size:.88rem;">
-        Selecione seu nome na lista autorizada e crie seu PIN de segurança.
+    <div class="passos">
+        <div class="passo ativo"></div>
+        <div class="passo ativo"></div>
+        <div class="passo ativo"></div>
+        <div class="passo ativo"></div>
     </div>
 
     <div id="secao-cadastro">
@@ -33,22 +382,52 @@
 
         <div class="form-group">
             <label for="disciplina-cadastro-visual">Sua disciplina</label>
-            <input type="text" id="disciplina-cadastro-visual" disabled placeholder="Aparece ao selecionar seu nome acima">
+            <input type="text" id="disciplina-cadastro-visual" disabled placeholder="Aparece ao selecionar seu nome">
         </div>
 
         <div class="form-group">
-            <label for="pin-cadastro">Crie seu PIN (exatamente 4 números)</label>
+            <label for="pin-cadastro">Crie seu PIN (4 números)</label>
             <input type="password" id="pin-cadastro" placeholder="Ex: 4826" inputmode="numeric" maxlength="4" autocomplete="new-password">
         </div>
 
         <div class="form-group">
-            <label for="codigo-escola-cadastro">Código de convite da escola</label>
+            <label for="codigo-escola-cadastro">Código de convite</label>
             <input type="text" id="codigo-escola-cadastro" placeholder="Fornecido pela coordenação" autocomplete="off">
         </div>
 
-        <button id="btn-cadastrar" class="principal" onclick="cadastrarProfessor()">Concluir ativação</button>
+        <button id="btn-cadastrar" class="btn-concluir" onclick="cadastrarProfessor()">
+            Concluir ativação
+        </button>
+
+        <div class="nota-seguranca">
+            <span class="icone">🔒</span>
+            <span>Seu PIN é criptografado e armazenado com segurança. Escolha uma combinação que seja fácil de lembrar mas difícil de adivinhar.</span>
+        </div>
     </div>
-</div>
+
+</main>
+
+<script>
+    // Splash: 1.8s depois some
+    setTimeout(() => {
+        const s = document.getElementById('splash');
+        s.classList.add('saindo');
+        setTimeout(() => s.style.display = 'none', 500);
+    }, 1800);
+
+    // Dark mode
+    function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
+        document.getElementById('btn-dark-mode').textContent = isDark ? '☀️' : '🌙';
+    }
+
+    if (localStorage.getItem('darkMode') === 'enabled') {
+        document.body.classList.add('dark-mode');
+        document.getElementById('btn-dark-mode').textContent = '☀️';
+    }
+</script>
 
 <script type="module" src="cadrasto.js"></script>
 </body>
