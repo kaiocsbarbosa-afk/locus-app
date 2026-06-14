@@ -37,6 +37,26 @@
         /* Garante que o container do locus.css não interfira */
         .container { all: unset; display: contents; }
 
+        /* ── OVERRIDES locus.css PARA APP NATIVO ──── */
+        /* Remove o .container do locus.css que limita a 560px */
+        .container { all: unset; }
+
+        /* Grid de aulas: 2 colunas fixas, sem overflow */
+        #grid-aulas {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            margin-top: 8px !important;
+        }
+
+        /* Garante que nenhum filho do app-content cause overflow horizontal */
+        #app-content * {
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
         /* ── SPLASH SCREEN ─────────────────────────── */
         #splash {
             position: fixed;
@@ -131,13 +151,15 @@
             display: none;
             flex-shrink: 0;
             background: linear-gradient(135deg, #7c3aed, #6d28d9);
-            padding: 14px 20px 14px;
+            padding: 14px 16px 14px;
             padding-top: calc(14px + env(safe-area-inset-top));
             align-items: center;
             justify-content: space-between;
             width: 100%;
             box-sizing: border-box;
             z-index: 50;
+            /* Impede que filhos estourem a largura */
+            overflow: hidden;
         }
 
         #app-header.visivel {
@@ -148,34 +170,43 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            /* Permite encolher se necessário */
+            min-width: 0;
+            flex: 1;
         }
 
         .header-logo img {
             width: 28px;
             height: 28px;
             border-radius: 7px;
+            flex-shrink: 0;
         }
 
         .header-titulo {
             font-family: 'Poppins', sans-serif;
-            font-size: 1.15rem;
+            font-size: 1.1rem;
             font-weight: 700;
             color: #fff;
             letter-spacing: -.3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .header-acoes {
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-shrink: 0;
+            margin-left: 8px;
         }
 
         .header-btn {
             background: rgba(255,255,255,.15);
             border: none;
             border-radius: 8px;
-            width: 34px;
-            height: 34px;
+            width: 36px;
+            height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -183,6 +214,7 @@
             color: #fff;
             font-size: 1.1rem;
             transition: background .2s;
+            flex-shrink: 0;
         }
 
         .header-btn:hover { background: rgba(255,255,255,.25); }
@@ -194,8 +226,10 @@
             overflow-x: hidden;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior-y: contain;
-            /* dvh mantém altura estável mesmo com teclado aberto */
             min-height: 0;
+            /* Largura explícita para evitar scroll horizontal */
+            width: 100%;
+            box-sizing: border-box;
             padding: 16px 16px calc(80px + env(safe-area-inset-bottom)) 16px;
         }
 
