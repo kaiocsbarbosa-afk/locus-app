@@ -207,6 +207,8 @@ window.fazerLogin = async function(pinAutomatico) {
 
     professorLogado = data;
     localStorage.setItem('prof_pin', pin);
+    localStorage.setItem('prof_nome', data.nome);
+    localStorage.setItem('prof_disciplina', data.disciplina || '');
 
     mostrarAppLogado();
     ativarNotificacoes('professor', professorLogado.id);
@@ -214,6 +216,8 @@ window.fazerLogin = async function(pinAutomatico) {
 
 window.fazerLogout = function() {
     localStorage.removeItem('prof_pin');
+    localStorage.removeItem('prof_nome');
+    localStorage.removeItem('prof_disciplina');
     window.location.reload();
 }
 
