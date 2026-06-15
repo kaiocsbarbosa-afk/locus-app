@@ -18,26 +18,21 @@
     }
 
     :root {
-        --roxo:        #7c3aed;
-        --roxo-escuro: #4c1d95;
-        --roxo-claro:  #ede9fe;
-        --verde:       #059669;
-        --verde-claro: #d1fae5;
-        --texto:       #1e1b4b;
-        --subtexto:    #6b7280;
-        --borda:       #e5e7eb;
-        --bg:          #f5f3ff;
-        --card:        #ffffff;
-    }
-
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --texto:    #f0eeff;
-            --subtexto: #9ca3af;
-            --borda:    #2d2a45;
-            --bg:       #0f0d1a;
-            --card:     #1a1730;
-        }
+        --roxo:         #7c3aed;
+        --roxo-escuro:  #4c1d95;
+        --roxo-claro:   #ede9fe;
+        --roxo-medio:   rgba(124,58,237,.1);
+        --verde:        #059669;
+        --verde-claro:  #d1fae5;
+        --laranja:      #d97706;
+        --laranja-claro:#fef3c7;
+        --texto:        #1e1b4b;
+        --subtexto:     #6b7280;
+        --borda:        #e5e7eb;
+        --bg:           #f5f3ff;
+        --card:         #ffffff;
+        --card-shadow:  0 2px 12px rgba(109,40,217,.08), 0 1px 3px rgba(0,0,0,.04);
+        --card-shadow-hover: 0 8px 28px rgba(109,40,217,.15), 0 2px 6px rgba(0,0,0,.06);
     }
 
     html { height: 100%; overflow: hidden; }
@@ -50,6 +45,21 @@
         flex-direction: column;
         background: var(--bg);
         color: var(--texto);
+        transition: background .3s, color .3s;
+    }
+
+    /* ── DARK MODE ───────────────────────────────── */
+    body.dark {
+        --texto:    #f0eeff;
+        --subtexto: #9ca3af;
+        --borda:    #2d2a45;
+        --bg:       #0f0d1a;
+        --card:     #1a1730;
+        --roxo-claro: #2e1065;
+        --verde-claro: #064e3b;
+        --laranja-claro: #451a03;
+        --card-shadow: 0 2px 12px rgba(0,0,0,.3);
+        --card-shadow-hover: 0 8px 28px rgba(0,0,0,.4);
     }
 
     /* ── SPLASH ─────────────────────────────────── */
@@ -62,76 +72,69 @@
         align-items: center;
         justify-content: center;
         z-index: 9999;
-        transition: opacity .5s ease, transform .5s ease;
+        transition: opacity .55s cubic-bezier(.4,0,.2,1), transform .55s cubic-bezier(.4,0,.2,1);
     }
 
-    #splash.saindo {
-        opacity: 0;
-        transform: scale(1.04);
-        pointer-events: none;
-    }
+    #splash.saindo { opacity: 0; transform: scale(1.05); pointer-events: none; }
 
     .splash-icon {
-        width: 96px;
-        height: 96px;
-        border-radius: 26px;
-        background: rgba(255,255,255,.12);
+        width: 100px;
+        height: 100px;
+        border-radius: 28px;
+        background: rgba(255,255,255,.13);
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 20px;
-        animation: pulsar 1.6s ease-in-out infinite;
+        margin-bottom: 22px;
+        animation: pulsar 1.8s ease-in-out infinite;
+        box-shadow: 0 0 0 0 rgba(255,255,255,.2);
     }
 
-    .splash-icon img {
-        width: 68px;
-        height: 68px;
-        border-radius: 16px;
-    }
+    .splash-icon img { width: 70px; height: 70px; border-radius: 18px; }
 
     .splash-nome {
-        font-size: 2.4rem;
+        font-size: 2.6rem;
         font-weight: 800;
         color: #fff;
-        letter-spacing: -1.5px;
-        animation: surgir .6s ease-out both;
-        animation-delay: .2s;
+        letter-spacing: -2px;
+        animation: surgir .65s cubic-bezier(.34,1.56,.64,1) both;
+        animation-delay: .15s;
     }
 
     .splash-sub {
-        font-size: .9rem;
-        color: rgba(255,255,255,.65);
-        margin-top: 6px;
-        animation: surgir .6s ease-out both;
-        animation-delay: .32s;
+        font-size: .88rem;
+        color: rgba(255,255,255,.6);
+        margin-top: 7px;
+        animation: surgir .65s cubic-bezier(.34,1.56,.64,1) both;
+        animation-delay: .28s;
     }
 
     .splash-loader {
-        margin-top: 52px;
-        width: 40px;
+        margin-top: 56px;
+        width: 44px;
         height: 4px;
-        background: rgba(255,255,255,.2);
+        background: rgba(255,255,255,.18);
         border-radius: 2px;
         overflow: hidden;
-        animation: surgir .6s ease-out both;
-        animation-delay: .5s;
+        animation: surgir .5s ease both;
+        animation-delay: .4s;
     }
 
     .splash-loader-barra {
         height: 100%;
         background: #fff;
         border-radius: 2px;
-        animation: carregar 1.8s ease-in-out forwards;
+        animation: carregar 2s cubic-bezier(.4,0,.2,1) forwards;
     }
 
     @keyframes pulsar {
-        0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,.15); }
-        50%       { transform: scale(1.06); box-shadow: 0 0 0 16px rgba(255,255,255,0); }
+        0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,.2); }
+        50%      { transform: scale(1.07); box-shadow: 0 0 0 18px rgba(255,255,255,0); }
     }
 
     @keyframes surgir {
-        from { opacity: 0; transform: translateY(12px); }
-        to   { opacity: 1; transform: translateY(0); }
+        from { opacity: 0; transform: translateY(16px) scale(.96); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
     }
 
     @keyframes carregar {
@@ -139,60 +142,130 @@
         to   { width: 100%; }
     }
 
-    /* ── HERO (topo roxo) ───────────────────────── */
+    /* ── HERO ───────────────────────────────────── */
     .hero {
-        background: linear-gradient(135deg, #7c3aed, #4c1d95);
-        padding: 24px 24px 36px;
-        padding-top: calc(24px + env(safe-area-inset-top));
+        background: linear-gradient(140deg, #7c3aed 0%, #5b21b6 60%, #4c1d95 100%);
+        padding: 20px 22px 44px;
+        padding-top: calc(20px + env(safe-area-inset-top));
         flex-shrink: 0;
         position: relative;
         overflow: hidden;
     }
 
+    /* Círculos decorativos no fundo do hero */
+    .hero::before {
+        content: '';
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.05);
+        pointer-events: none;
+    }
+
+    /* Curva na base do hero */
     .hero::after {
         content: '';
         position: absolute;
-        bottom: -30px;
+        bottom: -28px;
         left: 0;
         right: 0;
-        height: 60px;
+        height: 56px;
         background: var(--bg);
         border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+        transition: background .3s;
+    }
+
+    .hero-topo {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 22px;
+        position: relative;
+        z-index: 1;
     }
 
     .hero-logo {
         display: flex;
         align-items: center;
-        gap: 12px;
-        margin-bottom: 20px;
+        gap: 10px;
     }
 
     .hero-logo img {
-        width: 36px;
-        height: 36px;
-        border-radius: 10px;
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
     }
 
     .hero-logo span {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
         font-weight: 800;
         color: #fff;
         letter-spacing: -.5px;
     }
 
+    /* Badge de professor logado */
+    .hero-badge {
+        display: none;
+        align-items: center;
+        gap: 7px;
+        background: rgba(255,255,255,.15);
+        border: 1px solid rgba(255,255,255,.2);
+        border-radius: 20px;
+        padding: 5px 12px 5px 8px;
+        font-size: .78rem;
+        color: #fff;
+        font-weight: 500;
+        backdrop-filter: blur(4px);
+        animation: surgir .4s ease both;
+    }
+
+    .hero-badge.visivel { display: flex; }
+
+    .hero-badge-avatar {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: rgba(255,255,255,.25);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .7rem;
+    }
+
+    .hero-conteudo {
+        position: relative;
+        z-index: 1;
+    }
+
     .hero-titulo {
-        font-size: 1.6rem;
+        font-size: 1.65rem;
         font-weight: 700;
         color: #fff;
         letter-spacing: -.5px;
-        line-height: 1.25;
-        margin-bottom: 6px;
+        line-height: 1.22;
+        margin-bottom: 7px;
+        animation: surgirHero .6s cubic-bezier(.34,1.56,.64,1) both;
+        animation-delay: .05s;
+    }
+
+    .hero-titulo .nome-destaque {
+        color: #ddd6fe;
     }
 
     .hero-sub {
-        font-size: .88rem;
-        color: rgba(255,255,255,.7);
+        font-size: .85rem;
+        color: rgba(255,255,255,.65);
         line-height: 1.5;
+        animation: surgirHero .6s cubic-bezier(.34,1.56,.64,1) both;
+        animation-delay: .12s;
+    }
+
+    @keyframes surgirHero {
+        from { opacity: 0; transform: translateX(-10px); }
+        to   { opacity: 1; transform: translateX(0); }
     }
 
     /* ── CONTEÚDO ───────────────────────────────── */
@@ -202,92 +275,124 @@
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior-y: contain;
-        padding: 8px 20px calc(20px + env(safe-area-inset-bottom));
+        padding: 8px 18px calc(24px + env(safe-area-inset-bottom));
         min-height: 0;
     }
 
     /* ── LABEL DE SEÇÃO ─────────────────────────── */
     .secao-label {
-        font-size: .72rem;
-        font-weight: 600;
+        font-size: .7rem;
+        font-weight: 700;
         color: var(--subtexto);
         text-transform: uppercase;
-        letter-spacing: .08em;
-        margin: 24px 0 12px;
+        letter-spacing: .1em;
+        margin: 22px 0 10px;
     }
 
-    /* ── CARDS DE NAVEGAÇÃO ─────────────────────── */
+    /* ── CARDS ──────────────────────────────────── */
     .nav-card {
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 14px;
         background: var(--card);
         border: 1px solid var(--borda);
-        border-radius: 16px;
-        padding: 18px 16px;
+        border-radius: 18px;
+        padding: 16px 14px;
         text-decoration: none;
-        margin-bottom: 12px;
-        transition: all .2s ease-out;
+        margin-bottom: 10px;
+        transition: transform .22s cubic-bezier(.34,1.56,.64,1),
+                    box-shadow .22s ease,
+                    opacity .15s ease;
         position: relative;
         overflow: hidden;
-        animation: entrar .4s ease-out both;
+        box-shadow: var(--card-shadow);
+
+        /* Animação de entrada com spring */
+        opacity: 0;
+        transform: translateY(20px) scale(.97);
     }
 
-    .nav-card:nth-child(1) { animation-delay: .05s; }
-    .nav-card:nth-child(2) { animation-delay: .12s; }
-    .nav-card:nth-child(3) { animation-delay: .19s; }
+    .nav-card.animado {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        transition: transform .5s cubic-bezier(.34,1.56,.64,1),
+                    box-shadow .22s ease,
+                    opacity .35s ease;
+    }
 
     .nav-card:active {
-        transform: scale(.98);
-        opacity: .9;
+        transform: scale(.97);
+        box-shadow: var(--card-shadow);
+        opacity: .85;
     }
 
-    /* Borda colorida esquerda */
-    .nav-card::before {
+    /* Gradiente sutil no canto superior direito */
+    .nav-card::after {
         content: '';
         position: absolute;
-        left: 0;
-        top: 12px;
-        bottom: 12px;
-        width: 3px;
-        border-radius: 0 2px 2px 0;
-        background: var(--roxo);
-        transition: height .2s;
+        top: 0;
+        right: 0;
+        width: 80px;
+        height: 80px;
+        background: radial-gradient(circle at top right, rgba(124,58,237,.06), transparent 70%);
+        pointer-events: none;
     }
 
-    .nav-card.verde::before { background: var(--verde); }
+    .nav-card.verde::after {
+        background: radial-gradient(circle at top right, rgba(5,150,105,.06), transparent 70%);
+    }
 
+    .nav-card.laranja::after {
+        background: radial-gradient(circle at top right, rgba(217,119,6,.06), transparent 70%);
+    }
+
+    /* Ícone do card */
     .nav-card-icone {
-        width: 52px;
-        height: 52px;
+        width: 50px;
+        height: 50px;
         border-radius: 14px;
-        background: var(--roxo-claro);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
+        font-size: 1.45rem;
         flex-shrink: 0;
-        transition: transform .2s;
+        transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+        position: relative;
     }
 
-    .nav-card.verde .nav-card-icone { background: var(--verde-claro); }
-    .nav-card:active .nav-card-icone { transform: scale(.95); }
+    .nav-card-icone.roxo  { background: var(--roxo-claro); }
+    .nav-card-icone.verde { background: var(--verde-claro); }
+    .nav-card-icone.laranja { background: var(--laranja-claro); }
 
-    .nav-card-texto {
-        flex: 1;
-        min-width: 0;
+    .nav-card:active .nav-card-icone { transform: scale(.9) rotate(-4deg); }
+
+    /* Chip de novidade */
+    .chip {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        background: #ef4444;
+        color: #fff;
+        font-size: .55rem;
+        font-weight: 700;
+        padding: 1px 5px;
+        border-radius: 8px;
+        letter-spacing: .03em;
+        text-transform: uppercase;
     }
+
+    .nav-card-texto { flex: 1; min-width: 0; }
 
     .nav-card-titulo {
-        font-size: .95rem;
+        font-size: .92rem;
         font-weight: 600;
         color: var(--texto);
         letter-spacing: -.2px;
-        margin-bottom: 3px;
+        margin-bottom: 2px;
     }
 
     .nav-card-desc {
-        font-size: .8rem;
+        font-size: .78rem;
         color: var(--subtexto);
         line-height: 1.4;
         white-space: nowrap;
@@ -296,29 +401,82 @@
     }
 
     .nav-card-seta {
-        font-size: 1.1rem;
-        color: var(--borda);
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--subtexto);
+        font-size: .9rem;
         flex-shrink: 0;
-        transition: transform .2s, color .2s;
+        transition: transform .2s, background .2s;
     }
 
-    .nav-card:active .nav-card-seta {
-        transform: translateX(4px);
-        color: var(--subtexto);
+    .nav-card:active .nav-card-seta { transform: translateX(3px); }
+
+    /* ── CARD DE RETORNO (professor já logado) ──── */
+    .card-retorno {
+        background: linear-gradient(135deg, #7c3aed, #5b21b6);
+        border-radius: 18px;
+        padding: 18px 16px;
+        margin-bottom: 10px;
+        display: none;
+        align-items: center;
+        gap: 14px;
+        text-decoration: none;
+        box-shadow: 0 4px 20px rgba(109,40,217,.25);
+        transition: transform .2s, box-shadow .2s;
+        animation: surgir .5s cubic-bezier(.34,1.56,.64,1) both;
+    }
+
+    .card-retorno.visivel { display: flex; }
+    .card-retorno:active { transform: scale(.98); box-shadow: 0 2px 10px rgba(109,40,217,.2); }
+
+    .retorno-avatar {
+        width: 46px;
+        height: 46px;
+        border-radius: 13px;
+        background: rgba(255,255,255,.18);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        flex-shrink: 0;
+    }
+
+    .retorno-texto { flex: 1; min-width: 0; }
+
+    .retorno-titulo {
+        font-size: .82rem;
+        color: rgba(255,255,255,.75);
+        margin-bottom: 2px;
+    }
+
+    .retorno-nome {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #fff;
+        letter-spacing: -.3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .retorno-seta {
+        color: rgba(255,255,255,.6);
+        font-size: 1.2rem;
+        flex-shrink: 0;
     }
 
     /* ── RODAPÉ ─────────────────────────────────── */
     .rodape {
         text-align: center;
-        padding: 8px 0 4px;
-        font-size: .75rem;
+        padding: 12px 0 4px;
+        font-size: .72rem;
         color: var(--subtexto);
-        opacity: .7;
-    }
-
-    @keyframes entrar {
-        from { opacity: 0; transform: translateY(14px); }
-        to   { opacity: 1; transform: translateY(0); }
+        opacity: .6;
     }
     </style>
 </head>
@@ -338,46 +496,64 @@
 
 <!-- HERO -->
 <div class="hero">
-    <div class="hero-logo">
-        <img src="./icon-192.png" alt="Locus">
-        <span>Locus</span>
+    <div class="hero-topo">
+        <div class="hero-logo">
+            <img src="./icon-192.png" alt="Locus">
+            <span>Locus</span>
+        </div>
+        <div class="hero-badge" id="hero-badge">
+            <div class="hero-badge-avatar">👨‍🏫</div>
+            <span id="hero-badge-nome"></span>
+        </div>
     </div>
-    <div class="hero-titulo">Bom dia! 👋<br>O que deseja fazer?</div>
-    <div class="hero-sub">Sistema de agendamento de salas e laboratórios.</div>
+    <div class="hero-conteudo">
+        <div class="hero-titulo" id="hero-titulo">Olá! 👋<br>O que deseja fazer?</div>
+        <div class="hero-sub" id="hero-sub">Sistema de agendamento de salas e laboratórios.</div>
+    </div>
 </div>
 
 <!-- CONTEÚDO -->
 <main id="app-content">
 
-    <div class="secao-label">Acesso rápido</div>
+    <!-- Card de retorno rápido (professor já logado) -->
+    <a href="professor.html" class="card-retorno" id="card-retorno">
+        <div class="retorno-avatar">📅</div>
+        <div class="retorno-texto">
+            <div class="retorno-titulo">Continuar como</div>
+            <div class="retorno-nome" id="retorno-nome">—</div>
+        </div>
+        <span class="retorno-seta">›</span>
+    </a>
 
-    <a href="professor.html" class="nav-card">
-        <div class="nav-card-icone">👨‍🏫</div>
+    <div class="secao-label" id="label-rapido">Acesso rápido</div>
+
+    <a href="professor.html" class="nav-card" id="card-professor">
+        <div class="nav-card-icone roxo">👨‍🏫</div>
         <div class="nav-card-texto">
             <div class="nav-card-titulo">Área do Professor</div>
             <div class="nav-card-desc">Reserve salas, pátios e laboratórios</div>
         </div>
-        <span class="nav-card-seta">›</span>
+        <div class="nav-card-seta">›</div>
     </a>
 
-    <a href="cadasto.html" class="nav-card verde">
-        <div class="nav-card-icone">🚀</div>
+    <a href="cadasto.html" class="nav-card" id="card-cadastro">
+        <div class="nav-card-icone verde">🚀</div>
         <div class="nav-card-texto">
             <div class="nav-card-titulo">Ativar Meu Acesso</div>
             <div class="nav-card-desc">Primeiro acesso? Crie seu PIN aqui</div>
         </div>
-        <span class="nav-card-seta">›</span>
+        <div class="nav-card-seta">›</div>
     </a>
 
     <div class="secao-label">Administração</div>
 
-    <a href="coordenacao.html" class="nav-card">
-        <div class="nav-card-icone">🛡️</div>
+    <a href="coordenacao.html" class="nav-card" id="card-coord">
+        <div class="nav-card-icone laranja">🛡️</div>
         <div class="nav-card-texto">
             <div class="nav-card-titulo">Painel da Coordenação</div>
             <div class="nav-card-desc">Gerencie professores, salas e reservas</div>
         </div>
-        <span class="nav-card-seta">›</span>
+        <div class="nav-card-seta">›</div>
     </a>
 
     <div class="rodape">Locus v2.0 · Sistema de agendamento escolar</div>
@@ -385,52 +561,114 @@
 </main>
 
 <script>
-    // Splash: 2s depois some
+    // ── DARK MODE ──────────────────────────────────
+    const isDark = localStorage.getItem('darkMode') === 'enabled';
+    if (isDark) document.body.classList.add('dark');
+
+    // ── SAUDAÇÃO PERSONALIZADA ─────────────────────
+    const hora = new Date().getHours();
+    const emoji = hora < 12 ? '☀️' : hora < 18 ? '🌤️' : '🌙';
+    const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+
+    // Verifica se tem professor logado no localStorage
+    const pinSalvo = localStorage.getItem('prof_pin');
+    const nomeSalvo = localStorage.getItem('prof_nome'); // salvo pelo professor.js
+
+    if (pinSalvo && nomeSalvo) {
+        // Professor já logado — saudação personalizada
+        const primeiroNome = nomeSalvo.split(' ')[0];
+
+        document.getElementById('hero-titulo').innerHTML =
+            `${emoji} ${periodo},<br><span class="nome-destaque">${primeiroNome}!</span>`;
+        document.getElementById('hero-sub').textContent =
+            'Toque abaixo para agendar ou gerenciar suas reservas.';
+
+        // Badge no hero
+        const badge = document.getElementById('hero-badge');
+        const badgeNome = document.getElementById('hero-badge-nome');
+        badgeNome.textContent = primeiroNome;
+        badge.classList.add('visivel');
+
+        // Card de retorno rápido
+        const cardRetorno = document.getElementById('card-retorno');
+        const retornoNome = document.getElementById('retorno-nome');
+        retornoNome.textContent = nomeSalvo;
+        cardRetorno.classList.add('visivel');
+
+        document.getElementById('label-rapido').textContent = 'Suas opções';
+
+        // Esconde o card de ativação (professor já tem conta)
+        const cardCadastro = document.getElementById('card-cadastro');
+        if (cardCadastro) cardCadastro.style.display = 'none';
+
+    } else {
+        // Sem professor logado — saudação genérica
+        document.getElementById('hero-titulo').innerHTML =
+            `${emoji} ${periodo}!<br>O que deseja fazer?`;
+    }
+
+    // ── ANIMAÇÃO DOS CARDS (entrada escalonada) ──────
+    const splash = document.getElementById('splash');
+    const cards = document.querySelectorAll('.nav-card, .card-retorno.visivel');
+
+    function animarCards() {
+        cards.forEach((card, i) => {
+            setTimeout(() => {
+                card.classList.add('animado');
+            }, i * 80);
+        });
+    }
+
+    // Splash: 2s e some, depois anima os cards
     setTimeout(() => {
-        const s = document.getElementById('splash');
-        s.classList.add('saindo');
-        setTimeout(() => s.style.display = 'none', 500);
+        splash.classList.add('saindo');
+        setTimeout(() => {
+            splash.style.display = 'none';
+            animarCards();
+        }, 550);
     }, 2000);
 
-    // Dark mode: respeita localStorage (mesma preferência das outras páginas)
-    if (localStorage.getItem('darkMode') === 'enabled') {
-        document.body.classList.add('dark-mode');
-    }
-
-    // Adiciona classe dark ao :root para as variáveis funcionarem
-    // (index usa suas próprias variáveis, não o locus.css)
-    const darkCSS = document.createElement('style');
-    darkCSS.id = 'dark-override';
-    document.head.appendChild(darkCSS);
-
-    function aplicarDark(ativo) {
-        darkCSS.textContent = ativo ? `
-            :root {
-                --texto:    #f0eeff !important;
-                --subtexto: #9ca3af !important;
-                --borda:    #2d2a45 !important;
-                --bg:       #0f0d1a !important;
-                --card:     #1a1730 !important;
-            }
-            body { background: #0f0d1a; color: #f0eeff; }
-            .hero::after { background: #0f0d1a; }
-        ` : '';
-    }
-
-    // Aplica ao carregar
-    aplicarDark(localStorage.getItem('darkMode') === 'enabled');
-
-    // Service Worker
+    // ── SERVICE WORKER ──────────────────────────────
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js').catch(() => {});
         });
     }
+</script>
 
-    // Saudação dinâmica baseada no horário
-    const hora = new Date().getHours();
-    const saudacao = hora < 12 ? 'Bom dia! 👋' : hora < 18 ? 'Boa tarde! 👋' : 'Boa noite! 👋';
-    document.querySelector('.hero-titulo').innerHTML = `${saudacao}<br>O que deseja fazer?`;
+<!-- Salva o nome do professor no localStorage quando ele logar -->
+<!-- O professor.js faz isso — mas garantimos aqui via Supabase se necessário -->
+<script type="module">
+    // Tenta popular o nome do professor a partir do Supabase
+    // (caso o localStorage não tenha o nome ainda)
+    const pin = localStorage.getItem('prof_pin');
+    if (pin && !localStorage.getItem('prof_nome')) {
+        import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm').then(({ createClient }) => {
+            const sb = createClient(
+                'https://ixhuqbfzwkobhrvlzwgm.supabase.co',
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84'
+            );
+            sb.from('professores').select('nome').eq('pin', pin).single()
+                .then(({ data }) => {
+                    if (data?.nome) {
+                        localStorage.setItem('prof_nome', data.nome);
+                        // Atualiza a saudação dinamicamente
+                        const primeiroNome = data.nome.split(' ')[0];
+                        const hora = new Date().getHours();
+                        const emoji = hora < 12 ? '☀️' : hora < 18 ? '🌤️' : '🌙';
+                        const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+                        document.getElementById('hero-titulo').innerHTML =
+                            `${emoji} ${periodo},<br><span class="nome-destaque">${primeiroNome}!</span>`;
+                        document.getElementById('hero-sub').textContent =
+                            'Toque abaixo para agendar ou gerenciar suas reservas.';
+                        document.getElementById('hero-badge-nome').textContent = primeiroNome;
+                        document.getElementById('hero-badge').classList.add('visivel');
+                        document.getElementById('retorno-nome').textContent = data.nome;
+                        document.getElementById('card-retorno').classList.add('visivel');
+                    }
+                });
+        });
+    }
 </script>
 </body>
 </html>
