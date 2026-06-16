@@ -1,5 +1,5 @@
-/* professor.js */
-import { supabase, toggleDarkMode as _toggleDarkMode, carregarPreferenciaModo, registrarServiceWorker, dispararAlerta, formatarData } from './utils.js'
+/* professor.js — versão com Supabase Auth */
+import { supabase, toggleDarkMode as _toggleDarkMode, carregarPreferenciaModo, registrarServiceWorker, dispararAlerta, formatarData, getProfessorLogado, fazerLogoutAuth } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 let professorLogado = null;
@@ -15,13 +15,13 @@ document.addEventListener("DOMContentLoaded", () => {
     atualizarBtnDarkMode();
     registrarServiceWorker();
 
-    // Splash screen: aguarda 2s e desliza para fora
     setTimeout(() => {
         const splash = document.getElementById('splash');
         splash.classList.add('saindo');
-        setTimeout(() => {
+        setTimeout(async () => {
             splash.style.display = 'none';
-            verificarPinSalvo();
+            // MUDANÇA: verifica sessão JWT válida em vez de PIN no localStorage
+            await verificarSessaoAtiva();
         }, 500);
     }, 2000);
 });
@@ -34,21 +34,23 @@ function atualizarBtnDarkMode() {
     if (btnPerfil) btnPerfil.textContent = isDark ? 'Ativado' : 'Desativado';
 }
 
-// Sobrescreve toggleDarkMode para atualizar os botões do app
 window.toggleDarkMode = function() {
     _toggleDarkMode();
     atualizarBtnDarkMode();
 }
 
-async function verificarPinSalvo() {
-    const pinSalvo = localStorage.getItem('prof_pin');
-    if (pinSalvo) {
-        await fazerLogin(pinSalvo);
+// MUDANÇA: Verifica se o Auth tem sessão ativa (JWT válido e não expirado)
+async function verificarSessaoAtiva() {
+    const professor = await getProfessorLogado();
+    if (professor) {
+        professorLogado = professor;
+        mostrarAppLogado();
     }
+    // Se não há sessão, não faz nada — tela de login já está visível
 }
 
 // ============================================================
-//  NAVEGAÇÃO ENTRE TELAS
+//  NAVEGAÇÃO ENTRE TELAS (sem alterações)
 // ============================================================
 
 const TELAS = {
@@ -62,11 +64,9 @@ window.trocarTela = function(nomeTela) {
     if (nomeTela === telaAtual) return;
     telaAtual = nomeTela;
 
-    // Atualiza título do header
     const header = document.getElementById('header-titulo');
     if (header) header.textContent = TELAS[nomeTela]?.titulo || 'Locus';
 
-    // Troca a tela visível com animação
     Object.entries(TELAS).forEach(([id, cfg]) => {
         const el = document.getElementById(cfg.elemento);
         if (!el) return;
@@ -78,12 +78,10 @@ window.trocarTela = function(nomeTela) {
         }
     });
 
-    // Atualiza o tab ativo
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('ativa'));
     const tab = document.getElementById(`tab-${nomeTela}`);
     if (tab) tab.classList.add('ativa');
 
-    // Ações específicas ao entrar na tela
     if (nomeTela === 'semana') {
         const sala = document.getElementById('select-sala');
         const info = document.getElementById('semana-sala-info');
@@ -104,7 +102,6 @@ function atualizarPerfil() {
     const disc = document.getElementById('perfil-disciplina');
     if (nome) nome.textContent = professorLogado.nome;
     if (disc) disc.textContent = professorLogado.disciplina || 'Sem disciplina';
-
     atualizarStatusNotificacoes();
 }
 
@@ -141,7 +138,7 @@ window.gerenciarNotificacoes = async function() {
         Swal.fire({
             icon: 'info',
             title: 'Notificações bloqueadas',
-            text: 'Para ativar, vá em Configurações do navegador → Notificações → encontre o Locus e permita.',
+            text: 'Vá em Configurações do navegador → Notificações → Locus e permita.',
             confirmButtonColor: '#7c3aed'
         });
         return;
@@ -175,63 +172,97 @@ window.gerenciarNotificacoes = async function() {
 }
 
 // ============================================================
-//  AUTENTICAÇÃO
+//  AUTENTICAÇÃO — agora usa Supabase Auth
 // ============================================================
 
-window.fazerLogin = async function(pinAutomatico) {
-    const pin = pinAutomatico || document.getElementById('pin-professor').value;
+window.fazerLogin = async function(pinDigitado) {
+    const pin = pinDigitado || document.getElementById('pin-professor').value;
 
     if (!pin) {
-        return Swal.fire({ icon: 'warning', title: 'Atenção!', text: 'Por favor, informe seu PIN.', confirmButtonColor: '#7c3aed' });
+        return Swal.fire({ icon: 'warning', title: 'Atenção!', text: 'Informe seu PIN.', confirmButtonColor: '#7c3aed' });
     }
 
     const btnLogin = document.getElementById('btn-login');
     if (btnLogin) { btnLogin.innerText = 'Entrando... ⏳'; btnLogin.disabled = true; }
 
-    const { data, error } = await supabase
-        .from('professores')
-        .select('*')
-        .eq('pin', pin)
-        .single();
+    try {
+        // MUDANÇA: para encontrar o email fictício do professor, precisa buscá-lo via PIN
+        // O fluxo é: busca qual professor tem esse PIN temporariamente na fase de ativação
+        // Mas após ativação, o PIN virou senha do Auth — e o email é prof-{id}@locus.interno
+        //
+        // Para o login funcionasr sem expor o email ao professor, guardamos o email
+        // no localStorage APENAS PARA O EMAIL (não a senha/PIN) após o primeiro login.
+        //
+        // Na ativação (cadrasto.js) já fazemos o primeiro signIn e salvamos o email.
 
-    if (error || !data) {
-        if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-        if (!pinAutomatico) {
-            Swal.fire({ icon: 'error', title: 'Ops!', text: 'PIN incorreto ou não localizado.', confirmButtonColor: '#7c3aed' });
+        let emailFicticio = localStorage.getItem('prof_email')
+
+        if (!emailFicticio) {
+            // Primeira vez sem sessão e sem email salvo — precisamos descobrir o email
+            // pelo professor_id: busca o usuário pelo pin temporário ainda no banco?
+            // NÃO — após migração, pin fica null. Então o email deve ter sido salvo.
+            //
+            // Se chegar aqui sem email, manda para a página de ativação.
+            if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+            return Swal.fire({
+                icon: 'info',
+                title: 'Primeira vez aqui?',
+                text: 'Acesse "Ativar meu acesso" para configurar seu PIN antes de entrar.',
+                confirmButtonColor: '#7c3aed'
+            });
         }
-        localStorage.removeItem('prof_pin');
-        return;
+
+        // MUDANÇA: login real com JWT — a senha é o PIN, hasheado pelo Supabase Auth
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: emailFicticio,
+            password: pin
+        })
+
+        if (error || !data.session) {
+            if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+
+            // Rate limiting nativo: Auth bloqueia após 5 tentativas erradas por 15min
+            const mensagem = error?.message?.includes('rate limit')
+                ? 'Muitas tentativas. Aguarde alguns minutos.'
+                : 'PIN incorreto. Verifique e tente novamente.';
+
+            return Swal.fire({ icon: 'error', title: 'Ops!', text: mensagem, confirmButtonColor: '#7c3aed' });
+        }
+
+        // Busca dados do professor usando o JWT
+        professorLogado = await getProfessorLogado();
+
+        if (!professorLogado) {
+            await supabase.auth.signOut();
+            if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+            return Swal.fire({ icon: 'error', title: 'Erro', text: 'Perfil não encontrado. Contate a coordenação.', confirmButtonColor: '#7c3aed' });
+        }
+
+        if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+        mostrarAppLogado();
+        ativarNotificacoes('professor', professorLogado.id);
+
+    } catch (err) {
+        console.error('Erro no login:', err);
+        if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+        Swal.fire({ icon: 'error', title: 'Erro de conexão', text: 'Tente novamente.', confirmButtonColor: '#7c3aed' });
     }
-
-    if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-
-    professorLogado = data;
-    localStorage.setItem('prof_pin', pin);
-    localStorage.setItem('prof_nome', data.nome);
-    localStorage.setItem('prof_disciplina', data.disciplina || '');
-
-    mostrarAppLogado();
-    ativarNotificacoes('professor', professorLogado.id);
 }
 
-window.fazerLogout = function() {
-    localStorage.removeItem('prof_pin');
-    localStorage.removeItem('prof_nome');
-    localStorage.removeItem('prof_disciplina');
-    window.location.reload();
+// MUDANÇA: logout agora invalida o JWT no servidor
+window.fazerLogout = async function() {
+    await fazerLogoutAuth();
+    // fazerLogoutAuth já redireciona para index.html
 }
 
 function mostrarAppLogado() {
-    // Esconde login, mostra app shell
     document.getElementById('tela-login').style.display = 'none';
     document.getElementById('app-header').classList.add('visivel');
     document.getElementById('bottom-nav').classList.add('visivel');
 
-    // Saudação
     const status = document.getElementById('status-usuario');
     if (status) status.innerHTML = `Olá, <strong>${professorLogado.nome}</strong>! 👋`;
 
-    // Ativa a primeira tela
     document.getElementById('tela-agendar').classList.add('ativa');
 
     configurarCalendarioSemana();
@@ -241,7 +272,7 @@ function mostrarAppLogado() {
 }
 
 // ============================================================
-//  DADOS
+//  DADOS (sem alterações)
 // ============================================================
 
 async function carregarTurmas() {
@@ -296,7 +327,7 @@ function configurarCalendarioSemana() {
 }
 
 // ============================================================
-//  GRADE DE AULAS
+//  GRADE DE AULAS (sem alterações)
 // ============================================================
 
 window.buscarAulas = async function() {
@@ -410,7 +441,7 @@ window.agendarAula = async function(numeroAula) {
 }
 
 // ============================================================
-//  HISTÓRICO (MINHAS AULAS)
+//  HISTÓRICO (MINHAS AULAS) — sem alterações
 // ============================================================
 
 window.carregarHistorico = async function() {
@@ -478,7 +509,7 @@ window.cancelarAgendamento = async function(idAgendamento, nomeSala, numeroAula,
 }
 
 // ============================================================
-//  VISUALIZAÇÃO SEMANAL
+//  VISUALIZAÇÃO SEMANAL — sem alterações
 // ============================================================
 
 function obterSegundaFeiraDaSemana(dataBase) {
@@ -580,17 +611,16 @@ supabase
     })
     .subscribe();
 
-// Detecta quando a coordenação apaga ou reseta o PIN do professor logado
+// MUDANÇA: detecta remoção do professor via auth_user_id em vez de pin
 supabase
     .channel('mudancas-professor-logado')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'professores' }, async (payload) => {
         if (!professorLogado) return;
 
         const id = payload.new?.id || payload.old?.id;
-        if (id !== professorLogado.id) return; // só reage ao próprio professor
+        if (id !== professorLogado.id) return;
 
         if (payload.eventType === 'DELETE') {
-            // Professor foi excluído — força logout com aviso
             await Swal.fire({
                 icon: 'warning',
                 title: 'Acesso removido',
@@ -598,29 +628,28 @@ supabase
                 confirmButtonColor: '#7c3aed',
                 allowOutsideClick: false
             });
-            localStorage.removeItem('prof_pin');
+            await supabase.auth.signOut();
             window.location.href = 'index.html';
             return;
         }
 
         if (payload.eventType === 'UPDATE') {
-            const pinResetado = payload.new?.pin === null && professorLogado.pin !== null;
-            if (pinResetado) {
-                // PIN foi resetado — força logout com aviso
+            // MUDANÇA: detecta reset de acesso via auth_user_id sendo nulificado
+            const acessoRevogado = payload.new?.auth_user_id === null && professorLogado.auth_user_id !== null;
+            if (acessoRevogado) {
                 await Swal.fire({
                     icon: 'info',
-                    title: 'PIN redefinido',
-                    text: 'Seu PIN foi redefinido pela coordenação. Crie um novo PIN para continuar.',
+                    title: 'Acesso redefinido',
+                    text: 'Seu acesso foi redefinido pela coordenação. Crie um novo PIN para continuar.',
                     confirmButtonColor: '#7c3aed',
                     confirmButtonText: 'Ir para ativação',
                     allowOutsideClick: false
                 });
-                localStorage.removeItem('prof_pin');
+                await supabase.auth.signOut();
                 window.location.href = 'cadasto.html';
                 return;
             }
 
-            // Atualiza dados locais se nome/disciplina mudaram
             professorLogado = { ...professorLogado, ...payload.new };
             if (telaAtual === 'perfil') atualizarPerfil();
             const status = document.getElementById('status-usuario');
