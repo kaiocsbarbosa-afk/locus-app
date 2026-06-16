@@ -1,50 +1,42 @@
-/* cadastro.js */
-import { supabase, carregarPreferenciaModo, registrarServiceWorker, dispararAlerta } from './utils.js'
+/* cadrasto.js — versão com Supabase Auth */
+import { supabase, carregarPreferenciaModo, registrarServiceWorker } from './utils.js'
 
-// Array para guardar temporariamente os professores vindos do banco
-let professoresSemPin = [];
+let professoresSemAcesso = [];
 
 document.addEventListener("DOMContentLoaded", () => {
     carregarPreferenciaModo();
     registrarServiceWorker();
     buscarProfessoresLiberados();
-    
-    // Escuta quando o professor muda a seleção do nome para mostrar a disciplina correspondente
+
     document.getElementById('select-professor-cadastro').addEventListener('change', (e) => {
-        const idSelecionado = e.target.value;
-        const prof = professoresSemPin.find(p => p.id == idSelecionado);
+        const prof = professoresSemAcesso.find(p => p.id == e.target.value);
         const inputDisciplina = document.getElementById('disciplina-cadastro-visual');
-        
-        if (prof) {
-            inputDisciplina.value = prof.disciplina;
-        } else {
-            inputDisciplina.value = "";
-        }
+        inputDisciplina.value = prof ? prof.disciplina : '';
     });
 });
 
-// Busca no banco os professores cadastrados pela coordenação que ainda não têm PIN criado
+// Professores liberados pela coord que ainda não têm auth_user_id
 async function buscarProfessoresLiberados() {
     const select = document.getElementById('select-professor-cadastro');
-    
+
     try {
+        // MUDANÇA: filtra por auth_user_id nulo em vez de pin nulo
         const { data, error } = await supabase
             .from('professores')
             .select('id, nome, disciplina')
-            .is('pin', null); // Traz apenas quem está com PIN nulo/vazio
+            .is('auth_user_id', null);
 
         if (error) throw error;
 
-        professoresSemPin = data || [];
-        
+        professoresSemAcesso = data || [];
         select.innerHTML = '<option value="">Selecione seu nome...</option>';
-        
-        if (professoresSemPin.length === 0) {
-            select.innerHTML = '<option value="">Nenhum cadastro pendente de liberação</option>';
+
+        if (professoresSemAcesso.length === 0) {
+            select.innerHTML = '<option value="">Nenhum cadastro pendente</option>';
             return;
         }
 
-        professoresSemPin.forEach(prof => {
+        professoresSemAcesso.forEach(prof => {
             const opt = document.createElement('option');
             opt.value = prof.id;
             opt.textContent = prof.nome;
@@ -53,91 +45,75 @@ async function buscarProfessoresLiberados() {
 
     } catch (err) {
         console.error("Erro ao buscar professores:", err);
-        select.innerHTML = '<option value="">Erro ao carregar professores</option>';
+        select.innerHTML = '<option value="">Erro ao carregar</option>';
     }
 }
 
 window.cadastrarProfessor = async function() {
     const professorId = document.getElementById('select-professor-cadastro').value;
     const pinInput = document.getElementById('pin-cadastro').value.trim();
-    const codigoEscolaInput = document.getElementById('codigo-escola-cadastro').value.trim();
+    const codigoConvite = document.getElementById('codigo-escola-cadastro').value.trim();
 
-    if (!professorId || !pinInput || !codigoEscolaInput) {
+    // ── Validações no front-end (redundantes — servidor também valida) ──
+    if (!professorId || !pinInput || !codigoConvite) {
         return Swal.fire({
             icon: 'warning',
             title: 'Campos obrigatórios',
-            text: 'Por favor, preencha todos os campos.',
+            text: 'Preencha todos os campos.',
             confirmButtonColor: '#6C63FF'
         });
     }
 
-    if (!/^\d+$/.test(pinInput) || pinInput.length !== 4) {
+    if (!/^\d{4}$/.test(pinInput)) {
         return Swal.fire({
             icon: 'warning',
             title: 'PIN Inválido',
-            text: 'O seu PIN de acesso deve conter exatamente 4 números.',
+            text: 'O PIN deve ter exatamente 4 números.',
             confirmButtonColor: '#6C63FF'
         });
     }
 
-    const btnCadastrar = document.getElementById('btn-cadastrar');
-    btnCadastrar.innerText = 'Validando dados... ⏳';
-    btnCadastrar.disabled = true;
+    const btn = document.getElementById('btn-cadastrar');
+    btn.innerText = 'Ativando acesso... ⏳';
+    btn.disabled = true;
 
     try {
-        // 1. Valida o código de convite na tabela configuracoes
-        const { data: config, error: erroConfig } = await supabase
-            .from('configuracoes')
-            .select('valor')
-            .eq('chave', 'codigo_convite')
-            .single();
+        // MUDANÇA: chama a Edge Function em vez de fazer UPDATE direto no banco
+        // O código de convite é validado no SERVIDOR, não aqui
+        // O PIN vira senha no Supabase Auth com bcrypt automático
+        const { data, error } = await supabase.functions.invoke('ativar-professor', {
+            body: {
+                professor_id: professorId,
+                pin: pinInput,
+                codigo_convite: codigoConvite
+            }
+        })
 
-        if (erroConfig || !config) throw new Error("Erro ao buscar configurações.");
-
-        if (codigoEscolaInput.toUpperCase() !== config.valor.toUpperCase()) {
+        if (error || !data?.sucesso) {
+            const mensagem = data?.erro || 'Não foi possível ativar seu acesso.'
             Swal.fire({
                 icon: 'error',
-                title: 'Código Incorreto',
-                text: 'O código de convite da escola está inválido.',
+                title: 'Erro na ativação',
+                text: mensagem,
                 confirmButtonColor: '#ff4d4d'
             });
-            restaurarBotao(btnCadastrar);
+            btn.innerText = 'Concluir Ativação';
+            btn.disabled = false;
             return;
         }
 
-        // 2. Garante que ninguém usou esse mesmo PIN de 4 dígitos antes
-        const { data: pinExistente, error: erroBusca } = await supabase
-            .from('professores')
-            .select('id')
-            .eq('pin', pinInput);
-
-        if (erroBusca) throw erroBusca;
-
-        if (pinExistente && pinExistente.length > 0) {
-            Swal.fire({
-                icon: 'error',
-                title: 'PIN Indisponível',
-                text: 'Este PIN já está em uso. Escolha uma combinação diferente.',
-                confirmButtonColor: '#6C63FF'
-            });
-            restaurarBotao(btnCadastrar);
-            return;
-        }
-
-        btnCadastrar.innerText = 'Salvando acesso... ⏳';
-
-        // 3. Atualiza (UPDATE) a linha do professor adicionando o PIN definitivo
-        const { error: erroUpdate } = await supabase
-            .from('professores')
-            .update({ pin: pinInput })
-            .eq('id', professorId);
-
-        if (erroUpdate) throw erroUpdate;
+        // ── Loga automaticamente após ativar ──
+        // O email fictício é prof-{id}@locus.interno (gerado pela Edge Function)
+        const emailFicticio = `prof-${professorId}@locus.interno`
+        await supabase.auth.signInWithPassword({
+            email: emailFicticio,
+            password: pinInput
+        })
 
         Swal.fire({
             icon: 'success',
             title: 'Acesso Ativado!',
-            text: 'Seu PIN foi configurado com sucesso. Você já pode fazer login!',
+            text: 'Seu PIN foi configurado. Você já pode fazer login!',
             confirmButtonColor: '#00b09b'
         }).then(() => {
             window.location.href = 'index.html';
@@ -148,14 +124,10 @@ window.cadastrarProfessor = async function() {
         Swal.fire({
             icon: 'error',
             title: 'Erro de Conexão',
-            text: 'Não foi possível ativar seu acesso no momento.',
+            text: 'Tente novamente em instantes.',
             confirmButtonColor: '#6C63FF'
         });
-        restaurarBotao(btnCadastrar);
+        btn.innerText = 'Concluir Ativação';
+        btn.disabled = false;
     }
-}
-
-function restaurarBotao(botao) {
-    botao.innerText = 'Concluir Ativação';
-    botao.disabled = false;
 }
