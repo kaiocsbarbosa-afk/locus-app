@@ -486,7 +486,7 @@ async function carregarListaProfessores() {
     container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>';
 
     const [{ data: professores, error }, disciplinas] = await Promise.all([
-        supabase.from('professores').select('id, nome, disciplina, pin').order('nome', { ascending: true }),
+        supabase.from("professores").select("id, nome, disciplina, auth_user_id").order("nome", { ascending: true }),
         obterDisciplinasCache()
     ]);
 
@@ -495,7 +495,7 @@ async function carregarListaProfessores() {
 
     container.innerHTML = '';
     professores.forEach(prof => {
-        const temPin = prof.pin !== null && prof.pin !== '';
+        const temPin = prof.auth_user_id !== null && prof.auth_user_id !== '';
         const opcoesDisciplina = disciplinas.map(d =>
             `<option value="${d.nome}" ${d.nome === prof.disciplina ? 'selected' : ''}>${d.nome}</option>`
         ).join('');
@@ -509,7 +509,7 @@ async function carregarListaProfessores() {
                     <div class="professor-disciplina">${prof.disciplina || 'Sem disciplina'}</div>
                 </div>
                 <span class="status-pin ${temPin ? 'ativo' : 'pendente'}">
-                    ${temPin ? '✓ Acesso ativo' : '⏳ Aguardando PIN'}
+                    ${temPin ? '✓ Acesso ativo' : '⏳ Aguardando ativação'}
                 </span>
             </div>
             <div class="professor-card-edicao">
