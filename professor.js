@@ -166,8 +166,16 @@ const TELAS = {
     'perfil':       { titulo: 'Perfil',        elemento: 'tela-perfil' },
 };
 
+const ORDEM_TELAS_NAV = ['agendar', 'semana', 'minhas-aulas', 'perfil'];
+
 window.trocarTela = function(nomeTela) {
     if (nomeTela === telaAtual) return;
+
+    // Determina direção da animação
+    const idxAtual = ORDEM_TELAS_NAV.indexOf(telaAtual);
+    const idxNova  = ORDEM_TELAS_NAV.indexOf(nomeTela);
+    const classe   = idxNova > idxAtual ? 'entrando-direita' : 'entrando-esquerda';
+
     telaAtual = nomeTela;
 
     const header = document.getElementById('header-titulo');
@@ -177,8 +185,8 @@ window.trocarTela = function(nomeTela) {
         const el = document.getElementById(cfg.elemento);
         if (!el) return;
         if (id === nomeTela) {
-            el.classList.add('ativa', 'entrando');
-            setTimeout(() => el.classList.remove('entrando'), 250);
+            el.classList.add('ativa', classe);
+            setTimeout(() => el.classList.remove(classe), 300);
         } else {
             el.classList.remove('ativa');
         }
@@ -571,3 +579,57 @@ supabase
         }
     })
     .subscribe();
+
+// ============================================================
+//  SWIPE ENTRE ABAS (estilo Instagram/WhatsApp)
+// ============================================================
+
+(function() {
+    const ORDEM_TELAS = ['agendar', 'semana', 'minhas-aulas', 'perfil'];
+    const LIMIAR_SWIPE = 60;   // pixels mínimos para contar como swipe
+    const LIMIAR_VERTICAL = 80; // se o dedo subiu/desceu mais que isso, ignora (é scroll)
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let swipeAtivo = false;
+
+    const appContent = document.getElementById('app-content');
+    if (!appContent) return;
+
+    appContent.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        swipeAtivo = true;
+    }, { passive: true });
+
+    appContent.addEventListener('touchmove', (e) => {
+        if (!swipeAtivo) return;
+        const deltaY = Math.abs(e.touches[0].clientY - touchStartY);
+        // Se o movimento for predominantemente vertical, cancela o swipe
+        if (deltaY > LIMIAR_VERTICAL) swipeAtivo = false;
+    }, { passive: true });
+
+    appContent.addEventListener('touchend', (e) => {
+        if (!swipeAtivo) return;
+        swipeAtivo = false;
+
+        const deltaX = e.changedTouches[0].clientX - touchStartX;
+        const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY);
+
+        // Ignora se o movimento horizontal for pequeno ou o vertical for grande
+        if (Math.abs(deltaX) < LIMIAR_SWIPE || deltaY > LIMIAR_VERTICAL) return;
+
+        const indexAtual = ORDEM_TELAS.indexOf(telaAtual);
+        if (indexAtual === -1) return;
+
+        if (deltaX < 0) {
+            // Swipe para esquerda → próxima aba
+            const proxima = ORDEM_TELAS[indexAtual + 1];
+            if (proxima) trocarTela(proxima);
+        } else {
+            // Swipe para direita → aba anterior
+            const anterior = ORDEM_TELAS[indexAtual - 1];
+            if (anterior) trocarTela(anterior);
+        }
+    }, { passive: true });
+})();
