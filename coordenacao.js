@@ -2,7 +2,6 @@
 import { supabase, toggleDarkMode, carregarPreferenciaModo, registrarServiceWorker, dispararAlerta } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
-// Erros internos nunca chegam ao usuário
 window.addEventListener('error', function(e) {
     console.error("Erro capturado:", e.message, e.lineno, e.error);
     dispararAlerta({
@@ -16,21 +15,8 @@ window.addEventListener('error', function(e) {
 const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbw6fMtP880hmAdtRSj8tgBVCw-U9qGo-JnOqMD7DCb_I5q6Isooady17YNCmmUlKemhzQ/exec"
 
 let dadosAtuaisParaExportar = [];
-
-// ============================================================
-//  TOKEN DE SESSÃO — gerado pelo servidor, não pelo browser
-//
-//  Funciona assim:
-//  1. Coord digita a senha
-//  2. Edge Function verifica e devolve um token aleatório com validade de 8h
-//  3. O token fica em memória JS (nunca no localStorage/sessionStorage)
-//  4. Cada ação sensível envia o token para o servidor validar
-//  5. Ao recarregar a página, o token some — precisa logar de novo
-//
-//  Resultado: sessionStorage.setItem('coord_logada', 'true') não funciona mais
-// ============================================================
-
-let _tokenSessaoCoord = null; // token em memória — some ao recarregar
+let _tokenSessaoCoord = null;
+let _senhaEmMemoria = null; // necessária para passar à Edge Function resetar-acesso-professor
 
 function tokenValido() {
     return _tokenSessaoCoord !== null;
@@ -43,9 +29,6 @@ function tokenValido() {
 document.addEventListener("DOMContentLoaded", () => {
     carregarPreferenciaModo();
     registrarServiceWorker();
-
-    // REMOVIDO: if (sessionStorage.getItem('coord_logada') === 'true') { mostrarDashboard() }
-    // Agora sempre começa na tela de login — sem atalho possível
 
     const inputSenha = document.getElementById("senha-coord");
     if (inputSenha) {
@@ -101,8 +84,8 @@ window.entrarPainel = async function() {
             return;
         }
 
-        // Salva o token em memória — some ao recarregar, nunca vai para localStorage/sessionStorage
         _tokenSessaoCoord = data.token;
+        _senhaEmMemoria = senhaDigitada; // guarda para usar no reset
         document.getElementById('senha-coord').value = '';
         mostrarDashboard();
 
@@ -115,10 +98,10 @@ window.entrarPainel = async function() {
 
 window.sairPainel = function() {
     _tokenSessaoCoord = null;
+    _senhaEmMemoria = null;
     window.location.reload();
 }
 
-// Proteção: se alguém tentar chamar funções do dashboard sem token, bloqueia
 function exigirToken() {
     if (!tokenValido()) {
         dispararAlerta({ icon: 'error', title: 'Sessão expirada', text: 'Faça login novamente.', confirmButtonColor: 'var(--cor-perigo)' });
@@ -138,9 +121,7 @@ function mostrarDashboard() {
 
     const hoje = new Date();
     const inputData = document.getElementById('filtroData');
-    if (inputData) {
-        inputData.value = hoje.toISOString().split('T')[0];
-    }
+    if (inputData) inputData.value = hoje.toISOString().split('T')[0];
 
     carregarRelatorioGeral();
     ativarNotificacoes('coordenacao');
@@ -205,12 +186,14 @@ window.salvarPreCadastro = async function() {
     }
 
     try {
-        const { error } = await supabase.from('professores').insert([{ nome, disciplina, pin: null }]);
+        const { error } = await supabase.from('professores').insert([{ nome, disciplina, auth_user_id: null }]);
         if (error) throw error;
 
-        dispararAlerta({ icon: 'success', title: 'Professor liberado!', text: `${nome} já pode criar seu PIN de acesso.`, confirmButtonColor: 'var(--cor-sucesso)', timer: 2500, showConfirmButton: false });
+        dispararAlerta({ icon: 'success', title: 'Professor liberado!', text: `${nome} já pode ativar seu acesso.`, confirmButtonColor: 'var(--cor-sucesso)', timer: 2500, showConfirmButton: false });
         document.getElementById('coord-nome-professor').value = '';
         document.getElementById('coord-disciplina-professor').value = '';
+        carregarListaProfessores();
+        carregarProfessoresNoFiltro();
 
     } catch (err) {
         console.error("Erro ao pré-cadastrar professor:", err);
@@ -301,16 +284,10 @@ window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula, 
     if (!exigirToken()) return;
 
     const confirmacao = await Swal.fire({
-        title: 'Tem certeza?',
-        text: `Cancelar reserva de ${nomeSala} — Aula ${numeroAula}?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 'var(--cor-perigo)',
-        cancelButtonColor: 'var(--texto-secundario)',
-        confirmButtonText: 'Sim, cancelar!',
-        cancelButtonText: 'Voltar'
+        title: 'Tem certeza?', text: `Cancelar reserva de ${nomeSala} — Aula ${numeroAula}?`, icon: 'warning',
+        showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)',
+        confirmButtonText: 'Sim, cancelar!', cancelButtonText: 'Voltar'
     });
-
     if (!confirmacao.isConfirmed) return;
 
     const { error } = await supabase.from('agendamentos').delete().eq('id', idAgendamento);
@@ -486,7 +463,7 @@ async function carregarListaProfessores() {
     container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>';
 
     const [{ data: professores, error }, disciplinas] = await Promise.all([
-        supabase.from("professores").select("id, nome, disciplina, auth_user_id").order("nome", { ascending: true }),
+        supabase.from('professores').select('id, nome, disciplina, auth_user_id').order('nome', { ascending: true }),
         obterDisciplinasCache()
     ]);
 
@@ -495,7 +472,7 @@ async function carregarListaProfessores() {
 
     container.innerHTML = '';
     professores.forEach(prof => {
-        const temPin = prof.auth_user_id !== null && prof.auth_user_id !== '';
+        const temAcesso = prof.auth_user_id !== null && prof.auth_user_id !== '';
         const opcoesDisciplina = disciplinas.map(d =>
             `<option value="${d.nome}" ${d.nome === prof.disciplina ? 'selected' : ''}>${d.nome}</option>`
         ).join('');
@@ -508,8 +485,8 @@ async function carregarListaProfessores() {
                     <div class="professor-nome">${prof.nome}</div>
                     <div class="professor-disciplina">${prof.disciplina || 'Sem disciplina'}</div>
                 </div>
-                <span class="status-pin ${temPin ? 'ativo' : 'pendente'}">
-                    ${temPin ? '✓ Acesso ativo' : '⏳ Aguardando ativação'}
+                <span class="status-pin ${temAcesso ? 'ativo' : 'pendente'}">
+                    ${temAcesso ? '✓ Acesso ativo' : '⏳ Aguardando ativação'}
                 </span>
             </div>
             <div class="professor-card-edicao">
@@ -521,7 +498,7 @@ async function carregarListaProfessores() {
             </div>
             <div class="professor-card-acoes">
                 <button class="btn-salvar-professor" onclick="salvarEdicaoProfessor('${prof.id}')">💾 Salvar</button>
-                ${temPin ? `<button class="btn-resetar-pin" onclick="resetarPinProfessor('${prof.id}', '${prof.nome.replace(/'/g, "\\'")}')">🔑 Resetar PIN</button>` : ''}
+                ${temAcesso ? `<button class="btn-resetar-pin" onclick="resetarAcessoProfessor('${prof.id}', '${prof.nome.replace(/'/g, "\\'")}')">🔑 Resetar acesso</button>` : ''}
                 <button class="btn-excluir-professor" onclick="excluirProfessor('${prof.id}', '${prof.nome.replace(/'/g, "\\'")}')">🗑️ Excluir</button>
             </div>
         `;
@@ -541,11 +518,14 @@ window.salvarEdicaoProfessor = async function(id) {
     carregarProfessoresNoFiltro();
 }
 
-window.resetarPinProfessor = async function(id, nome) {
+// MUDANÇA PRINCIPAL: agora chama a Edge Function que deleta o usuário do Auth
+// em vez de apenas limpar a coluna pin no banco
+window.resetarAcessoProfessor = async function(id, nome) {
     if (!exigirToken()) return;
+
     const confirmacao = await Swal.fire({
-        title: 'Resetar PIN?',
-        text: `"${nome}" será desconectado e precisará criar um novo PIN para entrar.`,
+        title: 'Resetar acesso?',
+        text: `"${nome}" será desconectado imediatamente e precisará ativar um novo PIN para entrar.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'var(--cor-aviso)',
@@ -555,10 +535,52 @@ window.resetarPinProfessor = async function(id, nome) {
     });
     if (!confirmacao.isConfirmed) return;
 
-    const { error } = await supabase.from('professores').update({ pin: null }).eq('id', id);
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível resetar o PIN.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
-    dispararAlerta({ icon: 'success', title: 'PIN resetado!', text: 'O professor pode criar um novo PIN.', timer: 1800, showConfirmButton: false });
-    carregarListaProfessores();
+    if (!_senhaEmMemoria) {
+        dispararAlerta({ icon: 'error', title: 'Sessão expirada', text: 'Faça login novamente para executar esta ação.', confirmButtonColor: 'var(--cor-perigo)' });
+        sairPainel();
+        return;
+    }
+
+    Swal.fire({ title: 'Resetando acesso...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        // Chama Edge Function que:
+        // 1. Deleta o usuário do Supabase Auth (invalida o JWT imediatamente)
+        // 2. Limpa o auth_user_id na tabela professores
+        // 3. O Realtime no professor.js detecta e força o logout na tela dele
+        const { data, error } = await supabase.functions.invoke('resetar-acesso-professor', {
+            body: {
+                professor_id: id,
+                senha_coord: _senhaEmMemoria
+            }
+        });
+
+        Swal.close();
+
+        if (error || !data?.sucesso) {
+            dispararAlerta({
+                icon: 'error',
+                title: 'Erro',
+                text: data?.erro || 'Não foi possível resetar o acesso.',
+                confirmButtonColor: 'var(--cor-perigo)'
+            });
+            return;
+        }
+
+        dispararAlerta({
+            icon: 'success',
+            title: 'Acesso resetado!',
+            text: `${nome} foi desconectado e precisará ativar um novo PIN.`,
+            timer: 2500,
+            showConfirmButton: false
+        });
+        carregarListaProfessores();
+
+    } catch (err) {
+        Swal.close();
+        console.error('Erro ao resetar acesso:', err);
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Falha na requisição.', confirmButtonColor: 'var(--cor-perigo)' });
+    }
 }
 
 window.excluirProfessor = async function(id, nome) {
@@ -570,6 +592,14 @@ window.excluirProfessor = async function(id, nome) {
     }
     const confirmacao = await Swal.fire({ title: 'Excluir professor?', text: `Tem certeza que deseja excluir "${nome}"? Esta ação não pode ser desfeita.`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' });
     if (!confirmacao.isConfirmed) return;
+
+    // Reseta o Auth antes de deletar do banco
+    if (_senhaEmMemoria) {
+        await supabase.functions.invoke('resetar-acesso-professor', {
+            body: { professor_id: id, senha_coord: _senhaEmMemoria }
+        });
+    }
+
     const { error } = await supabase.from('professores').delete().eq('id', id);
     if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir o professor.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
     dispararAlerta({ icon: 'success', title: 'Excluído!', timer: 1200, showConfirmButton: false });
@@ -578,7 +608,7 @@ window.excluirProfessor = async function(id, nome) {
 }
 
 // ============================================================
-//  REALTIME — usa tokenValido() em vez de sessionStorage
+//  REALTIME
 // ============================================================
 
 supabase
