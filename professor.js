@@ -1,5 +1,5 @@
-/* professor.js — versão com Supabase Auth */
-import { supabase, toggleDarkMode as _toggleDarkMode, carregarPreferenciaModo, registrarServiceWorker, dispararAlerta, formatarData, getProfessorLogado, fazerLogoutAuth } from './utils.js'
+/* professor.js — correção do login com select de nome + PIN */
+import { supabase, toggleDarkMode as _toggleDarkMode, carregarPreferenciaModo, registrarServiceWorker, getProfessorLogado, fazerLogoutAuth } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 let professorLogado = null;
@@ -20,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
         splash.classList.add('saindo');
         setTimeout(async () => {
             splash.style.display = 'none';
-            // MUDANÇA: verifica sessão JWT válida em vez de PIN no localStorage
             await verificarSessaoAtiva();
         }, 500);
     }, 2000);
@@ -39,18 +38,125 @@ window.toggleDarkMode = function() {
     atualizarBtnDarkMode();
 }
 
-// MUDANÇA: Verifica se o Auth tem sessão ativa (JWT válido e não expirado)
+// Verifica sessão JWT ativa ao carregar
 async function verificarSessaoAtiva() {
     const professor = await getProfessorLogado();
     if (professor) {
         professorLogado = professor;
         mostrarAppLogado();
+    } else {
+        // Sem sessão: carrega lista de professores no select do login
+        await carregarProfessoresNoLogin();
     }
-    // Se não há sessão, não faz nada — tela de login já está visível
+}
+
+// Carrega professores com auth_user_id preenchido (já ativados) no select do login
+async function carregarProfessoresNoLogin() {
+    const select = document.getElementById('select-professor-login');
+    if (!select) return;
+
+    try {
+        const { data, error } = await supabase
+            .from('professores')
+            .select('id, nome')
+            .not('auth_user_id', 'is', null)
+            .order('nome', { ascending: true });
+
+        if (error) throw error;
+
+        select.innerHTML = '<option value="">Selecione seu nome...</option>';
+        (data || []).forEach(prof => {
+            const opt = document.createElement('option');
+            opt.value = prof.id;
+            opt.textContent = prof.nome;
+            select.appendChild(opt);
+        });
+    } catch (err) {
+        console.error('Erro ao carregar professores no login:', err);
+    }
 }
 
 // ============================================================
-//  NAVEGAÇÃO ENTRE TELAS (sem alterações)
+//  AUTENTICAÇÃO
+// ============================================================
+
+window.fazerLogin = async function() {
+    const select = document.getElementById('select-professor-login');
+    const pinInput = document.getElementById('pin-professor');
+
+    const professorId = select?.value;
+    const pin = pinInput?.value?.trim();
+
+    if (!professorId) {
+        return Swal.fire({ icon: 'warning', title: 'Atenção!', text: 'Selecione seu nome.', confirmButtonColor: '#7c3aed' });
+    }
+
+    if (!pin) {
+        return Swal.fire({ icon: 'warning', title: 'Atenção!', text: 'Digite seu PIN.', confirmButtonColor: '#7c3aed' });
+    }
+
+    const btnLogin = document.getElementById('btn-login');
+    if (btnLogin) { btnLogin.innerText = 'Entrando... ⏳'; btnLogin.disabled = true; }
+
+    try {
+        // Monta o email fictício a partir do ID selecionado
+        const emailFicticio = `prof-${professorId}@locus.interno`;
+
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: emailFicticio,
+            password: pin
+        });
+
+        if (error || !data.session) {
+            if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+
+            const mensagem = error?.message?.includes('rate limit')
+                ? 'Muitas tentativas. Aguarde alguns minutos.'
+                : 'PIN incorreto. Verifique e tente novamente.';
+
+            return Swal.fire({ icon: 'error', title: 'Ops!', text: mensagem, confirmButtonColor: '#7c3aed' });
+        }
+
+        professorLogado = await getProfessorLogado();
+
+        if (!professorLogado) {
+            await supabase.auth.signOut();
+            if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+            return Swal.fire({ icon: 'error', title: 'Erro', text: 'Perfil não encontrado. Contate a coordenação.', confirmButtonColor: '#7c3aed' });
+        }
+
+        if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+        mostrarAppLogado();
+        ativarNotificacoes('professor', professorLogado.id);
+
+    } catch (err) {
+        console.error('Erro no login:', err);
+        if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+        Swal.fire({ icon: 'error', title: 'Erro de conexão', text: 'Tente novamente.', confirmButtonColor: '#7c3aed' });
+    }
+}
+
+window.fazerLogout = async function() {
+    await fazerLogoutAuth();
+}
+
+function mostrarAppLogado() {
+    document.getElementById('tela-login').style.display = 'none';
+    document.getElementById('app-header').classList.add('visivel');
+    document.getElementById('bottom-nav').classList.add('visivel');
+
+    const status = document.getElementById('status-usuario');
+    if (status) status.innerHTML = `Olá, <strong>${professorLogado.nome}</strong>! 👋`;
+
+    document.getElementById('tela-agendar').classList.add('ativa');
+    configurarCalendarioSemana();
+    carregarTurmas();
+    carregarSalas();
+    carregarHistorico();
+}
+
+// ============================================================
+//  NAVEGAÇÃO
 // ============================================================
 
 const TELAS = {
@@ -82,16 +188,7 @@ window.trocarTela = function(nomeTela) {
     const tab = document.getElementById(`tab-${nomeTela}`);
     if (tab) tab.classList.add('ativa');
 
-    if (nomeTela === 'semana') {
-        const sala = document.getElementById('select-sala');
-        const info = document.getElementById('semana-sala-info');
-        if (sala?.value && sala.selectedOptions[0]?.textContent) {
-            if (info) info.textContent = sala.selectedOptions[0].textContent;
-        } else {
-            if (info) info.textContent = 'Selecione uma sala na aba Agendar';
-        }
-        carregarVisaoSemanal();
-    }
+    if (nomeTela === 'semana') carregarVisaoSemanal();
     if (nomeTela === 'minhas-aulas') carregarHistorico();
     if (nomeTela === 'perfil') atualizarPerfil();
 }
@@ -111,194 +208,64 @@ function atualizarStatusNotificacoes() {
     if (!desc || !btn) return;
 
     const perm = Notification?.permission;
-
     if (perm === 'granted') {
         desc.textContent = 'Ativas — lembretes e avisos habilitados';
         btn.textContent = 'Reativar';
-        btn.style.color = 'var(--cor-sucesso)';
-        btn.style.borderColor = 'var(--cor-sucesso-borda)';
     } else if (perm === 'denied') {
         desc.textContent = 'Bloqueadas — habilite nas configurações do navegador';
         btn.textContent = 'Bloqueadas';
-        btn.style.color = 'var(--cor-perigo)';
-        btn.style.borderColor = 'var(--cor-perigo-borda)';
         btn.disabled = true;
     } else {
         desc.textContent = 'Toque para ativar lembretes de aula';
         btn.textContent = 'Ativar';
-        btn.style.color = 'var(--cor-primaria)';
-        btn.style.borderColor = 'var(--cor-primaria)';
     }
 }
 
 window.gerenciarNotificacoes = async function() {
-    const perm = Notification?.permission;
-
-    if (perm === 'denied') {
-        Swal.fire({
-            icon: 'info',
-            title: 'Notificações bloqueadas',
-            text: 'Vá em Configurações do navegador → Notificações → Locus e permita.',
-            confirmButtonColor: '#7c3aed'
-        });
+    if (Notification?.permission === 'denied') {
+        Swal.fire({ icon: 'info', title: 'Notificações bloqueadas', text: 'Vá em Configurações do navegador → Notificações → Locus e permita.', confirmButtonColor: '#7c3aed' });
         return;
     }
-
     const btn = document.getElementById('btn-notif');
     if (btn) { btn.textContent = 'Ativando...'; btn.disabled = true; }
-
     const sucesso = await ativarNotificacoes('professor', professorLogado?.id);
-
     if (sucesso) {
-        Swal.fire({
-            icon: 'success',
-            title: 'Notificações ativas!',
-            text: 'Você receberá lembretes 5 minutos antes de cada aula.',
-            confirmButtonColor: '#059669',
-            timer: 2500,
-            showConfirmButton: false
-        });
+        Swal.fire({ icon: 'success', title: 'Notificações ativas!', text: 'Você receberá lembretes 5 minutos antes de cada aula.', confirmButtonColor: '#059669', timer: 2500, showConfirmButton: false });
     } else {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Permissão necessária',
-            text: 'Permita as notificações quando o navegador perguntar.',
-            confirmButtonColor: '#7c3aed'
-        });
+        Swal.fire({ icon: 'warning', title: 'Permissão necessária', text: 'Permita as notificações quando o navegador perguntar.', confirmButtonColor: '#7c3aed' });
     }
-
     if (btn) btn.disabled = false;
     atualizarStatusNotificacoes();
 }
 
 // ============================================================
-//  AUTENTICAÇÃO — agora usa Supabase Auth
-// ============================================================
-
-window.fazerLogin = async function(pinDigitado) {
-    const pin = pinDigitado || document.getElementById('pin-professor').value;
-
-    if (!pin) {
-        return Swal.fire({ icon: 'warning', title: 'Atenção!', text: 'Informe seu PIN.', confirmButtonColor: '#7c3aed' });
-    }
-
-    const btnLogin = document.getElementById('btn-login');
-    if (btnLogin) { btnLogin.innerText = 'Entrando... ⏳'; btnLogin.disabled = true; }
-
-    try {
-        // MUDANÇA: para encontrar o email fictício do professor, precisa buscá-lo via PIN
-        // O fluxo é: busca qual professor tem esse PIN temporariamente na fase de ativação
-        // Mas após ativação, o PIN virou senha do Auth — e o email é prof-{id}@locus.interno
-        //
-        // Para o login funcionasr sem expor o email ao professor, guardamos o email
-        // no localStorage APENAS PARA O EMAIL (não a senha/PIN) após o primeiro login.
-        //
-        // Na ativação (cadrasto.js) já fazemos o primeiro signIn e salvamos o email.
-
-        let emailFicticio = localStorage.getItem('prof_email')
-
-        if (!emailFicticio) {
-            // Primeira vez sem sessão e sem email salvo — precisamos descobrir o email
-            // pelo professor_id: busca o usuário pelo pin temporário ainda no banco?
-            // NÃO — após migração, pin fica null. Então o email deve ter sido salvo.
-            //
-            // Se chegar aqui sem email, manda para a página de ativação.
-            if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-            return Swal.fire({
-                icon: 'info',
-                title: 'Primeira vez aqui?',
-                text: 'Acesse "Ativar meu acesso" para configurar seu PIN antes de entrar.',
-                confirmButtonColor: '#7c3aed'
-            });
-        }
-
-        // MUDANÇA: login real com JWT — a senha é o PIN, hasheado pelo Supabase Auth
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email: emailFicticio,
-            password: pin
-        })
-
-        if (error || !data.session) {
-            if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-
-            // Rate limiting nativo: Auth bloqueia após 5 tentativas erradas por 15min
-            const mensagem = error?.message?.includes('rate limit')
-                ? 'Muitas tentativas. Aguarde alguns minutos.'
-                : 'PIN incorreto. Verifique e tente novamente.';
-
-            return Swal.fire({ icon: 'error', title: 'Ops!', text: mensagem, confirmButtonColor: '#7c3aed' });
-        }
-
-        // Busca dados do professor usando o JWT
-        professorLogado = await getProfessorLogado();
-
-        if (!professorLogado) {
-            await supabase.auth.signOut();
-            if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-            return Swal.fire({ icon: 'error', title: 'Erro', text: 'Perfil não encontrado. Contate a coordenação.', confirmButtonColor: '#7c3aed' });
-        }
-
-        if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-        mostrarAppLogado();
-        ativarNotificacoes('professor', professorLogado.id);
-
-    } catch (err) {
-        console.error('Erro no login:', err);
-        if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-        Swal.fire({ icon: 'error', title: 'Erro de conexão', text: 'Tente novamente.', confirmButtonColor: '#7c3aed' });
-    }
-}
-
-// MUDANÇA: logout agora invalida o JWT no servidor
-window.fazerLogout = async function() {
-    await fazerLogoutAuth();
-    // fazerLogoutAuth já redireciona para index.html
-}
-
-function mostrarAppLogado() {
-    document.getElementById('tela-login').style.display = 'none';
-    document.getElementById('app-header').classList.add('visivel');
-    document.getElementById('bottom-nav').classList.add('visivel');
-
-    const status = document.getElementById('status-usuario');
-    if (status) status.innerHTML = `Olá, <strong>${professorLogado.nome}</strong>! 👋`;
-
-    document.getElementById('tela-agendar').classList.add('ativa');
-
-    configurarCalendarioSemana();
-    carregarTurmas();
-    carregarSalas();
-    carregarHistorico();
-}
-
-// ============================================================
-//  DADOS (sem alterações)
+//  DADOS
 // ============================================================
 
 async function carregarTurmas() {
-    const selectTurma = document.getElementById('select-turma');
+    const select = document.getElementById('select-turma');
     try {
-        const { data: turmas, error } = await supabase.from('turmas').select('id, nome').order('nome', { ascending: true });
+        const { data, error } = await supabase.from('turmas').select('id, nome').order('nome', { ascending: true });
         if (error) throw error;
-        selectTurma.innerHTML = '<option value="">Selecione a turma...</option>';
-        turmas.forEach(t => {
+        select.innerHTML = '<option value="">Selecione a turma...</option>';
+        data.forEach(t => {
             const o = document.createElement('option');
             o.value = t.id; o.textContent = t.nome;
-            selectTurma.appendChild(o);
+            select.appendChild(o);
         });
     } catch (err) { console.error("Erro ao carregar turmas:", err); }
 }
 
 async function carregarSalas() {
-    const selectSala = document.getElementById('select-sala');
+    const select = document.getElementById('select-sala');
     try {
-        const { data: salas, error } = await supabase.from('salas').select('id, nome').order('nome', { ascending: true });
+        const { data, error } = await supabase.from('salas').select('id, nome').order('nome', { ascending: true });
         if (error) throw error;
-        selectSala.innerHTML = '<option value="">Selecione uma sala...</option>';
-        salas.forEach(s => {
+        select.innerHTML = '<option value="">Selecione uma sala...</option>';
+        data.forEach(s => {
             const o = document.createElement('option');
             o.value = s.id; o.textContent = s.nome;
-            selectSala.appendChild(o);
+            select.appendChild(o);
         });
     } catch (err) { console.error("Erro ao carregar salas:", err); }
 }
@@ -309,25 +276,19 @@ function configurarCalendarioSemana() {
     let minData = new Date(hoje);
     let maxData = new Date(hoje);
 
-    if (diaSemana === 0) {
-        minData.setDate(hoje.getDate() + 1);
-        maxData.setDate(hoje.getDate() + 5);
-    } else if (diaSemana === 6) {
-        minData.setDate(hoje.getDate() + 2);
-        maxData.setDate(hoje.getDate() + 6);
-    } else {
-        minData = hoje;
-        maxData.setDate(hoje.getDate() + (5 - diaSemana));
-    }
+    if (diaSemana === 0) { minData.setDate(hoje.getDate() + 1); maxData.setDate(hoje.getDate() + 5); }
+    else if (diaSemana === 6) { minData.setDate(hoje.getDate() + 2); maxData.setDate(hoje.getDate() + 6); }
+    else { maxData.setDate(hoje.getDate() + (5 - diaSemana)); }
 
     const input = document.getElementById('data-agendamento');
-    input.min = formatarData(minData);
-    input.max = formatarData(maxData);
-    input.value = formatarData(minData);
+    const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    input.min = fmt(minData);
+    input.max = fmt(maxData);
+    input.value = fmt(minData);
 }
 
 // ============================================================
-//  GRADE DE AULAS (sem alterações)
+//  GRADE DE AULAS
 // ============================================================
 
 window.buscarAulas = async function() {
@@ -337,7 +298,6 @@ window.buscarAulas = async function() {
 
     if (telaAtual === 'semana') carregarVisaoSemanal();
     if (buscandoAulasAtualmente) return;
-
     if (!salaId || !dataEscolhida) {
         grid.innerHTML = '<div class="grid-vazio"><div class="icone-vazio">🗓️</div><p>Selecione uma data e sala para ver os horários.</p></div>';
         return;
@@ -409,24 +369,15 @@ window.agendarAula = async function(numeroAula) {
 
     const dataBr = dataEscolhida.split('-').reverse().join('/');
     const confirmacao = await Swal.fire({
-        title: 'Confirmar reserva?',
-        text: `Aula ${numeroAula} no dia ${dataBr}?`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#7c3aed',
-        cancelButtonColor: '#9ca3af',
-        confirmButtonText: 'Sim, agendar!',
-        cancelButtonText: 'Cancelar'
+        title: 'Confirmar reserva?', text: `Aula ${numeroAula} no dia ${dataBr}?`, icon: 'question',
+        showCancelButton: true, confirmButtonColor: '#7c3aed', cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Sim, agendar!', cancelButtonText: 'Cancelar'
     });
-
     if (!confirmacao.isConfirmed) return;
 
     const { error } = await supabase.from('agendamentos').insert([{
-        professor_id: professorLogado.id,
-        sala_id: salaId,
-        turma_id: turmaId,
-        data: dataEscolhida,
-        aula_numero: numeroAula
+        professor_id: professorLogado.id, sala_id: salaId, turma_id: turmaId,
+        data: dataEscolhida, aula_numero: numeroAula
     }]);
 
     if (error) {
@@ -441,18 +392,19 @@ window.agendarAula = async function(numeroAula) {
 }
 
 // ============================================================
-//  HISTÓRICO (MINHAS AULAS) — sem alterações
+//  HISTÓRICO
 // ============================================================
 
 window.carregarHistorico = async function() {
     if (!professorLogado) return;
     const listaHtml = document.getElementById('historico-lista');
     if (!listaHtml) return;
-
     listaHtml.innerHTML = '<div class="minhas-aulas-vazio">Carregando...</div>';
 
-    const hojeIso = formatarData(new Date());
-    const { data: historico, error } = await supabase
+    const hoje = new Date();
+    const hojeIso = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+
+    const { data, error } = await supabase
         .from('agendamentos')
         .select('id, data, aula_numero, salas(nome), turmas(nome)')
         .eq('professor_id', professorLogado.id)
@@ -460,14 +412,10 @@ window.carregarHistorico = async function() {
         .order('data', { ascending: true });
 
     if (error) { listaHtml.innerHTML = '<div class="minhas-aulas-vazio">Erro ao carregar.</div>'; return; }
-
-    if (historico.length === 0) {
-        listaHtml.innerHTML = '<div class="minhas-aulas-vazio">Nenhum agendamento ativo esta semana.</div>';
-        return;
-    }
+    if (!data || data.length === 0) { listaHtml.innerHTML = '<div class="minhas-aulas-vazio">Nenhum agendamento ativo esta semana.</div>'; return; }
 
     listaHtml.innerHTML = '';
-    historico.forEach(item => {
+    data.forEach(item => {
         const dataBr = item.data.split('-').reverse().join('/');
         const div = document.createElement('div');
         div.classList.add('historico-item');
@@ -482,22 +430,15 @@ window.carregarHistorico = async function() {
     });
 }
 
-window.cancelarAgendamento = async function(idAgendamento, nomeSala, numeroAula, dataBr) {
+window.cancelarAgendamento = async function(id, nomeSala, numeroAula, dataBr) {
     const confirmacao = await Swal.fire({
-        title: 'Cancelar reserva?',
-        text: "Tem certeza que deseja cancelar esta reserva?",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc2626',
-        cancelButtonColor: '#9ca3af',
-        confirmButtonText: 'Sim, cancelar!',
-        cancelButtonText: 'Manter'
+        title: 'Cancelar reserva?', text: "Tem certeza que deseja cancelar esta reserva?", icon: 'warning',
+        showCancelButton: true, confirmButtonColor: '#dc2626', cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Sim, cancelar!', cancelButtonText: 'Manter'
     });
-
     if (!confirmacao.isConfirmed) return;
 
-    const { error } = await supabase.from('agendamentos').delete().eq('id', idAgendamento);
-
+    const { error } = await supabase.from('agendamentos').delete().eq('id', id);
     if (error) {
         Swal.fire({ icon: 'error', title: 'Erro!', text: 'Não foi possível cancelar.', confirmButtonColor: '#7c3aed' });
     } else {
@@ -509,22 +450,13 @@ window.cancelarAgendamento = async function(idAgendamento, nomeSala, numeroAula,
 }
 
 // ============================================================
-//  VISUALIZAÇÃO SEMANAL — sem alterações
+//  VISÃO SEMANAL
 // ============================================================
-
-function obterSegundaFeiraDaSemana(dataBase) {
-    const data = new Date(dataBase);
-    const dia = data.getDay();
-    const diff = dia === 0 ? -6 : 1 - dia;
-    data.setDate(data.getDate() + diff);
-    return data;
-}
 
 window.carregarVisaoSemanal = async function() {
     const salaId = document.getElementById('select-sala').value;
     const container = document.getElementById('visao-semanal');
     const info = document.getElementById('semana-sala-info');
-
     if (!container) return;
 
     if (!salaId) {
@@ -534,33 +466,35 @@ window.carregarVisaoSemanal = async function() {
 
     const nomeSala = document.getElementById('select-sala').selectedOptions[0]?.textContent || 'Sala';
     if (info) info.textContent = nomeSala;
-
     container.innerHTML = '<div class="spinner-container"><div class="spinner"></div><div class="spinner-texto">Montando a semana...</div></div>';
 
+    const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const dataInput = document.getElementById('data-agendamento').value;
     const dataBase = dataInput ? new Date(dataInput + 'T00:00:00') : new Date();
-    const segunda = obterSegundaFeiraDaSemana(dataBase);
+    const dia = dataBase.getDay();
+    const diff = dia === 0 ? -6 : 1 - dia;
+    const segunda = new Date(dataBase);
+    segunda.setDate(dataBase.getDate() + diff);
 
-    const diasDaSemana = [];
-    const nomesDias = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
-    for (let i = 0; i < 5; i++) {
+    const nomes = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
+    const dias = Array.from({length: 5}, (_, i) => {
         const d = new Date(segunda);
         d.setDate(segunda.getDate() + i);
-        diasDaSemana.push({ data: formatarData(d), nome: nomesDias[i], diaNum: d.getDate() });
-    }
+        return { data: fmt(d), nome: nomes[i], diaNum: d.getDate() };
+    });
 
     try {
-        const { data: agendamentos, error } = await supabase
+        const { data, error } = await supabase
             .from('agendamentos')
             .select('data, aula_numero, professor_id, professores(nome), turmas(nome)')
             .eq('sala_id', salaId)
-            .gte('data', diasDaSemana[0].data)
-            .lte('data', diasDaSemana[4].data);
+            .gte('data', dias[0].data)
+            .lte('data', dias[4].data);
 
         if (error) throw error;
 
         const mapa = {};
-        agendamentos.forEach(a => {
+        data.forEach(a => {
             mapa[`${a.data}|${a.aula_numero}`] = {
                 prof: a.professores?.nome || 'Desconhecido',
                 turma: a.turmas?.nome || 'Turma',
@@ -569,27 +503,26 @@ window.carregarVisaoSemanal = async function() {
         });
 
         let html = '<div class="semana-wrapper"><table class="semana-tabela"><thead><tr><th>Aula</th>';
-        diasDaSemana.forEach(d => { html += `<th>${d.nome}<br>${d.diaNum}</th>`; });
+        dias.forEach(d => { html += `<th>${d.nome}<br>${d.diaNum}</th>`; });
         html += '</tr></thead><tbody>';
 
         for (let aula = 1; aula <= 7; aula++) {
             html += `<tr><td>${aula}ª</td>`;
-            diasDaSemana.forEach(d => {
-                const info = mapa[`${d.data}|${aula}`];
-                if (info?.minha) html += `<td><div class="semana-celula minha" title="Sua reserva — ${info.turma}">★</div></td>`;
-                else if (info) html += `<td><div class="semana-celula ocupada" title="${info.prof} — ${info.turma}">●</div></td>`;
+            dias.forEach(d => {
+                const inf = mapa[`${d.data}|${aula}`];
+                if (inf?.minha) html += `<td><div class="semana-celula minha" title="Sua reserva — ${inf.turma}">★</div></td>`;
+                else if (inf) html += `<td><div class="semana-celula ocupada" title="${inf.prof} — ${inf.turma}">●</div></td>`;
                 else html += `<td><div class="semana-celula livre" title="Livre">○</div></td>`;
             });
             html += '</tr>';
         }
 
         html += '</tbody></table></div>';
-        html += `
-            <div class="semana-legenda">
-                <div class="semana-legenda-item"><div class="semana-legenda-cor" style="background:var(--cor-sucesso-clara);border-color:var(--cor-sucesso-borda);"></div>Livre</div>
-                <div class="semana-legenda-item"><div class="semana-legenda-cor" style="background:var(--cor-perigo-clara);border-color:var(--cor-perigo-borda);"></div>Outro professor</div>
-                <div class="semana-legenda-item"><div class="semana-legenda-cor" style="background:var(--cor-primaria-clara);border-color:var(--cor-primaria);"></div>Minha reserva</div>
-            </div>`;
+        html += `<div class="semana-legenda">
+            <div class="semana-legenda-item"><div class="semana-legenda-cor" style="background:var(--cor-sucesso-clara);border-color:var(--cor-sucesso-borda);"></div>Livre</div>
+            <div class="semana-legenda-item"><div class="semana-legenda-cor" style="background:var(--cor-perigo-clara);border-color:var(--cor-perigo-borda);"></div>Outro professor</div>
+            <div class="semana-legenda-item"><div class="semana-legenda-cor" style="background:var(--cor-primaria-clara);border-color:var(--cor-primaria);"></div>Minha reserva</div>
+        </div>`;
 
         container.innerHTML = html;
     } catch (err) {
@@ -611,49 +544,30 @@ supabase
     })
     .subscribe();
 
-// MUDANÇA: detecta remoção do professor via auth_user_id em vez de pin
 supabase
     .channel('mudancas-professor-logado')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'professores' }, async (payload) => {
         if (!professorLogado) return;
-
         const id = payload.new?.id || payload.old?.id;
         if (id !== professorLogado.id) return;
 
         if (payload.eventType === 'DELETE') {
-            await Swal.fire({
-                icon: 'warning',
-                title: 'Acesso removido',
-                text: 'Sua conta foi removida pela coordenação. Você será desconectado.',
-                confirmButtonColor: '#7c3aed',
-                allowOutsideClick: false
-            });
+            await Swal.fire({ icon: 'warning', title: 'Acesso removido', text: 'Sua conta foi removida pela coordenação.', confirmButtonColor: '#7c3aed', allowOutsideClick: false });
             await supabase.auth.signOut();
             window.location.href = 'index.html';
             return;
         }
 
         if (payload.eventType === 'UPDATE') {
-            // MUDANÇA: detecta reset de acesso via auth_user_id sendo nulificado
-            const acessoRevogado = payload.new?.auth_user_id === null && professorLogado.auth_user_id !== null;
+            const acessoRevogado = payload.new?.auth_user_id === null;
             if (acessoRevogado) {
-                await Swal.fire({
-                    icon: 'info',
-                    title: 'Acesso redefinido',
-                    text: 'Seu acesso foi redefinido pela coordenação. Crie um novo PIN para continuar.',
-                    confirmButtonColor: '#7c3aed',
-                    confirmButtonText: 'Ir para ativação',
-                    allowOutsideClick: false
-                });
+                await Swal.fire({ icon: 'info', title: 'Acesso redefinido', text: 'Crie um novo PIN para continuar.', confirmButtonColor: '#7c3aed', allowOutsideClick: false });
                 await supabase.auth.signOut();
                 window.location.href = 'cadasto.html';
                 return;
             }
-
             professorLogado = { ...professorLogado, ...payload.new };
             if (telaAtual === 'perfil') atualizarPerfil();
-            const status = document.getElementById('status-usuario');
-            if (status) status.innerHTML = `Olá, <strong>${professorLogado.nome}</strong>! 👋`;
         }
     })
     .subscribe();
