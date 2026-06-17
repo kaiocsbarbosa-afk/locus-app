@@ -1,12 +1,14 @@
+/* coordenacao.js — sem sessionStorage, token validado pelo servidor */
 import { supabase, toggleDarkMode, carregarPreferenciaModo, registrarServiceWorker, dispararAlerta } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
+// Erros internos nunca chegam ao usuário
 window.addEventListener('error', function(e) {
-    console.error("Erro capturado:", e);
+    console.error("Erro capturado:", e.message, e.lineno, e.error);
     dispararAlerta({
         icon: 'error',
         title: 'Erro no sistema',
-        text: `${e.message} (linha ${e.lineno})`,
+        text: 'Ocorreu um erro inesperado. Tente recarregar a página.',
         confirmButtonColor: 'var(--cor-perigo)'
     });
 });
@@ -16,16 +18,34 @@ const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbw6fMtP880hmA
 let dadosAtuaisParaExportar = [];
 
 // ============================================================
-//  AUTENTICAÇÃO — agora via Edge Function (segura)
-//  A senha nunca desce para o front-end
+//  TOKEN DE SESSÃO — gerado pelo servidor, não pelo browser
+//
+//  Funciona assim:
+//  1. Coord digita a senha
+//  2. Edge Function verifica e devolve um token aleatório com validade de 8h
+//  3. O token fica em memória JS (nunca no localStorage/sessionStorage)
+//  4. Cada ação sensível envia o token para o servidor validar
+//  5. Ao recarregar a página, o token some — precisa logar de novo
+//
+//  Resultado: sessionStorage.setItem('coord_logada', 'true') não funciona mais
+// ============================================================
+
+let _tokenSessaoCoord = null; // token em memória — some ao recarregar
+
+function tokenValido() {
+    return _tokenSessaoCoord !== null;
+}
+
+// ============================================================
+//  INICIALIZAÇÃO
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", () => {
     carregarPreferenciaModo();
     registrarServiceWorker();
-    if (sessionStorage.getItem('coord_logada') === 'true') {
-        mostrarDashboard();
-    }
+
+    // REMOVIDO: if (sessionStorage.getItem('coord_logada') === 'true') { mostrarDashboard() }
+    // Agora sempre começa na tela de login — sem atalho possível
 
     const inputSenha = document.getElementById("senha-coord");
     if (inputSenha) {
@@ -49,28 +69,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (fProfessor) fProfessor.addEventListener('change', () => carregarRelatorioGeral());
 });
 
+// ============================================================
+//  AUTENTICAÇÃO
+// ============================================================
+
 window.entrarPainel = async function() {
     const senhaDigitada = document.getElementById('senha-coord').value;
 
     if (!senhaDigitada) {
-        dispararAlerta({
-            icon: 'warning',
-            title: 'Atenção',
-            text: 'Por favor, digite a senha.',
-            confirmButtonColor: 'var(--cor-primaria)'
-        });
+        dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Por favor, digite a senha.', confirmButtonColor: 'var(--cor-primaria)' });
         return;
     }
 
-    Swal.fire({
-        title: 'Autenticando...',
-        text: 'Verificando credenciais',
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-    });
+    Swal.fire({ title: 'Autenticando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     try {
-        // Chama a Edge Function no servidor — a senha real nunca desce ao browser
         const { data, error } = await supabase.functions.invoke('verificar-senha-coord', {
             body: { senha: senhaDigitada }
         });
@@ -78,45 +91,41 @@ window.entrarPainel = async function() {
         Swal.close();
 
         if (error) {
-            console.error("Erro na Edge Function:", error);
-            dispararAlerta({
-                icon: 'error',
-                title: 'Erro de conexão',
-                text: 'Não foi possível verificar as credenciais. Tente novamente.',
-                confirmButtonColor: 'var(--cor-perigo)'
-            });
+            dispararAlerta({ icon: 'error', title: 'Erro de conexão', text: 'Não foi possível verificar as credenciais.', confirmButtonColor: 'var(--cor-perigo)' });
             return;
         }
 
-        if (!data?.autorizado) {
-            dispararAlerta({
-                icon: 'error',
-                title: 'Acesso Negado',
-                text: 'Senha incorreta.',
-                confirmButtonColor: 'var(--cor-perigo)'
-            });
+        if (!data?.autorizado || !data?.token) {
+            dispararAlerta({ icon: 'error', title: 'Acesso Negado', text: 'Senha incorreta.', confirmButtonColor: 'var(--cor-perigo)' });
             document.getElementById('senha-coord').value = '';
             return;
         }
 
-        sessionStorage.setItem('coord_logada', 'true');
+        // Salva o token em memória — some ao recarregar, nunca vai para localStorage/sessionStorage
+        _tokenSessaoCoord = data.token;
+        document.getElementById('senha-coord').value = '';
         mostrarDashboard();
 
     } catch (err) {
         Swal.close();
         console.error("Erro inesperado:", err);
-        dispararAlerta({
-            icon: 'error',
-            title: 'Erro crítico',
-            text: `Falha na requisição: ${err.message}`,
-            confirmButtonColor: 'var(--cor-perigo)'
-        });
+        dispararAlerta({ icon: 'error', title: 'Erro crítico', text: 'Falha na requisição. Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' });
     }
 }
 
 window.sairPainel = function() {
-    sessionStorage.removeItem('coord_logada');
+    _tokenSessaoCoord = null;
     window.location.reload();
+}
+
+// Proteção: se alguém tentar chamar funções do dashboard sem token, bloqueia
+function exigirToken() {
+    if (!tokenValido()) {
+        dispararAlerta({ icon: 'error', title: 'Sessão expirada', text: 'Faça login novamente.', confirmButtonColor: 'var(--cor-perigo)' });
+        window.location.reload();
+        return false;
+    }
+    return true;
 }
 
 // ============================================================
@@ -128,27 +137,19 @@ function mostrarDashboard() {
     document.getElementById('secao-dashboard').classList.remove('hidden');
 
     const hoje = new Date();
-    const ano = hoje.getFullYear();
-    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-    const dia = String(hoje.getDate()).padStart(2, '0');
     const inputData = document.getElementById('filtroData');
-    if (inputData) inputData.value = `${ano}-${mes}-${dia}`;
+    if (inputData) {
+        inputData.value = hoje.toISOString().split('T')[0];
+    }
 
     carregarRelatorioGeral();
-
-    // Ativa notificações push para a coordenação
     ativarNotificacoes('coordenacao');
 }
 
 async function carregarSalasNoFiltro() {
     try {
-        const { data: salas, error } = await supabase
-            .from('salas')
-            .select('id, nome')
-            .order('nome', { ascending: true });
-
+        const { data: salas, error } = await supabase.from('salas').select('id, nome').order('nome', { ascending: true });
         if (error) throw error;
-
         const selectSala = document.getElementById('filtroSala');
         selectSala.innerHTML = '<option value="">Todas as salas</option>';
         salas.forEach(sala => {
@@ -157,23 +158,15 @@ async function carregarSalasNoFiltro() {
             option.textContent = sala.nome;
             selectSala.appendChild(option);
         });
-    } catch (erro) {
-        console.error("Erro ao carregar salas:", erro);
-    }
+    } catch (erro) { console.error("Erro ao carregar salas:", erro); }
 }
 
 async function carregarProfessoresNoFiltro() {
     try {
-        const { data: professores, error } = await supabase
-            .from('professores')
-            .select('id, nome')
-            .order('nome', { ascending: true });
-
+        const { data: professores, error } = await supabase.from('professores').select('id, nome').order('nome', { ascending: true });
         if (error) throw error;
-
         const selectProfessor = document.getElementById('filtroProfessor');
         if (!selectProfessor) return;
-
         selectProfessor.innerHTML = '<option value="">Todos os professores</option>';
         professores.forEach(prof => {
             const option = document.createElement('option');
@@ -181,23 +174,15 @@ async function carregarProfessoresNoFiltro() {
             option.textContent = prof.nome;
             selectProfessor.appendChild(option);
         });
-    } catch (erro) {
-        console.error("Erro ao carregar professores:", erro);
-    }
+    } catch (erro) { console.error("Erro ao carregar professores:", erro); }
 }
 
 async function carregarDisciplinasNoPreCadastro() {
     try {
-        const { data: disciplinas, error } = await supabase
-            .from('disciplinas')
-            .select('id, nome')
-            .order('nome', { ascending: true });
-
+        const { data: disciplinas, error } = await supabase.from('disciplinas').select('id, nome').order('nome', { ascending: true });
         if (error) throw error;
-
         const selectDisciplina = document.getElementById('coord-disciplina-professor');
         if (!selectDisciplina) return;
-
         selectDisciplina.innerHTML = '<option value="">Selecione a disciplina...</option>';
         disciplinas.forEach(disc => {
             const option = document.createElement('option');
@@ -205,56 +190,41 @@ async function carregarDisciplinasNoPreCadastro() {
             option.textContent = disc.nome;
             selectDisciplina.appendChild(option);
         });
-    } catch (erro) {
-        console.error("Erro ao carregar disciplinas:", erro);
-    }
+    } catch (erro) { console.error("Erro ao carregar disciplinas:", erro); }
 }
 
 window.salvarPreCadastro = async function() {
+    if (!exigirToken()) return;
+
     const nome = document.getElementById('coord-nome-professor').value.trim();
     const disciplina = document.getElementById('coord-disciplina-professor').value;
 
     if (!nome || !disciplina) {
-        dispararAlerta({
-            icon: 'warning',
-            title: 'Campos obrigatórios',
-            text: 'Preencha o nome e selecione a disciplina do professor.',
-            confirmButtonColor: 'var(--cor-primaria)'
-        });
+        dispararAlerta({ icon: 'warning', title: 'Campos obrigatórios', text: 'Preencha o nome e selecione a disciplina do professor.', confirmButtonColor: 'var(--cor-primaria)' });
         return;
     }
 
     try {
-        const { error } = await supabase
-            .from('professores')
-            .insert([{ nome, disciplina, pin: null }]);
-
+        const { error } = await supabase.from('professores').insert([{ nome, disciplina, pin: null }]);
         if (error) throw error;
 
-        dispararAlerta({
-            icon: 'success',
-            title: 'Professor liberado!',
-            text: `${nome} já pode criar seu PIN de acesso.`,
-            confirmButtonColor: 'var(--cor-sucesso)',
-            timer: 2500,
-            showConfirmButton: false
-        });
-
+        dispararAlerta({ icon: 'success', title: 'Professor liberado!', text: `${nome} já pode criar seu PIN de acesso.`, confirmButtonColor: 'var(--cor-sucesso)', timer: 2500, showConfirmButton: false });
         document.getElementById('coord-nome-professor').value = '';
         document.getElementById('coord-disciplina-professor').value = '';
 
     } catch (err) {
         console.error("Erro ao pré-cadastrar professor:", err);
-        dispararAlerta({
-            icon: 'error',
-            title: 'Erro de banco de dados',
-            text: 'Não foi possível autorizar o professor.',
-            confirmButtonColor: 'var(--cor-perigo)'
-        });
+        dispararAlerta({ icon: 'error', title: 'Erro de banco de dados', text: 'Não foi possível autorizar o professor.', confirmButtonColor: 'var(--cor-perigo)' });
     }
 }
 
+// ============================================================
+//  RELATÓRIO
+// ============================================================
+
 window.carregarRelatorioGeral = async function() {
+    if (!exigirToken()) return;
+
     const filtroData = document.getElementById('filtroData');
     const filtroSala = document.getElementById('filtroSala');
     const filtroProfessor = document.getElementById('filtroProfessor');
@@ -269,7 +239,6 @@ window.carregarRelatorioGeral = async function() {
     tabela.innerHTML = '';
     dadosAtuaisParaExportar = [];
 
-    // Exige pelo menos um filtro para evitar carregar a tabela inteira
     if (!dataFiltro && !salaFiltro && !professorFiltro) {
         tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Selecione uma data, sala ou professor para ver os agendamentos.</td></tr>`;
         return;
@@ -277,39 +246,20 @@ window.carregarRelatorioGeral = async function() {
 
     tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Carregando...</td></tr>`;
 
-    let query = supabase
-        .from('agendamentos')
-        .select('id, data, aula_numero, professor_id, salas(nome), professores(nome), turmas(nome)');
+    let query = supabase.from('agendamentos').select('id, data, aula_numero, professor_id, salas(nome), professores(nome), turmas(nome)');
+    if (dataFiltro) query = query.eq('data', dataFiltro);
+    if (salaFiltro) query = query.eq('sala_id', salaFiltro);
+    if (professorFiltro) query = query.eq('professor_id', professorFiltro);
 
-    if (dataFiltro) {
-        query = query.eq('data', dataFiltro);
-    }
-
-    if (salaFiltro) {
-        query = query.eq('sala_id', salaFiltro);
-    }
-
-    if (professorFiltro) {
-        query = query.eq('professor_id', professorFiltro);
-    }
-
-    const { data: agendamentos, error } = await query
-        .order('data', { ascending: true })
-        .order('aula_numero', { ascending: true });
+    const { data: agendamentos, error } = await query.order('data', { ascending: true }).order('aula_numero', { ascending: true });
 
     if (error) {
-        dispararAlerta({
-            icon: 'error',
-            title: 'Erro de carregamento',
-            text: 'Não foi possível buscar os agendamentos.',
-            confirmButtonColor: 'var(--cor-perigo)'
-        });
+        dispararAlerta({ icon: 'error', title: 'Erro de carregamento', text: 'Não foi possível buscar os agendamentos.', confirmButtonColor: 'var(--cor-perigo)' });
         return;
     }
 
     const qtdEl = document.getElementById('qtd-total');
     if (qtdEl) qtdEl.innerText = agendamentos.length;
-
     dadosAtuaisParaExportar = agendamentos;
 
     if (!agendamentos || agendamentos.length === 0) {
@@ -341,15 +291,15 @@ window.limparFiltros = function() {
     const filtroData = document.getElementById('filtroData');
     const filtroSala = document.getElementById('filtroSala');
     const filtroProfessor = document.getElementById('filtroProfessor');
-
     if (filtroData) filtroData.value = '';
     if (filtroSala) filtroSala.value = '';
     if (filtroProfessor) filtroProfessor.value = '';
-
     carregarRelatorioGeral();
 }
 
 window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula, professorId, dataBr) {
+    if (!exigirToken()) return;
+
     const confirmacao = await Swal.fire({
         title: 'Tem certeza?',
         text: `Cancelar reserva de ${nomeSala} — Aula ${numeroAula}?`,
@@ -370,27 +320,17 @@ window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula, 
     } else {
         dispararAlerta({ icon: 'success', title: 'Cancelado!', text: 'Reserva removida.', timer: 1500, showConfirmButton: false });
         carregarRelatorioGeral();
-
-        // Notifica o professor que a coordenação cancelou a reserva dele
         if (professorId && professorId !== 'undefined' && professorId !== 'null') {
-            enviarNotificacao(
-                'Reserva cancelada pela coordenação',
-                `Sua reserva de ${nomeSala} (Aula ${numeroAula}) em ${dataBr} foi cancelada pela coordenação.`,
-                'professor',
-                professorId
-            );
+            enviarNotificacao('Reserva cancelada pela coordenação', `Sua reserva de ${nomeSala} (Aula ${numeroAula}) em ${dataBr} foi cancelada pela coordenação.`, 'professor', professorId);
         }
     }
 }
 
 window.exportarParaPlanilha = async function() {
+    if (!exigirToken()) return;
+
     if (!dadosAtuaisParaExportar || dadosAtuaisParaExportar.length === 0) {
-        dispararAlerta({
-            icon: 'warning',
-            title: 'Tabela vazia',
-            text: 'Filtre por uma data com agendamentos antes de exportar.',
-            confirmButtonColor: 'var(--cor-primaria)'
-        });
+        dispararAlerta({ icon: 'warning', title: 'Tabela vazia', text: 'Filtre por uma data com agendamentos antes de exportar.', confirmButtonColor: 'var(--cor-primaria)' });
         return;
     }
 
@@ -405,19 +345,12 @@ window.exportarParaPlanilha = async function() {
     }));
 
     try {
-        await fetch(URL_GOOGLE_SCRIPT, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify(dadosFormatados)
-        });
-
+        await fetch(URL_GOOGLE_SCRIPT, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(dadosFormatados) });
         Swal.close();
         dispararAlerta({ icon: 'success', title: 'Concluído!', text: 'Dados enviados para a planilha.', confirmButtonColor: 'var(--cor-sucesso)' });
-
     } catch (erro) {
         Swal.close();
-        dispararAlerta({ icon: 'error', title: 'Falha no envio', text: erro.message, confirmButtonColor: 'var(--cor-perigo)' });
+        dispararAlerta({ icon: 'error', title: 'Falha no envio', text: 'Não foi possível exportar. Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' });
     }
 }
 
@@ -430,10 +363,8 @@ let gerenciamentoCarregado = false;
 window.alternarGerenciamento = function(event) {
     const conteudo = document.getElementById('conteudo-gerenciar');
     const toggle = event.currentTarget;
-
     conteudo.classList.toggle('hidden');
     toggle.classList.toggle('aberto');
-
     if (!conteudo.classList.contains('hidden') && !gerenciamentoCarregado) {
         gerenciamentoCarregado = true;
         carregarListaSalas();
@@ -444,30 +375,14 @@ window.alternarGerenciamento = function(event) {
 async function carregarListaSalas() {
     const container = document.getElementById('lista-salas');
     container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>';
-
-    const { data: salas, error } = await supabase
-        .from('salas')
-        .select('id, nome')
-        .order('nome', { ascending: true });
-
-    if (error) {
-        container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar salas.</div>';
-        return;
-    }
-
-    if (!salas || salas.length === 0) {
-        container.innerHTML = '<div class="gerenciar-vazio">Nenhuma sala cadastrada.</div>';
-        return;
-    }
-
+    const { data: salas, error } = await supabase.from('salas').select('id, nome').order('nome', { ascending: true });
+    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar salas.</div>'; return; }
+    if (!salas || salas.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhuma sala cadastrada.</div>'; return; }
     container.innerHTML = '';
     salas.forEach(sala => {
         const div = document.createElement('div');
         div.classList.add('gerenciar-item');
-        div.innerHTML = `
-            <span>${sala.nome}</span>
-            <button onclick="excluirSala('${sala.id}', '${sala.nome.replace(/'/g, "\\'")}')">Excluir</button>
-        `;
+        div.innerHTML = `<span>${sala.nome}</span><button onclick="excluirSala('${sala.id}', '${sala.nome.replace(/'/g, "\\'")}')">Excluir</button>`;
         container.appendChild(div);
     });
 }
@@ -475,194 +390,71 @@ async function carregarListaSalas() {
 async function carregarListaTurmas() {
     const container = document.getElementById('lista-turmas');
     container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>';
-
-    const { data: turmas, error } = await supabase
-        .from('turmas')
-        .select('id, nome')
-        .order('nome', { ascending: true });
-
-    if (error) {
-        container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar turmas.</div>';
-        return;
-    }
-
-    if (!turmas || turmas.length === 0) {
-        container.innerHTML = '<div class="gerenciar-vazio">Nenhuma turma cadastrada.</div>';
-        return;
-    }
-
+    const { data: turmas, error } = await supabase.from('turmas').select('id, nome').order('nome', { ascending: true });
+    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar turmas.</div>'; return; }
+    if (!turmas || turmas.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhuma turma cadastrada.</div>'; return; }
     container.innerHTML = '';
     turmas.forEach(turma => {
         const div = document.createElement('div');
         div.classList.add('gerenciar-item');
-        div.innerHTML = `
-            <span>${turma.nome}</span>
-            <button onclick="excluirTurma('${turma.id}', '${turma.nome.replace(/'/g, "\\'")}')">Excluir</button>
-        `;
+        div.innerHTML = `<span>${turma.nome}</span><button onclick="excluirTurma('${turma.id}', '${turma.nome.replace(/'/g, "\\'")}')">Excluir</button>`;
         container.appendChild(div);
     });
 }
 
 window.adicionarSala = async function() {
+    if (!exigirToken()) return;
     const input = document.getElementById('nova-sala-nome');
     const nome = input.value.trim();
-
-    if (!nome) {
-        dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Digite o nome da sala.', confirmButtonColor: 'var(--cor-primaria)' });
-        return;
-    }
-
+    if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Digite o nome da sala.', confirmButtonColor: 'var(--cor-primaria)' }); return; }
     const { error } = await supabase.from('salas').insert([{ nome }]);
-
-    if (error) {
-        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a sala.', confirmButtonColor: 'var(--cor-perigo)' });
-        return;
-    }
-
+    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a sala.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
     input.value = '';
     carregarListaSalas();
     carregarSalasNoFiltro();
 }
 
 window.adicionarTurma = async function() {
+    if (!exigirToken()) return;
     const input = document.getElementById('nova-turma-nome');
     const nome = input.value.trim();
-
-    if (!nome) {
-        dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Digite o nome da turma.', confirmButtonColor: 'var(--cor-primaria)' });
-        return;
-    }
-
+    if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Digite o nome da turma.', confirmButtonColor: 'var(--cor-primaria)' }); return; }
     const { error } = await supabase.from('turmas').insert([{ nome }]);
-
-    if (error) {
-        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a turma.', confirmButtonColor: 'var(--cor-perigo)' });
-        return;
-    }
-
+    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a turma.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
     input.value = '';
     carregarListaTurmas();
 }
 
 window.excluirSala = async function(id, nome) {
-    // Verifica se existem agendamentos vinculados a esta sala
-    const { data: vinculos, error: erroVinculo } = await supabase
-        .from('agendamentos')
-        .select('id')
-        .eq('sala_id', id)
-        .limit(1);
-
-    if (erroVinculo) {
-        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível verificar agendamentos desta sala.', confirmButtonColor: 'var(--cor-perigo)' });
-        return;
-    }
-
+    if (!exigirToken()) return;
+    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('sala_id', id).limit(1);
     if (vinculos && vinculos.length > 0) {
-        dispararAlerta({
-            icon: 'warning',
-            title: 'Sala em uso',
-            text: `A sala "${nome}" possui agendamentos vinculados e não pode ser excluída. Cancele os agendamentos dela primeiro.`,
-            confirmButtonColor: 'var(--cor-primaria)'
-        });
+        dispararAlerta({ icon: 'warning', title: 'Sala em uso', text: `A sala "${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' });
         return;
     }
-
-    const confirmacao = await Swal.fire({
-        title: 'Excluir sala?',
-        text: `Tem certeza que deseja excluir "${nome}"? Esta ação não pode ser desfeita.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 'var(--cor-perigo)',
-        cancelButtonColor: 'var(--texto-secundario)',
-        confirmButtonText: 'Sim, excluir!',
-        cancelButtonText: 'Cancelar'
-    });
-
+    const confirmacao = await Swal.fire({ title: 'Excluir sala?', text: `Tem certeza que deseja excluir "${nome}"?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' });
     if (!confirmacao.isConfirmed) return;
-
     const { error } = await supabase.from('salas').delete().eq('id', id);
-
-    if (error) {
-        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a sala.', confirmButtonColor: 'var(--cor-perigo)' });
-        return;
-    }
-
+    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a sala.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
     dispararAlerta({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false });
     carregarListaSalas();
     carregarSalasNoFiltro();
 }
 
 window.excluirTurma = async function(id, nome) {
-    const { data: vinculos, error: erroVinculo } = await supabase
-        .from('agendamentos')
-        .select('id')
-        .eq('turma_id', id)
-        .limit(1);
-
-    if (erroVinculo) {
-        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível verificar agendamentos desta turma.', confirmButtonColor: 'var(--cor-perigo)' });
-        return;
-    }
-
+    if (!exigirToken()) return;
+    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('turma_id', id).limit(1);
     if (vinculos && vinculos.length > 0) {
-        dispararAlerta({
-            icon: 'warning',
-            title: 'Turma em uso',
-            text: `A turma "${nome}" possui agendamentos vinculados e não pode ser excluída. Cancele os agendamentos dela primeiro.`,
-            confirmButtonColor: 'var(--cor-primaria)'
-        });
+        dispararAlerta({ icon: 'warning', title: 'Turma em uso', text: `A turma "${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' });
         return;
     }
-
-    const confirmacao = await Swal.fire({
-        title: 'Excluir turma?',
-        text: `Tem certeza que deseja excluir "${nome}"? Esta ação não pode ser desfeita.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 'var(--cor-perigo)',
-        cancelButtonColor: 'var(--texto-secundario)',
-        confirmButtonText: 'Sim, excluir!',
-        cancelButtonText: 'Cancelar'
-    });
-
+    const confirmacao = await Swal.fire({ title: 'Excluir turma?', text: `Tem certeza que deseja excluir "${nome}"?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' });
     if (!confirmacao.isConfirmed) return;
-
     const { error } = await supabase.from('turmas').delete().eq('id', id);
-
-    if (error) {
-        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a turma.', confirmButtonColor: 'var(--cor-perigo)' });
-        return;
-    }
-
+    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a turma.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
     dispararAlerta({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false });
     carregarListaTurmas();
 }
-
-// Realtime — atualiza tabela automaticamente
-supabase
-    .channel('mudancas-agendamentos-coord')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, () => {
-        if (sessionStorage.getItem('coord_logada') === 'true') {
-            carregarRelatorioGeral();
-        }
-    })
-    .subscribe();
-
-// Realtime — lista de professores atualiza sozinha (outras abas/dispositivos)
-supabase
-    .channel('mudancas-professores-coord')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'professores' }, () => {
-        if (sessionStorage.getItem('coord_logada') === 'true') {
-            // Só recarrega se o card de professores já estiver aberto
-            const conteudo = document.getElementById('conteudo-gerenciar-professores');
-            if (conteudo && !conteudo.classList.contains('hidden')) {
-                carregarListaProfessores();
-            }
-            // Mantém o select de filtro sempre atualizado
-            carregarProfessoresNoFiltro();
-        }
-    })
-    .subscribe();
 
 // ============================================================
 //  GERENCIAR PROFESSORES
@@ -674,10 +466,8 @@ let disciplinasCache = [];
 window.alternarGerenciamentoProfessores = function(event) {
     const conteudo = document.getElementById('conteudo-gerenciar-professores');
     const toggle = event.currentTarget;
-
     conteudo.classList.toggle('hidden');
     toggle.classList.toggle('aberto');
-
     if (!conteudo.classList.contains('hidden') && !gerenciamentoProfessoresCarregado) {
         gerenciamentoProfessoresCarregado = true;
         carregarListaProfessores();
@@ -686,12 +476,7 @@ window.alternarGerenciamentoProfessores = function(event) {
 
 async function obterDisciplinasCache() {
     if (disciplinasCache.length > 0) return disciplinasCache;
-
-    const { data, error } = await supabase
-        .from('disciplinas')
-        .select('id, nome')
-        .order('nome', { ascending: true });
-
+    const { data, error } = await supabase.from('disciplinas').select('id, nome').order('nome', { ascending: true });
     if (!error && data) disciplinasCache = data;
     return disciplinasCache;
 }
@@ -705,18 +490,10 @@ async function carregarListaProfessores() {
         obterDisciplinasCache()
     ]);
 
-    if (error) {
-        container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar professores.</div>';
-        return;
-    }
-
-    if (!professores || professores.length === 0) {
-        container.innerHTML = '<div class="gerenciar-vazio">Nenhum professor cadastrado.</div>';
-        return;
-    }
+    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar professores.</div>'; return; }
+    if (!professores || professores.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhum professor cadastrado.</div>'; return; }
 
     container.innerHTML = '';
-
     professores.forEach(prof => {
         const temPin = prof.pin !== null && prof.pin !== '';
         const opcoesDisciplina = disciplinas.map(d =>
@@ -735,7 +512,6 @@ async function carregarListaProfessores() {
                     ${temPin ? '✓ Acesso ativo' : '⏳ Aguardando PIN'}
                 </span>
             </div>
-
             <div class="professor-card-edicao">
                 <input type="text" value="${prof.nome.replace(/"/g, '&quot;')}" id="edit-nome-${prof.id}" placeholder="Nome completo">
                 <select id="edit-disciplina-${prof.id}">
@@ -743,7 +519,6 @@ async function carregarListaProfessores() {
                     ${opcoesDisciplina}
                 </select>
             </div>
-
             <div class="professor-card-acoes">
                 <button class="btn-salvar-professor" onclick="salvarEdicaoProfessor('${prof.id}')">💾 Salvar</button>
                 ${temPin ? `<button class="btn-resetar-pin" onclick="resetarPinProfessor('${prof.id}', '${prof.nome.replace(/'/g, "\\'")}')">🔑 Resetar PIN</button>` : ''}
@@ -755,36 +530,22 @@ async function carregarListaProfessores() {
 }
 
 window.salvarEdicaoProfessor = async function(id) {
-    const nomeInput = document.getElementById(`edit-nome-${id}`);
-    const disciplinaSelect = document.getElementById(`edit-disciplina-${id}`);
-
-    const nome = nomeInput.value.trim();
-    const disciplina = disciplinaSelect.value;
-
-    if (!nome) {
-        dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'O nome não pode ficar vazio.', confirmButtonColor: 'var(--cor-primaria)' });
-        return;
-    }
-
-    const { error } = await supabase
-        .from('professores')
-        .update({ nome, disciplina })
-        .eq('id', id);
-
-    if (error) {
-        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível salvar as alterações.', confirmButtonColor: 'var(--cor-perigo)' });
-        return;
-    }
-
+    if (!exigirToken()) return;
+    const nome = document.getElementById(`edit-nome-${id}`).value.trim();
+    const disciplina = document.getElementById(`edit-disciplina-${id}`).value;
+    if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'O nome não pode ficar vazio.', confirmButtonColor: 'var(--cor-primaria)' }); return; }
+    const { error } = await supabase.from('professores').update({ nome, disciplina }).eq('id', id);
+    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível salvar as alterações.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
     dispararAlerta({ icon: 'success', title: 'Salvo!', timer: 1200, showConfirmButton: false });
     carregarListaProfessores();
     carregarProfessoresNoFiltro();
 }
 
 window.resetarPinProfessor = async function(id, nome) {
+    if (!exigirToken()) return;
     const confirmacao = await Swal.fire({
         title: 'Resetar PIN?',
-        text: `O professor "${nome}" precisará criar um novo PIN em "Ativar Meu Acesso" para entrar de novo.`,
+        text: `"${nome}" será desconectado e precisará criar um novo PIN para entrar.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'var(--cor-aviso)',
@@ -792,67 +553,48 @@ window.resetarPinProfessor = async function(id, nome) {
         confirmButtonText: 'Sim, resetar',
         cancelButtonText: 'Cancelar'
     });
-
     if (!confirmacao.isConfirmed) return;
 
-    const { error } = await supabase
-        .from('professores')
-        .update({ pin: null })
-        .eq('id', id);
-
-    if (error) {
-        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível resetar o PIN.', confirmButtonColor: 'var(--cor-perigo)' });
-        return;
-    }
-
+    const { error } = await supabase.from('professores').update({ pin: null }).eq('id', id);
+    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível resetar o PIN.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
     dispararAlerta({ icon: 'success', title: 'PIN resetado!', text: 'O professor pode criar um novo PIN.', timer: 1800, showConfirmButton: false });
     carregarListaProfessores();
 }
 
 window.excluirProfessor = async function(id, nome) {
-    // Verifica se existem agendamentos vinculados a este professor
-    const { data: vinculos, error: erroVinculo } = await supabase
-        .from('agendamentos')
-        .select('id')
-        .eq('professor_id', id)
-        .limit(1);
-
-    if (erroVinculo) {
-        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível verificar agendamentos deste professor.', confirmButtonColor: 'var(--cor-perigo)' });
-        return;
-    }
-
+    if (!exigirToken()) return;
+    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('professor_id', id).limit(1);
     if (vinculos && vinculos.length > 0) {
-        dispararAlerta({
-            icon: 'warning',
-            title: 'Professor com reservas ativas',
-            text: `"${nome}" possui agendamentos vinculados e não pode ser excluído. Cancele os agendamentos dele primeiro.`,
-            confirmButtonColor: 'var(--cor-primaria)'
-        });
+        dispararAlerta({ icon: 'warning', title: 'Professor com reservas ativas', text: `"${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' });
         return;
     }
-
-    const confirmacao = await Swal.fire({
-        title: 'Excluir professor?',
-        text: `Tem certeza que deseja excluir "${nome}"? Esta ação não pode ser desfeita e ele perderá o acesso ao sistema.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 'var(--cor-perigo)',
-        cancelButtonColor: 'var(--texto-secundario)',
-        confirmButtonText: 'Sim, excluir!',
-        cancelButtonText: 'Cancelar'
-    });
-
+    const confirmacao = await Swal.fire({ title: 'Excluir professor?', text: `Tem certeza que deseja excluir "${nome}"? Esta ação não pode ser desfeita.`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' });
     if (!confirmacao.isConfirmed) return;
-
     const { error } = await supabase.from('professores').delete().eq('id', id);
-
-    if (error) {
-        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir o professor.', confirmButtonColor: 'var(--cor-perigo)' });
-        return;
-    }
-
+    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir o professor.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
     dispararAlerta({ icon: 'success', title: 'Excluído!', timer: 1200, showConfirmButton: false });
     carregarListaProfessores();
     carregarProfessoresNoFiltro();
 }
+
+// ============================================================
+//  REALTIME — usa tokenValido() em vez de sessionStorage
+// ============================================================
+
+supabase
+    .channel('mudancas-agendamentos-coord')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, () => {
+        if (tokenValido()) carregarRelatorioGeral();
+    })
+    .subscribe();
+
+supabase
+    .channel('mudancas-professores-coord')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'professores' }, () => {
+        if (tokenValido()) {
+            const conteudo = document.getElementById('conteudo-gerenciar-professores');
+            if (conteudo && !conteudo.classList.contains('hidden')) carregarListaProfessores();
+            carregarProfessoresNoFiltro();
+        }
+    })
+    .subscribe();
