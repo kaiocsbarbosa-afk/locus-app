@@ -539,10 +539,16 @@
                 <p>Sistema de agendamento de salas</p>
             </div>
             <div class="form-group">
-                <label for="pin-professor">PIN de identificação</label>
+                <label for="select-professor-login">Seu nome</label>
+                <select id="select-professor-login">
+                    <option value="">Carregando...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="pin-professor">PIN de acesso</label>
                 <input type="password" id="pin-professor" placeholder="Digite seu PIN numérico..." inputmode="numeric" autocomplete="current-password">
             </div>
-            <button id="btn-login" class="principal" onclick="fazerLogin(null)">Entrar</button>
+            <button id="btn-login" class="principal" onclick="fazerLogin()">Entrar</button>
         </div>
     </div>
 
