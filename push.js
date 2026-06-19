@@ -6,6 +6,8 @@ import { supabase, dispararAlerta } from './utils.js'
 
 const VAPID_PUBLIC_KEY = 'BHweJ-6fq5qkclX2bcySbRjfkqAItvHfxrano1xatzoZJW7eyR621fcQ8xLstojUOdjJafsX5SSzVzr0hs7VlU0';
 
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84';
+
 const URL_FUNCAO_NOTIFICAR = 'https://ixhuqbfzwkobhrvlzwgm.supabase.co/functions/v1/enviar-notificacao';
 
 // ------------------------------------------------------------
@@ -112,7 +114,11 @@ export async function enviarNotificacao(titulo, corpo, destino, professorId = nu
     try {
         const resp = await fetch(URL_FUNCAO_NOTIFICAR, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_ANON_KEY,
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+            },
             body: JSON.stringify({
                 titulo,
                 corpo,

@@ -1,6 +1,6 @@
 // IMPORTANTE: incremente a versão do cache a cada deploy
 // para garantir que usuários recebam os arquivos atualizados
-const CACHE_NAME = 'locus-cache-v5';
+const CACHE_NAME = 'locus-cache-v6';
 
 const ASSETS = [
   './',
@@ -15,6 +15,7 @@ const ASSETS = [
   './professor.js',
   './coordenacao.js',
   './cadrasto.js',
+  './apple-touch-icon.png',
   './icon-96.png',
   './icon-192.png',
   './icon-512.png',
@@ -28,7 +29,7 @@ self.addEventListener('install', e => {
   self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log('[SW] Instalando cache v5...');
+      console.log('[SW] Instalando cache', CACHE_NAME, '...');
       return cache.addAll(ASSETS);
     })
   );
@@ -46,7 +47,7 @@ self.addEventListener('activate', e => {
           })
       )
     ).then(() => {
-      console.log('[SW] Cache v5 ativo.');
+      console.log('[SW]', CACHE_NAME, 'ativo.');
       // Assume controle de todas as abas abertas imediatamente
       return self.clients.claim();
     })

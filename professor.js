@@ -406,7 +406,7 @@ window.carregarHistorico = async function() {
         .order('data', { ascending: true });
 
     if (error) { listaHtml.innerHTML = '<div class="minhas-aulas-vazio">Erro ao carregar.</div>'; return; }
-    if (!data || data.length === 0) { listaHtml.innerHTML = '<div class="minhas-aulas-vazio">Nenhum agendamento ativo esta semana.</div>'; return; }
+    if (!data || data.length === 0) { listaHtml.innerHTML = '<div class="minhas-aulas-vazio">Nenhum agendamento ativo a partir de hoje.</div>'; return; }
 
     listaHtml.innerHTML = '';
     data.forEach(item => {
@@ -532,8 +532,9 @@ window.carregarVisaoSemanal = async function() {
 supabase
     .channel('mudancas-agendamentos-prof')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, () => {
+        if (!professorLogado) return;
         buscarAulas();
-        if (professorLogado) carregarHistorico();
+        carregarHistorico();
         if (telaAtual === 'semana') carregarVisaoSemanal();
     })
     .subscribe();

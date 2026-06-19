@@ -4,12 +4,14 @@ import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 window.addEventListener('error', function(e) {
     console.error("Erro capturado:", e.message, e.lineno, e.error);
-    dispararAlerta({
-        icon: 'error',
-        title: 'Erro no sistema',
-        text: 'Ocorreu um erro inesperado. Tente recarregar a página.',
-        confirmButtonColor: 'var(--cor-perigo)'
-    });
+    if (typeof Swal !== 'undefined') {
+        dispararAlerta({
+            icon: 'error',
+            title: 'Erro no sistema',
+            text: 'Ocorreu um erro inesperado. Tente recarregar a página.',
+            confirmButtonColor: 'var(--cor-perigo)'
+        });
+    }
 });
 
 const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbw6fMtP880hmAdtRSj8tgBVCw-U9qGo-JnOqMD7DCb_I5q6Isooady17YNCmmUlKemhzQ/exec"
@@ -192,7 +194,11 @@ window.salvarPreCadastro = async function() {
         dispararAlerta({ icon: 'success', title: 'Professor liberado!', text: `${nome} já pode ativar seu acesso.`, confirmButtonColor: 'var(--cor-sucesso)', timer: 2500, showConfirmButton: false });
         document.getElementById('coord-nome-professor').value = '';
         document.getElementById('coord-disciplina-professor').value = '';
-        carregarListaProfessores();
+        // Só atualiza a lista se a seção de professores estiver aberta
+        const secaoProfessores = document.getElementById('conteudo-gerenciar-professores');
+        if (secaoProfessores && !secaoProfessores.classList.contains('hidden')) {
+            carregarListaProfessores();
+        }
         carregarProfessoresNoFiltro();
 
     } catch (err) {

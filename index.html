@@ -49,7 +49,7 @@
     }
 
     /* ── DARK MODE ───────────────────────────────── */
-    body.dark {
+    body.dark-mode {
         --texto:    #f0eeff;
         --subtexto: #9ca3af;
         --borda:    #2d2a45;
@@ -563,7 +563,7 @@
 <script>
     // ── DARK MODE ──────────────────────────────────
     const isDark = localStorage.getItem('darkMode') === 'enabled';
-    if (isDark) document.body.classList.add('dark');
+    if (isDark) document.body.classList.add('dark-mode');
 
     // ── SAUDAÇÃO PERSONALIZADA ─────────────────────
     const hora = new Date().getHours();
