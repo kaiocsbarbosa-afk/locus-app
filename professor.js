@@ -44,36 +44,8 @@ async function verificarSessaoAtiva() {
     if (professor) {
         professorLogado = professor;
         mostrarAppLogado();
-    } else {
-        // Sem sessão: carrega lista de professores no select do login
-        await carregarProfessoresNoLogin();
     }
-}
-
-// Carrega professores com auth_user_id preenchido (já ativados) no select do login
-async function carregarProfessoresNoLogin() {
-    const select = document.getElementById('select-professor-login');
-    if (!select) return;
-
-    try {
-        const { data, error } = await supabase
-            .from('professores')
-            .select('id, nome')
-            .not('auth_user_id', 'is', null)
-            .order('nome', { ascending: true });
-
-        if (error) throw error;
-
-        select.innerHTML = '<option value="">Selecione seu nome...</option>';
-        (data || []).forEach(prof => {
-            const opt = document.createElement('option');
-            opt.value = prof.id;
-            opt.textContent = prof.nome;
-            select.appendChild(opt);
-        });
-    } catch (err) {
-        console.error('Erro ao carregar professores no login:', err);
-    }
+    // Sem sessão: mostra tela de login normalmente
 }
 
 // ============================================================
@@ -81,14 +53,11 @@ async function carregarProfessoresNoLogin() {
 // ============================================================
 
 window.fazerLogin = async function() {
-    const select = document.getElementById('select-professor-login');
-    const pinInput = document.getElementById('pin-professor');
+    const nomeDigitado = document.getElementById('nome-professor-login')?.value?.trim();
+    const pin = document.getElementById('pin-professor')?.value?.trim();
 
-    const professorId = select?.value;
-    const pin = pinInput?.value?.trim();
-
-    if (!professorId) {
-        return Swal.fire({ icon: 'warning', title: 'Atenção!', text: 'Selecione seu nome.', confirmButtonColor: '#7c3aed' });
+    if (!nomeDigitado) {
+        return Swal.fire({ icon: 'warning', title: 'Atenção!', text: 'Digite seu nome.', confirmButtonColor: '#7c3aed' });
     }
 
     if (!pin) {
@@ -99,8 +68,24 @@ window.fazerLogin = async function() {
     if (btnLogin) { btnLogin.innerText = 'Entrando... ⏳'; btnLogin.disabled = true; }
 
     try {
-        // Monta o email fictício a partir do ID selecionado
-        const emailFicticio = `prof-${professorId}@locus.interno`;
+        // 1. Busca o professor_id pelo nome via Edge Function (no servidor)
+        //    Assim nunca expõe a lista de professores publicamente
+        const { data: resultado, error: erroFuncao } = await supabase.functions.invoke('buscar-professor-por-nome', {
+            body: { nome: nomeDigitado }
+        });
+
+        if (erroFuncao || !resultado?.professor_id) {
+            if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+            return Swal.fire({
+                icon: 'error',
+                title: 'Nome não encontrado',
+                text: 'Verifique seu nome e tente novamente. Se for seu primeiro acesso, use a página de ativação.',
+                confirmButtonColor: '#7c3aed'
+            });
+        }
+
+        // 2. Monta o email fictício e faz login com o PIN
+        const emailFicticio = `prof-${resultado.professor_id}@locus.interno`;
 
         const { data, error } = await supabase.auth.signInWithPassword({
             email: emailFicticio,
@@ -117,6 +102,7 @@ window.fazerLogin = async function() {
             return Swal.fire({ icon: 'error', title: 'Ops!', text: mensagem, confirmButtonColor: '#7c3aed' });
         }
 
+        // 3. Busca dados completos via JWT
         professorLogado = await getProfessorLogado();
 
         if (!professorLogado) {
@@ -585,7 +571,7 @@ supabase
 // ============================================================
 
 (function() {
-    const ORDEM_TELAS = ['agendar', 'semana', 'minhas-aulas', 'perfil'];
+    // Usa ORDEM_TELAS_NAV declarada no escopo global — única fonte de verdade
     const LIMIAR_SWIPE = 60;   // pixels mínimos para contar como swipe
     const LIMIAR_VERTICAL = 80; // se o dedo subiu/desceu mais que isso, ignora (é scroll)
 
@@ -619,16 +605,16 @@ supabase
         // Ignora se o movimento horizontal for pequeno ou o vertical for grande
         if (Math.abs(deltaX) < LIMIAR_SWIPE || deltaY > LIMIAR_VERTICAL) return;
 
-        const indexAtual = ORDEM_TELAS.indexOf(telaAtual);
+        const indexAtual = ORDEM_TELAS_NAV.indexOf(telaAtual);
         if (indexAtual === -1) return;
 
         if (deltaX < 0) {
             // Swipe para esquerda → próxima aba
-            const proxima = ORDEM_TELAS[indexAtual + 1];
+            const proxima = ORDEM_TELAS_NAV[indexAtual + 1];
             if (proxima) trocarTela(proxima);
         } else {
             // Swipe para direita → aba anterior
-            const anterior = ORDEM_TELAS[indexAtual - 1];
+            const anterior = ORDEM_TELAS_NAV[indexAtual - 1];
             if (anterior) trocarTela(anterior);
         }
     }, { passive: true });
