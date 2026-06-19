@@ -1,4 +1,7 @@
-const CACHE_NAME = 'locus-cache-v4';
+// IMPORTANTE: incremente a versão do cache a cada deploy
+// para garantir que usuários recebam os arquivos atualizados
+const CACHE_NAME = 'locus-cache-v5';
+
 const ASSETS = [
   './',
   './index.html',
@@ -9,6 +12,9 @@ const ASSETS = [
   './locus.css',
   './utils.js',
   './push.js',
+  './professor.js',
+  './coordenacao.js',
+  './cadrasto.js',
   './icon-96.png',
   './icon-192.png',
   './icon-512.png',
@@ -18,33 +24,58 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', e => {
+  // Força ativação imediata sem esperar abas antigas fecharem
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
-      console.log('Instalando e cacheando assets do PWA...');
+      console.log('[SW] Instalando cache v5...');
       return cache.addAll(ASSETS);
     })
   );
 });
 
 self.addEventListener('activate', e => {
-  // Remove caches antigos de versões anteriores do app
   e.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
-        keys.filter(key => key !== CACHE_NAME)
-            .map(key => caches.delete(key))
+        keys
+          .filter(key => key !== CACHE_NAME)
+          .map(key => {
+            console.log('[SW] Removendo cache antigo:', key);
+            return caches.delete(key);
+          })
       )
-    )
+    ).then(() => {
+      console.log('[SW] Cache v5 ativo.');
+      // Assume controle de todas as abas abertas imediatamente
+      return self.clients.claim();
+    })
   );
-  console.log('Service Worker ativado com sucesso.');
 });
 
 self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(cachedResponse => {
-      return cachedResponse || fetch(e.request);
-    })
-  );
+  // Estratégia: Network first para JS/HTML, cache first para assets estáticos
+  const url = new URL(e.request.url);
+  const isJS  = url.pathname.endsWith('.js');
+  const isHTML = url.pathname.endsWith('.html') || url.pathname === '/';
+
+  if (isJS || isHTML) {
+    // Network first: busca a versão mais recente, cai no cache se offline
+    e.respondWith(
+      fetch(e.request)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(e.request))
+    );
+  } else {
+    // Cache first: imagens, fontes, CSS
+    e.respondWith(
+      caches.match(e.request).then(cached => cached || fetch(e.request))
+    );
+  }
 });
 
 // ------------------------------------------------------------
