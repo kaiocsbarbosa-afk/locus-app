@@ -6,7 +6,7 @@
     <title>Locus</title>
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-    <meta name="theme-color" content="#7c3aed">
+    <meta name="theme-color" content="#7c3aed" id="meta-theme">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Locus">
@@ -18,21 +18,42 @@
     }
 
     :root {
-        --roxo:         #7c3aed;
-        --roxo-escuro:  #4c1d95;
-        --roxo-claro:   #ede9fe;
-        --roxo-medio:   rgba(124,58,237,.1);
-        --verde:        #059669;
-        --verde-claro:  #d1fae5;
-        --laranja:      #d97706;
-        --laranja-claro:#fef3c7;
-        --texto:        #1e1b4b;
-        --subtexto:     #6b7280;
-        --borda:        #e5e7eb;
-        --bg:           #f5f3ff;
-        --card:         #ffffff;
-        --card-shadow:  0 2px 12px rgba(109,40,217,.08), 0 1px 3px rgba(0,0,0,.04);
+        --roxo:              #7c3aed;
+        --roxo-escuro:       #4c1d95;
+        --roxo-claro:        #ede9fe;
+        --verde:             #059669;
+        --verde-claro:       #d1fae5;
+        --laranja:           #d97706;
+        --laranja-claro:     #fef3c7;
+        --texto:             #1e1b4b;
+        --subtexto:          #6b7280;
+        --borda:             #e5e7eb;
+        --bg:                #f5f3ff;
+        --card:              #ffffff;
+        --card-shadow:       0 2px 12px rgba(109,40,217,.08), 0 1px 3px rgba(0,0,0,.04);
         --card-shadow-hover: 0 8px 28px rgba(109,40,217,.15), 0 2px 6px rgba(0,0,0,.06);
+        --hero-grad:         linear-gradient(140deg, #7c3aed 0%, #5b21b6 60%, #4c1d95 100%);
+        --retorno-grad:      linear-gradient(135deg, #7c3aed, #5b21b6);
+    }
+
+    /* ── DARK MODE ──────────────────────────────────────── */
+    body.dark-mode {
+        --texto:             #f0eeff;
+        --subtexto:          #9ca3af;
+        --borda:             #2d2a45;
+        --bg:                #0f0d1a;
+        --card:              #1a1730;
+        --roxo-claro:        #2e1065;
+        --verde-claro:       #064e3b;
+        --laranja-claro:     #451a03;
+        --card-shadow:       0 2px 12px rgba(0,0,0,.35);
+        --card-shadow-hover: 0 8px 28px rgba(0,0,0,.5);
+        --hero-grad:         linear-gradient(140deg, #5b21b6 0%, #3b1280 60%, #1e0a4b 100%);
+        --retorno-grad:      linear-gradient(135deg, #5b21b6, #3b1280);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
     }
 
     html { height: 100%; overflow: hidden; }
@@ -48,25 +69,11 @@
         transition: background .3s, color .3s;
     }
 
-    /* ── DARK MODE ───────────────────────────────── */
-    body.dark-mode {
-        --texto:    #f0eeff;
-        --subtexto: #9ca3af;
-        --borda:    #2d2a45;
-        --bg:       #0f0d1a;
-        --card:     #1a1730;
-        --roxo-claro: #2e1065;
-        --verde-claro: #064e3b;
-        --laranja-claro: #451a03;
-        --card-shadow: 0 2px 12px rgba(0,0,0,.3);
-        --card-shadow-hover: 0 8px 28px rgba(0,0,0,.4);
-    }
-
-    /* ── SPLASH ─────────────────────────────────── */
+    /* ── SPLASH ─────────────────────────────────────────── */
     #splash {
         position: fixed;
         inset: 0;
-        background: linear-gradient(160deg, #7c3aed 0%, #4c1d95 100%);
+        background: var(--hero-grad);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -78,101 +85,102 @@
     #splash.saindo { opacity: 0; transform: scale(1.05); pointer-events: none; }
 
     .splash-icon {
-        width: 100px;
-        height: 100px;
-        border-radius: 28px;
+        width: 104px;
+        height: 104px;
+        border-radius: 30px;
         background: rgba(255,255,255,.13);
+        border: 1.5px solid rgba(255,255,255,.18);
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 22px;
-        animation: pulsar 1.8s ease-in-out infinite;
-        box-shadow: 0 0 0 0 rgba(255,255,255,.2);
+        margin-bottom: 24px;
+        animation: pulsar 2s ease-in-out infinite;
     }
 
-    .splash-icon img { width: 70px; height: 70px; border-radius: 18px; }
+    .splash-icon img { width: 68px; height: 68px; border-radius: 18px; }
 
     .splash-nome {
-        font-size: 2.6rem;
+        font-size: 2.8rem;
         font-weight: 800;
         color: #fff;
         letter-spacing: -2px;
-        animation: surgir .65s cubic-bezier(.34,1.56,.64,1) both;
-        animation-delay: .15s;
+        animation: surgir .65s cubic-bezier(.34,1.56,.64,1) both .15s;
     }
 
     .splash-sub {
-        font-size: .88rem;
-        color: rgba(255,255,255,.6);
-        margin-top: 7px;
-        animation: surgir .65s cubic-bezier(.34,1.56,.64,1) both;
-        animation-delay: .28s;
+        font-size: .85rem;
+        color: rgba(255,255,255,.55);
+        margin-top: 6px;
+        letter-spacing: .02em;
+        animation: surgir .65s cubic-bezier(.34,1.56,.64,1) both .28s;
     }
 
     .splash-loader {
-        margin-top: 56px;
-        width: 44px;
-        height: 4px;
-        background: rgba(255,255,255,.18);
+        margin-top: 60px;
+        width: 48px;
+        height: 3px;
+        background: rgba(255,255,255,.15);
         border-radius: 2px;
         overflow: hidden;
-        animation: surgir .5s ease both;
-        animation-delay: .4s;
+        animation: surgir .5s ease both .4s;
     }
 
     .splash-loader-barra {
         height: 100%;
-        background: #fff;
+        background: rgba(255,255,255,.85);
         border-radius: 2px;
         animation: carregar 2s cubic-bezier(.4,0,.2,1) forwards;
     }
 
     @keyframes pulsar {
-        0%,100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,.2); }
-        50%      { transform: scale(1.07); box-shadow: 0 0 0 18px rgba(255,255,255,0); }
+        0%,100% { transform: scale(1);    box-shadow: 0 0 0 0   rgba(255,255,255,.18); }
+        50%      { transform: scale(1.06); box-shadow: 0 0 0 20px rgba(255,255,255,0); }
     }
-
     @keyframes surgir {
-        from { opacity: 0; transform: translateY(16px) scale(.96); }
+        from { opacity: 0; transform: translateY(14px) scale(.97); }
         to   { opacity: 1; transform: translateY(0) scale(1); }
     }
-
     @keyframes carregar {
         from { width: 0%; }
         to   { width: 100%; }
     }
+    @keyframes surgirHero {
+        from { opacity: 0; transform: translateX(-12px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+    }
 
-    /* ── HERO ───────────────────────────────────── */
+    /* ── HERO ───────────────────────────────────────────── */
     .hero {
-        background: linear-gradient(140deg, #7c3aed 0%, #5b21b6 60%, #4c1d95 100%);
-        padding: 20px 22px 44px;
+        background: var(--hero-grad);
+        padding: 20px 22px 46px;
         padding-top: calc(20px + env(safe-area-inset-top));
         flex-shrink: 0;
         position: relative;
         overflow: hidden;
+        transition: background .4s;
     }
 
-    /* Círculos decorativos no fundo do hero */
+    /* Círculo decorativo */
     .hero::before {
         content: '';
         position: absolute;
-        top: -40px;
-        right: -40px;
-        width: 180px;
-        height: 180px;
+        top: -50px; right: -50px;
+        width: 200px; height: 200px;
         border-radius: 50%;
-        background: rgba(255,255,255,.05);
+        background: rgba(255,255,255,.04);
         pointer-events: none;
     }
 
-    /* Curva na base do hero */
+    /* Segundo círculo */
     .hero::after {
         content: '';
         position: absolute;
-        bottom: -28px;
-        left: 0;
-        right: 0;
-        height: 56px;
+        bottom: -30px; left: 0; right: 0;
+        height: 60px;
         background: var(--bg);
         border-radius: 50% 50% 0 0 / 100% 100% 0 0;
         transition: background .3s;
@@ -182,7 +190,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 22px;
+        margin-bottom: 20px;
         position: relative;
         z-index: 1;
     }
@@ -190,49 +198,71 @@
     .hero-logo {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 9px;
     }
 
     .hero-logo img {
-        width: 32px;
-        height: 32px;
-        border-radius: 9px;
+        width: 30px; height: 30px;
+        border-radius: 8px;
     }
 
     .hero-logo span {
-        font-size: 1.2rem;
+        font-size: 1.15rem;
         font-weight: 800;
         color: #fff;
         letter-spacing: -.5px;
     }
+
+    /* Botão dark mode no hero */
+    .btn-dark-hero {
+        width: 34px; height: 34px;
+        border-radius: 50%;
+        border: 1.5px solid rgba(255,255,255,.25);
+        background: rgba(255,255,255,.12);
+        backdrop-filter: blur(6px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background .2s, transform .15s;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .btn-dark-hero:active { transform: scale(.88); }
 
     /* Badge de professor logado */
     .hero-badge {
         display: none;
         align-items: center;
         gap: 7px;
-        background: rgba(255,255,255,.15);
-        border: 1px solid rgba(255,255,255,.2);
+        background: rgba(255,255,255,.14);
+        border: 1px solid rgba(255,255,255,.22);
         border-radius: 20px;
-        padding: 5px 12px 5px 8px;
-        font-size: .78rem;
+        padding: 5px 12px 5px 7px;
+        font-size: .76rem;
         color: #fff;
         font-weight: 500;
-        backdrop-filter: blur(4px);
+        backdrop-filter: blur(6px);
         animation: surgir .4s ease both;
+        cursor: default;
     }
 
     .hero-badge.visivel { display: flex; }
 
     .hero-badge-avatar {
-        width: 22px;
-        height: 22px;
+        width: 22px; height: 22px;
         border-radius: 50%;
-        background: rgba(255,255,255,.25);
+        background: rgba(255,255,255,.22);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: .7rem;
+        font-size: .68rem;
+    }
+
+    .hero-topo-direita {
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .hero-conteudo {
@@ -241,55 +271,47 @@
     }
 
     .hero-titulo {
-        font-size: 1.65rem;
+        font-size: 1.6rem;
         font-weight: 700;
         color: #fff;
         letter-spacing: -.5px;
         line-height: 1.22;
-        margin-bottom: 7px;
-        animation: surgirHero .6s cubic-bezier(.34,1.56,.64,1) both;
-        animation-delay: .05s;
+        margin-bottom: 6px;
+        animation: surgirHero .6s cubic-bezier(.34,1.56,.64,1) both .05s;
     }
 
-    .hero-titulo .nome-destaque {
-        color: #ddd6fe;
-    }
+    .hero-titulo .nome-destaque { color: #ddd6fe; }
 
     .hero-sub {
-        font-size: .85rem;
-        color: rgba(255,255,255,.65);
+        font-size: .83rem;
+        color: rgba(255,255,255,.6);
         line-height: 1.5;
-        animation: surgirHero .6s cubic-bezier(.34,1.56,.64,1) both;
-        animation-delay: .12s;
+        animation: surgirHero .6s cubic-bezier(.34,1.56,.64,1) both .12s;
     }
 
-    @keyframes surgirHero {
-        from { opacity: 0; transform: translateX(-10px); }
-        to   { opacity: 1; transform: translateX(0); }
-    }
-
-    /* ── CONTEÚDO ───────────────────────────────── */
+    /* ── CONTEÚDO PRINCIPAL ─────────────────────────────── */
     #app-content {
         flex: 1;
         overflow-y: auto;
         overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior-y: contain;
-        padding: 8px 18px calc(24px + env(safe-area-inset-bottom));
+        padding: 10px 18px calc(28px + env(safe-area-inset-bottom));
         min-height: 0;
     }
 
-    /* ── LABEL DE SEÇÃO ─────────────────────────── */
+    /* ── LABEL DE SEÇÃO ─────────────────────────────────── */
     .secao-label {
-        font-size: .7rem;
+        font-size: .68rem;
         font-weight: 700;
         color: var(--subtexto);
         text-transform: uppercase;
-        letter-spacing: .1em;
-        margin: 22px 0 10px;
+        letter-spacing: .12em;
+        margin: 22px 2px 10px;
+        opacity: .8;
     }
 
-    /* ── CARDS ──────────────────────────────────── */
+    /* ── CARDS DE NAVEGAÇÃO ─────────────────────────────── */
     .nav-card {
         display: flex;
         align-items: center;
@@ -297,165 +319,171 @@
         background: var(--card);
         border: 1px solid var(--borda);
         border-radius: 18px;
-        padding: 16px 14px;
+        padding: 15px 14px;
         text-decoration: none;
         margin-bottom: 10px;
-        transition: transform .22s cubic-bezier(.34,1.56,.64,1),
-                    box-shadow .22s ease,
-                    opacity .15s ease;
         position: relative;
         overflow: hidden;
         box-shadow: var(--card-shadow);
-
-        /* Animação de entrada com spring */
+        /* entrada animada */
         opacity: 0;
-        transform: translateY(20px) scale(.97);
+        transform: translateY(18px) scale(.97);
+        transition: background .3s, border-color .3s, box-shadow .3s;
+        will-change: transform, opacity;
     }
 
     .nav-card.animado {
         opacity: 1;
         transform: translateY(0) scale(1);
-        transition: transform .5s cubic-bezier(.34,1.56,.64,1),
-                    box-shadow .22s ease,
-                    opacity .35s ease;
+        transition:
+            transform .5s cubic-bezier(.34,1.56,.64,1),
+            box-shadow .22s ease,
+            opacity .35s ease,
+            background .3s,
+            border-color .3s;
     }
 
     .nav-card:active {
-        transform: scale(.97);
-        box-shadow: var(--card-shadow);
-        opacity: .85;
+        transform: scale(.97) !important;
+        box-shadow: var(--card-shadow) !important;
+        opacity: .88 !important;
     }
 
-    /* Gradiente sutil no canto superior direito */
+    /* Acento colorido na borda esquerda */
+    .nav-card::before {
+        content: '';
+        position: absolute;
+        left: 0; top: 16%; bottom: 16%;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background: var(--roxo);
+        opacity: 0;
+        transition: opacity .3s;
+    }
+    .nav-card.verde::before  { background: var(--verde); }
+    .nav-card.laranja::before { background: var(--laranja); }
+    .nav-card.animado::before { opacity: 1; }
+
+    /* Gradiente sutil no canto direito */
     .nav-card::after {
         content: '';
         position: absolute;
-        top: 0;
-        right: 0;
-        width: 80px;
-        height: 80px;
-        background: radial-gradient(circle at top right, rgba(124,58,237,.06), transparent 70%);
+        top: 0; right: 0;
+        width: 90px; height: 90px;
+        background: radial-gradient(circle at top right, rgba(124,58,237,.05), transparent 70%);
         pointer-events: none;
     }
+    .nav-card.verde::after  { background: radial-gradient(circle at top right, rgba(5,150,105,.05), transparent 70%); }
+    .nav-card.laranja::after { background: radial-gradient(circle at top right, rgba(217,119,6,.05), transparent 70%); }
 
-    .nav-card.verde::after {
-        background: radial-gradient(circle at top right, rgba(5,150,105,.06), transparent 70%);
-    }
-
-    .nav-card.laranja::after {
-        background: radial-gradient(circle at top right, rgba(217,119,6,.06), transparent 70%);
-    }
-
-    /* Ícone do card */
+    /* Ícone */
     .nav-card-icone {
-        width: 50px;
-        height: 50px;
+        width: 48px; height: 48px;
         border-radius: 14px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.45rem;
+        font-size: 1.4rem;
         flex-shrink: 0;
         transition: transform .25s cubic-bezier(.34,1.56,.64,1);
-        position: relative;
     }
 
-    .nav-card-icone.roxo  { background: var(--roxo-claro); }
-    .nav-card-icone.verde { background: var(--verde-claro); }
+    .nav-card-icone.roxo    { background: var(--roxo-claro); }
+    .nav-card-icone.verde   { background: var(--verde-claro); }
     .nav-card-icone.laranja { background: var(--laranja-claro); }
 
-    .nav-card:active .nav-card-icone { transform: scale(.9) rotate(-4deg); }
-
-    /* Chip de novidade */
-    .chip {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: #ef4444;
-        color: #fff;
-        font-size: .55rem;
-        font-weight: 700;
-        padding: 1px 5px;
-        border-radius: 8px;
-        letter-spacing: .03em;
-        text-transform: uppercase;
-    }
+    .nav-card:active .nav-card-icone { transform: scale(.88) rotate(-5deg); }
 
     .nav-card-texto { flex: 1; min-width: 0; }
 
     .nav-card-titulo {
-        font-size: .92rem;
+        font-size: .9rem;
         font-weight: 600;
         color: var(--texto);
         letter-spacing: -.2px;
         margin-bottom: 2px;
+        transition: color .3s;
     }
 
     .nav-card-desc {
-        font-size: .78rem;
+        font-size: .76rem;
         color: var(--subtexto);
         line-height: 1.4;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        transition: color .3s;
     }
 
     .nav-card-seta {
-        width: 28px;
-        height: 28px;
+        width: 26px; height: 26px;
         border-radius: 8px;
         background: var(--bg);
         display: flex;
         align-items: center;
         justify-content: center;
         color: var(--subtexto);
-        font-size: .9rem;
+        font-size: .88rem;
         flex-shrink: 0;
-        transition: transform .2s, background .2s;
+        transition: transform .2s, background .3s;
     }
 
     .nav-card:active .nav-card-seta { transform: translateX(3px); }
 
-    /* ── CARD DE RETORNO (professor já logado) ──── */
+    /* ── CARD DE RETORNO (professor já logado) ──────────── */
     .card-retorno {
-        background: linear-gradient(135deg, #7c3aed, #5b21b6);
+        background: var(--retorno-grad);
         border-radius: 18px;
-        padding: 18px 16px;
+        padding: 16px 15px;
         margin-bottom: 10px;
         display: none;
         align-items: center;
         gap: 14px;
         text-decoration: none;
-        box-shadow: 0 4px 20px rgba(109,40,217,.25);
-        transition: transform .2s, box-shadow .2s;
-        animation: surgir .5s cubic-bezier(.34,1.56,.64,1) both;
+        box-shadow: 0 4px 22px rgba(109,40,217,.28);
+        opacity: 0;
+        transform: translateY(18px) scale(.97);
+        will-change: transform, opacity;
     }
 
     .card-retorno.visivel { display: flex; }
-    .card-retorno:active { transform: scale(.98); box-shadow: 0 2px 10px rgba(109,40,217,.2); }
+
+    .card-retorno.animado {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        transition:
+            transform .5s cubic-bezier(.34,1.56,.64,1),
+            box-shadow .22s ease,
+            opacity .35s ease;
+    }
+
+    .card-retorno:active {
+        transform: scale(.97) !important;
+        box-shadow: 0 2px 10px rgba(109,40,217,.2) !important;
+    }
 
     .retorno-avatar {
-        width: 46px;
-        height: 46px;
-        border-radius: 13px;
-        background: rgba(255,255,255,.18);
+        width: 44px; height: 44px;
+        border-radius: 12px;
+        background: rgba(255,255,255,.16);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.4rem;
+        font-size: 1.35rem;
         flex-shrink: 0;
     }
 
     .retorno-texto { flex: 1; min-width: 0; }
 
     .retorno-titulo {
-        font-size: .82rem;
-        color: rgba(255,255,255,.75);
+        font-size: .76rem;
+        color: rgba(255,255,255,.68);
         margin-bottom: 2px;
+        font-weight: 500;
     }
 
     .retorno-nome {
-        font-size: 1rem;
+        font-size: .97rem;
         font-weight: 700;
         color: #fff;
         letter-spacing: -.3px;
@@ -465,18 +493,46 @@
     }
 
     .retorno-seta {
-        color: rgba(255,255,255,.6);
-        font-size: 1.2rem;
+        color: rgba(255,255,255,.55);
+        font-size: 1.3rem;
         flex-shrink: 0;
+        transition: transform .2s;
     }
 
-    /* ── RODAPÉ ─────────────────────────────────── */
+    .card-retorno:active .retorno-seta { transform: translateX(3px); }
+
+    /* ── TOAST DE FEEDBACK ──────────────────────────────── */
+    #toast {
+        position: fixed;
+        bottom: calc(28px + env(safe-area-inset-bottom));
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: var(--texto);
+        color: var(--card);
+        font-size: .8rem;
+        font-weight: 500;
+        padding: 10px 20px;
+        border-radius: 30px;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .25s, transform .3s cubic-bezier(.34,1.56,.64,1);
+        z-index: 9000;
+        box-shadow: 0 4px 16px rgba(0,0,0,.18);
+    }
+    #toast.visivel {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+
+    /* ── RODAPÉ ─────────────────────────────────────────── */
     .rodape {
         text-align: center;
-        padding: 12px 0 4px;
-        font-size: .72rem;
+        padding: 14px 0 4px;
+        font-size: .7rem;
         color: var(--subtexto);
-        opacity: .6;
+        opacity: .5;
+        letter-spacing: .01em;
     }
     </style>
 </head>
@@ -501,9 +557,12 @@
             <img src="./icon-192.png" alt="Locus">
             <span>Locus</span>
         </div>
-        <div class="hero-badge" id="hero-badge">
-            <div class="hero-badge-avatar">👨‍🏫</div>
-            <span id="hero-badge-nome"></span>
+        <div class="hero-topo-direita">
+            <div class="hero-badge" id="hero-badge">
+                <div class="hero-badge-avatar">👨‍🏫</div>
+                <span id="hero-badge-nome"></span>
+            </div>
+            <button class="btn-dark-hero" id="btn-dark" title="Alternar modo escuro" aria-label="Alternar modo escuro">🌙</button>
         </div>
     </div>
     <div class="hero-conteudo">
@@ -511,6 +570,9 @@
         <div class="hero-sub" id="hero-sub">Sistema de agendamento de salas e laboratórios.</div>
     </div>
 </div>
+
+<!-- TOAST -->
+<div id="toast"></div>
 
 <!-- CONTEÚDO -->
 <main id="app-content">
@@ -536,7 +598,7 @@
         <div class="nav-card-seta">›</div>
     </a>
 
-    <a href="cadasto.html" class="nav-card" id="card-cadastro">
+    <a href="cadasto.html" class="nav-card verde" id="card-cadastro">
         <div class="nav-card-icone verde">🚀</div>
         <div class="nav-card-texto">
             <div class="nav-card-titulo">Ativar Meu Acesso</div>
@@ -547,7 +609,7 @@
 
     <div class="secao-label">Administração</div>
 
-    <a href="coordenacao.html" class="nav-card" id="card-coord">
+    <a href="coordenacao.html" class="nav-card laranja" id="card-coord">
         <div class="nav-card-icone laranja">🛡️</div>
         <div class="nav-card-texto">
             <div class="nav-card-titulo">Painel da Coordenação</div>
@@ -560,23 +622,74 @@
 
 </main>
 
-<script>
-    // ── DARK MODE ──────────────────────────────────
-    const isDark = localStorage.getItem('darkMode') === 'enabled';
-    if (isDark) document.body.classList.add('dark-mode');
+<script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-    // ── SAUDAÇÃO PERSONALIZADA ─────────────────────
+    // ── DARK MODE ──────────────────────────────────────────
+    const isDark = localStorage.getItem('darkMode') === 'enabled';
+    if (isDark) {
+        document.body.classList.add('dark-mode');
+        document.getElementById('btn-dark').textContent = '☀️';
+    }
+
+    document.getElementById('btn-dark').addEventListener('click', () => {
+        const ativado = document.body.classList.toggle('dark-mode');
+        localStorage.setItem('darkMode', ativado ? 'enabled' : 'disabled');
+        document.getElementById('btn-dark').textContent = ativado ? '☀️' : '🌙';
+        mostrarToast(ativado ? 'Modo escuro ativado' : 'Modo claro ativado');
+    });
+
+    // ── TOAST ──────────────────────────────────────────────
+    let toastTimer = null;
+    function mostrarToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('visivel');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('visivel'), 2200);
+    }
+
+    // ── SAUDAÇÃO ───────────────────────────────────────────
     const hora = new Date().getHours();
-    const emoji = hora < 12 ? '☀️' : hora < 18 ? '🌤️' : '🌙';
+    const emoji   = hora < 12 ? '☀️' : hora < 18 ? '🌤️' : '🌙';
     const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
 
-    // Verifica se tem professor logado no localStorage
-    const pinSalvo = localStorage.getItem('prof_pin');
-    const nomeSalvo = localStorage.getItem('prof_nome'); // salvo pelo professor.js
+    // ── SESSÃO SUPABASE ────────────────────────────────────
+    // Verifica sessão JWT ativa (não depende mais de prof_pin legado)
+    const sb = createClient(
+        'https://ixhuqbfzwkobhrvlzwgm.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84',
+        { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } }
+    );
 
-    if (pinSalvo && nomeSalvo) {
-        // Professor já logado — saudação personalizada
-        const primeiroNome = nomeSalvo.split(' ')[0];
+    async function verificarSessao() {
+        try {
+            const { data: { session } } = await sb.auth.getSession();
+            if (!session) return aplicarSaudacaoGenerica();
+
+            const { data: prof } = await sb
+                .from('professores')
+                .select('nome')
+                .eq('auth_user_id', session.user.id)
+                .single();
+
+            if (prof?.nome) {
+                aplicarSaudacaoPersonalizada(prof.nome);
+            } else {
+                aplicarSaudacaoGenerica();
+            }
+        } catch {
+            aplicarSaudacaoGenerica();
+        }
+    }
+
+    function aplicarSaudacaoGenerica() {
+        document.getElementById('hero-titulo').innerHTML =
+            `${emoji} ${periodo}!<br>O que deseja fazer?`;
+    }
+
+    function aplicarSaudacaoPersonalizada(nomeCompleto) {
+        const primeiroNome = nomeCompleto.split(' ')[0];
 
         document.getElementById('hero-titulo').innerHTML =
             `${emoji} ${periodo},<br><span class="nome-destaque">${primeiroNome}!</span>`;
@@ -584,42 +697,34 @@
             'Toque abaixo para agendar ou gerenciar suas reservas.';
 
         // Badge no hero
-        const badge = document.getElementById('hero-badge');
-        const badgeNome = document.getElementById('hero-badge-nome');
-        badgeNome.textContent = primeiroNome;
-        badge.classList.add('visivel');
+        document.getElementById('hero-badge-nome').textContent = primeiroNome;
+        document.getElementById('hero-badge').classList.add('visivel');
 
         // Card de retorno rápido
-        const cardRetorno = document.getElementById('card-retorno');
-        const retornoNome = document.getElementById('retorno-nome');
-        retornoNome.textContent = nomeSalvo;
-        cardRetorno.classList.add('visivel');
-
+        document.getElementById('retorno-nome').textContent = nomeCompleto;
+        document.getElementById('card-retorno').classList.add('visivel');
         document.getElementById('label-rapido').textContent = 'Suas opções';
 
-        // Esconde o card de ativação (professor já tem conta)
+        // Esconde o card de ativação (já tem conta)
         const cardCadastro = document.getElementById('card-cadastro');
         if (cardCadastro) cardCadastro.style.display = 'none';
-
-    } else {
-        // Sem professor logado — saudação genérica
-        document.getElementById('hero-titulo').innerHTML =
-            `${emoji} ${periodo}!<br>O que deseja fazer?`;
     }
 
-    // ── ANIMAÇÃO DOS CARDS (entrada escalonada) ──────
-    const splash = document.getElementById('splash');
-    const cards = document.querySelectorAll('.nav-card, .card-retorno.visivel');
-
+    // ── ANIMAÇÃO DOS CARDS (escalonada após splash) ────────
     function animarCards() {
+        const cards = document.querySelectorAll('.nav-card, .card-retorno.visivel');
         cards.forEach((card, i) => {
-            setTimeout(() => {
-                card.classList.add('animado');
-            }, i * 80);
+            setTimeout(() => card.classList.add('animado'), i * 75);
         });
     }
 
-    // Splash: 2s e some, depois anima os cards
+    // ── INICIALIZAÇÃO ──────────────────────────────────────
+    const splash = document.getElementById('splash');
+
+    // Busca sessão em paralelo com o splash
+    verificarSessao();
+
+    // Splash dura 2s, depois some e anima os cards
     setTimeout(() => {
         splash.classList.add('saindo');
         setTimeout(() => {
@@ -628,45 +733,10 @@
         }, 550);
     }, 2000);
 
-    // ── SERVICE WORKER ──────────────────────────────
+    // ── SERVICE WORKER ─────────────────────────────────────
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js').catch(() => {});
-        });
-    }
-</script>
-
-<!-- Salva o nome do professor no localStorage quando ele logar -->
-<!-- O professor.js faz isso — mas garantimos aqui via Supabase se necessário -->
-<script type="module">
-    // Tenta popular o nome do professor a partir do Supabase
-    // (caso o localStorage não tenha o nome ainda)
-    const pin = localStorage.getItem('prof_pin');
-    if (pin && !localStorage.getItem('prof_nome')) {
-        import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm').then(({ createClient }) => {
-            const sb = createClient(
-                'https://ixhuqbfzwkobhrvlzwgm.supabase.co',
-                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84'
-            );
-            sb.from('professores').select('nome').eq('pin', pin).single()
-                .then(({ data }) => {
-                    if (data?.nome) {
-                        localStorage.setItem('prof_nome', data.nome);
-                        // Atualiza a saudação dinamicamente
-                        const primeiroNome = data.nome.split(' ')[0];
-                        const hora = new Date().getHours();
-                        const emoji = hora < 12 ? '☀️' : hora < 18 ? '🌤️' : '🌙';
-                        const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
-                        document.getElementById('hero-titulo').innerHTML =
-                            `${emoji} ${periodo},<br><span class="nome-destaque">${primeiroNome}!</span>`;
-                        document.getElementById('hero-sub').textContent =
-                            'Toque abaixo para agendar ou gerenciar suas reservas.';
-                        document.getElementById('hero-badge-nome').textContent = primeiroNome;
-                        document.getElementById('hero-badge').classList.add('visivel');
-                        document.getElementById('retorno-nome').textContent = data.nome;
-                        document.getElementById('card-retorno').classList.add('visivel');
-                    }
-                });
         });
     }
 </script>
