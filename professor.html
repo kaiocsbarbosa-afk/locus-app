@@ -372,19 +372,39 @@
             border-radius: 14px;
             background: var(--bg-input);
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.65rem; font-weight: 700; color: var(--texto-principal);
             transition: border-color .15s, box-shadow .15s, transform .12s, background .15s;
+            position: relative;
         }
 
+        /* Placeholder visível no estado vazio */
+        .pin-dot::before {
+            content: '';
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--borda);
+            transition: background .15s, transform .15s;
+        }
+
+        /* Dot ativo (cursor piscando simulado) */
         .pin-dot.ativo {
             border-color: #7c3aed;
             box-shadow: 0 0 0 3px rgba(124,58,237,.15);
             transform: scale(1.07);
         }
+        .pin-dot.ativo::before { background: #7c3aed; transform: scale(1.3); }
 
+        /* Dot preenchido — mostra o ● e esconde o ::before */
         .pin-dot.preenchido {
             border-color: #7c3aed;
             background: var(--bg-card);
+        }
+        .pin-dot.preenchido::before { display: none; }
+
+        .pin-dot .pin-char {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--texto-principal);
+            line-height: 1;
         }
 
         /* Botão entrar */
@@ -671,7 +691,6 @@
             <div class="login-hero-topo">
                 <img src="icon-192.png" alt="Locus">
                 <span class="logo-nome">Locus</span>
-                <button class="btn-voltar-hero" onclick="window.location.href='index.html'" title="Voltar">&#8592;</button>
                 <button class="btn-dark-hero" id="btn-dark-mode" onclick="toggleDarkMode()" title="Modo escuro">&#127769;</button>
             </div>
             <div class="login-hero-titulo">&#128274; Seu acesso</div>
@@ -702,10 +721,10 @@
                     placeholder=""
                 >
                 <div class="pin-dots">
-                    <div class="pin-dot" id="pd0"></div>
-                    <div class="pin-dot" id="pd1"></div>
-                    <div class="pin-dot" id="pd2"></div>
-                    <div class="pin-dot" id="pd3"></div>
+                    <div class="pin-dot ativo" id="pd0"><span class="pin-char" id="pc0"></span></div>
+                    <div class="pin-dot" id="pd1"><span class="pin-char" id="pc1"></span></div>
+                    <div class="pin-dot" id="pd2"><span class="pin-char" id="pc2"></span></div>
+                    <div class="pin-dot" id="pd3"><span class="pin-char" id="pc3"></span></div>
                 </div>
             </div>
 

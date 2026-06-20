@@ -79,23 +79,28 @@ async function carregarListaNomesLogin() {
 
 function configurarPinBoxesGrande() {
     const inputReal = document.getElementById('pin-input-real');
-    const dots = [0,1,2,3].map(i => document.getElementById('pd' + i));
+    const dots  = [0,1,2,3].map(i => document.getElementById('pd' + i));
+    const chars = [0,1,2,3].map(i => document.getElementById('pc' + i));
     if (!inputReal || !dots[0]) return;
 
     function atualizarDots(val) {
         dots.forEach((dot, i) => {
             dot.classList.remove('ativo', 'preenchido');
             if (i < val.length) {
-                dot.textContent = '●';
+                // Preenchido: mostra ● no span e esconde o ::before via classe
+                chars[i].textContent = '●';
                 dot.classList.add('preenchido');
             } else {
-                dot.textContent = '';
+                // Vazio: limpa o span (::before aparece como placeholder)
+                chars[i].textContent = '';
                 if (i === val.length) dot.classList.add('ativo');
             }
         });
     }
 
-    // Foca no input e mostra o primeiro dot ativo
+    // Estado inicial: primeiro dot ativo (mostra onde digitar)
+    atualizarDots('');
+
     inputReal.addEventListener('focus', () => {
         const val = inputReal.value.replace(/\D/g, '').slice(0, 4);
         atualizarDots(val);
@@ -106,21 +111,14 @@ function configurarPinBoxesGrande() {
     });
 
     inputReal.addEventListener('input', () => {
-        // Filtra só dígitos e limita a 4
         const val = inputReal.value.replace(/\D/g, '').slice(0, 4);
         inputReal.value = val;
         atualizarDots(val);
-
-        // Auto-login ao completar 4 dígitos
-        if (val.length === 4) {
-            fazerLogin();
-        }
+        if (val.length === 4) fazerLogin();
     });
 
-    // Toque em qualquer dot foca o input
-    dots.forEach(dot => {
-        dot.parentElement?.addEventListener('click', () => inputReal.focus());
-    });
+    // Clique em qualquer lugar do wrapper foca o input
+    document.querySelector('.pin-wrapper')?.addEventListener('click', () => inputReal.focus());
 }
 
 // ============================================================
