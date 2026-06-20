@@ -11,21 +11,21 @@ let telaAtual = 'agendar';
 //  INICIALIZAÇÃO
 // ============================================================
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     carregarPreferenciaModo();
     atualizarBtnDarkMode();
     registrarServiceWorker();
-    carregarListaNomesLogin(); // Pré-carrega a lista de professores
 
-    setTimeout(() => {
-        const splash = document.getElementById('splash');
-        splash.classList.add('saindo');
-        setTimeout(async () => {
-            splash.style.display = 'none';
-            await verificarSessaoAtiva();
-            configurarPinBoxesGrande();
-        }, 500);
-    }, 2000);
+    // Verifica sessão JWT ativa — se professor já está logado, pula login
+    const professor = await getProfessorLogado();
+    if (professor) {
+        professorLogado = professor;
+        mostrarAppLogado();
+    } else {
+        // Sem sessão: mostra tela de login e carrega lista de nomes
+        carregarListaNomesLogin();
+        configurarPinBoxesGrande();
+    }
 });
 
 function atualizarBtnDarkMode() {

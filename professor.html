@@ -10,6 +10,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Locus">
+    <link rel="icon" href="./icon-96.png" type="image/png">
+    <link rel="shortcut icon" href="./icon-96.png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="locus.css">
@@ -55,95 +57,6 @@
         #app-content * {
             max-width: 100%;
             box-sizing: border-box;
-        }
-
-        /* ── SPLASH SCREEN ─────────────────────────── */
-        #splash {
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(160deg, #6d28d9 0%, #4c1d95 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            transition: opacity .5s ease, transform .5s ease;
-        }
-
-        #splash.saindo {
-            opacity: 0;
-            transform: scale(1.04);
-            pointer-events: none;
-        }
-
-        .splash-icon {
-            width: 96px;
-            height: 96px;
-            border-radius: 24px;
-            background: rgba(255,255,255,0.12);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-            animation: pulsar 1.6s ease-in-out infinite;
-        }
-
-        .splash-icon img {
-            width: 64px;
-            height: 64px;
-            border-radius: 14px;
-        }
-
-        .splash-nome {
-            font-family: 'Poppins', sans-serif;
-            font-size: 2.2rem;
-            font-weight: 700;
-            color: #fff;
-            letter-spacing: -1px;
-            animation: surgir .6s ease-out both;
-            animation-delay: .2s;
-        }
-
-        .splash-sub {
-            font-family: 'Poppins', sans-serif;
-            font-size: .9rem;
-            color: rgba(255,255,255,.65);
-            margin-top: 6px;
-            animation: surgir .6s ease-out both;
-            animation-delay: .35s;
-        }
-
-        .splash-loader {
-            margin-top: 48px;
-            width: 36px;
-            height: 4px;
-            background: rgba(255,255,255,.2);
-            border-radius: 2px;
-            overflow: hidden;
-            animation: surgir .6s ease-out both;
-            animation-delay: .5s;
-        }
-
-        .splash-loader-barra {
-            height: 100%;
-            background: #fff;
-            border-radius: 2px;
-            animation: carregar 1.8s ease-in-out forwards;
-        }
-
-        @keyframes pulsar {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,.15); }
-            50%       { transform: scale(1.06); box-shadow: 0 0 0 16px rgba(255,255,255,0); }
-        }
-
-        @keyframes surgir {
-            from { opacity: 0; transform: translateY(12px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes carregar {
-            from { width: 0%; }
-            to   { width: 100%; }
         }
 
         /* ── HEADER ────────────────────────────────── */
@@ -660,17 +573,6 @@
 <body>
 
 <!-- ── SPLASH SCREEN ─────────────────────────────────── -->
-<div id="splash">
-    <div class="splash-icon">
-        <img src="icon-192.png" alt="Locus">
-    </div>
-    <div class="splash-nome">Locus</div>
-    <div class="splash-sub">Agendamento de salas</div>
-    <div class="splash-loader">
-        <div class="splash-loader-barra"></div>
-    </div>
-</div>
-
 <!-- ── HEADER ─────────────────────────────────────────── -->
 <header id="app-header">
     <div class="header-logo">
