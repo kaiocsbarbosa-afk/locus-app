@@ -5,7 +5,7 @@ import { ativarNotificacoes, enviarNotificacao } from './push.js'
 let professorLogado = null;
 let buscandoAulasAtualmente = false;
 let telaAtual = 'agendar';
-let professorIdSelecionado = null; // ID do professor escolhido no passo 1
+
 
 // ============================================================
 //  INICIALIZAÇÃO
@@ -42,7 +42,7 @@ window.toggleDarkMode = function() {
 }
 
 // ============================================================
-//  CARREGA LISTA DE NOMES (passo 1)
+//  CARREGA LISTA DE NOMES
 // ============================================================
 
 async function carregarListaNomesLogin() {
@@ -50,7 +50,6 @@ async function carregarListaNomesLogin() {
     if (!select) return;
 
     try {
-        // Busca apenas professores que já têm acesso ativo (auth_user_id preenchido)
         const { data, error } = await supabase
             .from('professores')
             .select('id, nome')
@@ -61,12 +60,7 @@ async function carregarListaNomesLogin() {
 
         select.innerHTML = '<option value="">Selecione seu nome...</option>';
 
-        if (!data || data.length === 0) {
-            select.innerHTML = '<option value="">Nenhum professor cadastrado</option>';
-            return;
-        }
-
-        data.forEach(p => {
+        (data || []).forEach(p => {
             const opt = document.createElement('option');
             opt.value = p.id;
             opt.textContent = p.nome;
@@ -75,72 +69,32 @@ async function carregarListaNomesLogin() {
 
     } catch (err) {
         console.error('Erro ao carregar professores:', err);
-        if (select) select.innerHTML = '<option value="">Erro ao carregar lista</option>';
+        if (select) select.innerHTML = '<option value="">Erro ao carregar</option>';
     }
 }
 
 // ============================================================
-//  NAVEGAÇÃO ENTRE PASSOS
-// ============================================================
-
-window.avancarParaPin = function() {
-    const select = document.getElementById('select-nome-login');
-    const profId = select?.value;
-    const profNome = select?.options[select.selectedIndex]?.text;
-
-    if (!profId) {
-        Swal.fire({ icon: 'warning', title: 'Selecione seu nome', text: 'Escolha seu nome na lista antes de continuar.', confirmButtonColor: '#7c3aed' });
-        return;
-    }
-
-    professorIdSelecionado = profId;
-
-    // Exibe o nome no passo 2
-    const nomeExibido = document.getElementById('pin-nome-exibido');
-    if (nomeExibido) nomeExibido.textContent = profNome;
-
-    // Limpa PIN anterior
-    ['pg1','pg2','pg3','pg4'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) { el.value = ''; el.classList.remove('preenchido'); }
-    });
-
-    // Troca de passo com animação
-    const p1 = document.getElementById('passo-nome');
-    const p2 = document.getElementById('passo-pin');
-    p1.style.display = 'none';
-    p2.style.display = 'flex';
-
-    // Foca no primeiro box do PIN
-    setTimeout(() => document.getElementById('pg1')?.focus(), 100);
-}
-
-window.voltarParaNome = function() {
-    professorIdSelecionado = null;
-    document.getElementById('passo-nome').style.display = 'flex';
-    document.getElementById('passo-pin').style.display = 'none';
-    document.getElementById('btn-login').innerText = 'Entrar';
-    document.getElementById('btn-login').disabled = false;
-}
-
-// ============================================================
-//  COMPORTAMENTO DAS PIN BOXES (passo 2)
+//  PIN BOXES — auto-avanço corrigido
 // ============================================================
 
 function configurarPinBoxesGrande() {
     const ids = ['pg1','pg2','pg3','pg4'];
     const boxes = ids.map(id => document.getElementById(id)).filter(Boolean);
+    if (!boxes.length) return;
 
     boxes.forEach((box, i) => {
+        // Usa 'input' para capturar qualquer digitação (teclado físico e virtual)
         box.addEventListener('input', () => {
-            // Aceita só dígitos
-            box.value = box.value.replace(/\D/g, '');
-            if (box.value) {
+            // Mantém só o último dígito digitado
+            const val = box.value.replace(/\D/g, '').slice(-1);
+            box.value = val;
+
+            if (val) {
                 box.classList.add('preenchido');
-                // Avança automaticamente
-                if (i < boxes.length - 1) boxes[i + 1].focus();
-                // Se é o último, tenta login automaticamente
-                else {
+                if (i < boxes.length - 1) {
+                    boxes[i + 1].focus();
+                } else {
+                    // Último dígito: monta PIN e loga
                     const pin = boxes.map(b => b.value).join('');
                     if (pin.length === 4) {
                         document.getElementById('pin-professor').value = pin;
@@ -152,16 +106,47 @@ function configurarPinBoxesGrande() {
             }
         });
 
-        box.addEventListener('keydown', (e) => {
-            if (e.key === 'Backspace' && !box.value && i > 0) {
-                boxes[i - 1].focus();
-                boxes[i - 1].value = '';
-                boxes[i - 1].classList.remove('preenchido');
+        // Backspace: volta para o anterior
+        box.addEventListener('keydown', e => {
+            if (e.key === 'Backspace') {
+                if (box.value) {
+                    box.value = '';
+                    box.classList.remove('preenchido');
+                } else if (i > 0) {
+                    boxes[i - 1].value = '';
+                    boxes[i - 1].classList.remove('preenchido');
+                    boxes[i - 1].focus();
+                }
+                e.preventDefault();
             }
         });
 
-        // Seleciona todo o conteúdo ao focar
-        box.addEventListener('focus', () => box.select());
+        // Seleciona o conteúdo ao focar (facilita correção)
+        box.addEventListener('focus', () => {
+            setTimeout(() => box.select(), 0);
+        });
+
+        // Impede colar mais de 1 caractere por box
+        box.addEventListener('paste', e => {
+            e.preventDefault();
+            const texto = (e.clipboardData || window.clipboardData)
+                .getData('text').replace(/\D/g, '');
+            // Distribui os dígitos colados nos boxes a partir deste
+            [...texto].slice(0, boxes.length - i).forEach((d, j) => {
+                if (boxes[i + j]) {
+                    boxes[i + j].value = d;
+                    boxes[i + j].classList.add('preenchido');
+                }
+            });
+            const prox = Math.min(i + texto.length, boxes.length - 1);
+            boxes[prox].focus();
+            // Se todos preenchidos, loga
+            const pin = boxes.map(b => b.value).join('');
+            if (pin.length === 4) {
+                document.getElementById('pin-professor').value = pin;
+                fazerLogin();
+            }
+        });
     });
 }
 
@@ -170,12 +155,14 @@ function configurarPinBoxesGrande() {
 // ============================================================
 
 window.fazerLogin = async function() {
+    const select = document.getElementById('select-nome-login');
+    const profId = select?.value;
     const pin = ['pg1','pg2','pg3','pg4']
         .map(id => document.getElementById(id)?.value || '')
         .join('');
 
-    if (!professorIdSelecionado) {
-        return voltarParaNome();
+    if (!profId) {
+        return Swal.fire({ icon: 'warning', title: 'Selecione seu nome', text: 'Escolha seu nome na lista antes de continuar.', confirmButtonColor: '#7c3aed' });
     }
 
     if (pin.length < 4) {
@@ -186,8 +173,7 @@ window.fazerLogin = async function() {
     if (btnLogin) { btnLogin.innerText = 'Entrando... ⏳'; btnLogin.disabled = true; }
 
     try {
-        // Email fictício montado com o ID escolhido (sem expor nome ao Supabase Auth)
-        const emailFicticio = `prof-${professorIdSelecionado}@locus.interno`;
+        const emailFicticio = `prof-${profId}@locus.interno`;
 
         const { data, error } = await supabase.auth.signInWithPassword({
             email: emailFicticio,
@@ -197,10 +183,10 @@ window.fazerLogin = async function() {
         if (error || !data.session) {
             if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
 
-            // Vibra o celular como feedback de erro
+            // Feedback tátil de erro
             if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
 
-            // Limpa os boxes
+            // Limpa os boxes e volta ao primeiro
             ['pg1','pg2','pg3','pg4'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) { el.value = ''; el.classList.remove('preenchido'); }
@@ -214,7 +200,6 @@ window.fazerLogin = async function() {
             return Swal.fire({ icon: 'error', title: 'Ops!', text: mensagem, confirmButtonColor: '#7c3aed' });
         }
 
-        // Busca dados completos via JWT
         professorLogado = await getProfessorLogado();
 
         if (!professorLogado) {

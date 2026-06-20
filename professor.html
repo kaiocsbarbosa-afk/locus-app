@@ -233,8 +233,7 @@
             padding: 16px 16px calc(80px + env(safe-area-inset-bottom)) 16px;
         }
 
-        /* ── LOGIN SCREEN ──────────────────────────── */
-        /* ── LOGIN 2 PASSOS ────────────────────────── */
+        /* ── LOGIN (tela única) ─────────────────────── */
         #tela-login {
             display: flex;
             flex-direction: column;
@@ -242,13 +241,11 @@
             padding: 0;
         }
 
-        #passo-nome { flex: 1; display: flex; flex-direction: column; }
-        #passo-pin  { flex: 1; display: none; flex-direction: column; }
-
+        /* Hero */
         .login-hero {
             background: linear-gradient(140deg, #7c3aed 0%, #5b21b6 60%, #4c1d95 100%);
-            padding: 24px 20px 52px;
-            padding-top: calc(24px + env(safe-area-inset-top));
+            padding: 22px 20px 50px;
+            padding-top: calc(22px + env(safe-area-inset-top));
             position: relative;
             overflow: hidden;
             flex-shrink: 0;
@@ -272,58 +269,97 @@
         }
         .login-hero-topo {
             display: flex; align-items: center; gap: 10px;
-            margin-bottom: 20px; position: relative; z-index: 1;
+            margin-bottom: 16px; position: relative; z-index: 1;
         }
-        .login-hero-topo img { width: 30px; height: 30px; border-radius: 8px; }
-        .login-hero-topo .logo-nome { font-size: 1.1rem; font-weight: 800; color: #fff; letter-spacing: -.4px; }
-        .login-hero-topo .btn-voltar-hero, .login-hero-topo .btn-dark-hero {
+        .login-hero-topo img { width: 28px; height: 28px; border-radius: 7px; }
+        .login-hero-topo .logo-nome { font-size: 1.05rem; font-weight: 800; color: #fff; letter-spacing: -.3px; }
+        .login-hero-topo .btn-voltar-hero,
+        .login-hero-topo .btn-dark-hero {
             background: rgba(255,255,255,.13); border: 1.5px solid rgba(255,255,255,.22);
-            border-radius: 50%; width: 34px; height: 34px;
+            border-radius: 50%; width: 32px; height: 32px;
             display: flex; align-items: center; justify-content: center;
-            color: #fff; font-size: .9rem; cursor: pointer; transition: background .2s;
+            color: #fff; font-size: .85rem; cursor: pointer; transition: background .2s;
         }
         .login-hero-topo .btn-voltar-hero { margin-left: auto; }
         .login-hero-titulo {
-            font-size: 1.5rem; font-weight: 700; color: #fff;
-            letter-spacing: -.4px; line-height: 1.22; margin-bottom: 5px;
+            font-size: 1.45rem; font-weight: 700; color: #fff;
+            letter-spacing: -.3px; line-height: 1.2; margin-bottom: 4px;
             position: relative; z-index: 1;
         }
         .login-hero-sub {
-            font-size: .83rem; color: rgba(255,255,255,.62);
-            line-height: 1.5; position: relative; z-index: 1;
+            font-size: .82rem; color: rgba(255,255,255,.6);
+            position: relative; z-index: 1;
         }
 
+        /* Card flutuante */
         .login-card-float {
-            margin: -28px 16px 0;
+            margin: -26px 16px 0;
             background: var(--bg-card);
             border-radius: 20px;
-            padding: 22px 20px 20px;
+            padding: 20px 18px 18px;
             border: 1px solid var(--borda);
             box-shadow: 0 4px 24px rgba(109,40,217,.12), 0 1px 4px rgba(0,0,0,.06);
             position: relative; z-index: 2;
         }
 
-        .login-passos { display: flex; gap: 6px; margin-bottom: 20px; }
-        .login-passo-dot { height: 3px; border-radius: 2px; flex: 1; background: var(--borda); transition: background .3s; }
-        .login-passo-dot.ativo { background: #7c3aed; }
-
-        .select-nome-wrap { position: relative; margin-bottom: 18px; }
+        /* Selector de nome compacto */
+        .select-nome-wrap { position: relative; margin-bottom: 22px; }
+        .select-nome-wrap label {
+            font-size: .7rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .07em; color: var(--texto-secundario);
+            display: block; margin-bottom: 7px;
+        }
         .select-nome-wrap select {
-            width: 100%; padding: 14px 42px 14px 15px;
+            width: 100%; padding: 13px 38px 13px 14px;
             border: 1.5px solid var(--borda); border-radius: 12px;
-            font-size: .93rem; font-family: 'Poppins', sans-serif;
+            font-size: .9rem; font-family: 'Poppins', sans-serif;
             background: var(--bg-input); color: var(--texto-principal);
             outline: none; -webkit-appearance: none; cursor: pointer;
             transition: border-color .2s, box-shadow .2s;
         }
         .select-nome-wrap select:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
         .select-nome-wrap::after {
-            content: '▾'; position: absolute; right: 14px; top: 50%;
-            transform: translateY(-50%); color: var(--texto-secundario);
-            pointer-events: none;
+            content: '▾'; position: absolute; right: 13px; bottom: 15px;
+            color: var(--texto-secundario); pointer-events: none; font-size: .9rem;
         }
 
-        .btn-avancar, .btn-entrar {
+        /* Divider */
+        .pin-divider {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 18px;
+        }
+        .pin-divider::before, .pin-divider::after {
+            content: ''; flex: 1; height: 1px; background: var(--borda);
+        }
+        .pin-divider span {
+            font-size: .69rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .08em; color: var(--texto-secundario); white-space: nowrap;
+        }
+
+        /* PIN boxes — grandes e táteis */
+        .pin-boxes-grande {
+            display: flex; gap: 10px; justify-content: center; margin-bottom: 22px;
+        }
+        .pin-box-g {
+            width: 60px; height: 66px;
+            border: 2px solid var(--borda); border-radius: 14px;
+            background: var(--bg-input); color: var(--texto-principal);
+            font-size: 1.6rem; font-weight: 700; font-family: 'Poppins', sans-serif;
+            text-align: center; outline: none;
+            transition: border-color .15s, box-shadow .15s, transform .12s;
+            -webkit-appearance: none;
+            /* esconde cursor piscante */
+            caret-color: transparent;
+        }
+        .pin-box-g:focus {
+            border-color: #7c3aed;
+            box-shadow: 0 0 0 3px rgba(124,58,237,.15);
+            transform: scale(1.07);
+        }
+        .pin-box-g.preenchido { border-color: #7c3aed; background: var(--bg-card); }
+
+        /* Botão entrar */
+        .btn-entrar {
             width: 100%; padding: 14px;
             background: linear-gradient(135deg, #7c3aed, #6d28d9);
             color: #fff; border: none; border-radius: 12px;
@@ -331,42 +367,11 @@
             cursor: pointer; box-shadow: 0 4px 14px rgba(109,40,217,.3);
             transition: opacity .2s, transform .15s;
         }
-        .btn-avancar:active, .btn-entrar:active { transform: scale(.97); opacity: .9; }
-        .btn-avancar:disabled, .btn-entrar:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+        .btn-entrar:active { transform: scale(.97); opacity: .9; }
+        .btn-entrar:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 
-        /* PIN — tela dedicada */
-        .pin-avatar {
-            width: 60px; height: 60px; border-radius: 16px;
-            background: var(--cor-primaria-clara);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; margin: 0 auto 12px;
-        }
-        .pin-boas-vindas { text-align: center; margin-bottom: 24px; }
-        .pin-boas-vindas .nome { font-size: 1.1rem; font-weight: 700; color: var(--texto-principal); letter-spacing: -.3px; }
-        .pin-boas-vindas .dica { font-size: .79rem; color: var(--texto-secundario); margin-top: 3px; }
-
-        .pin-boxes-grande { display: flex; gap: 12px; justify-content: center; margin-bottom: 26px; }
-        .pin-box-g {
-            width: 62px; height: 68px; text-align: center;
-            font-size: 1.7rem; font-weight: 700;
-            border: 2px solid var(--borda); border-radius: 14px;
-            background: var(--bg-input); color: var(--texto-principal);
-            font-family: 'Poppins', sans-serif; outline: none;
-            transition: border-color .15s, box-shadow .15s, transform .1s;
-            -webkit-appearance: none; caret-color: transparent;
-        }
-        .pin-box-g:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.15); transform: scale(1.06); }
-        .pin-box-g.preenchido { border-color: #7c3aed; }
-
-        .login-link { text-align: center; margin-top: 16px; font-size: .78rem; color: var(--texto-secundario); }
+        .login-link { text-align: center; margin-top: 14px; font-size: .77rem; color: var(--texto-secundario); }
         .login-link a { color: #7c3aed; font-weight: 600; text-decoration: none; }
-
-        .btn-trocar-usuario {
-            background: none; border: none; color: var(--texto-secundario);
-            font-size: .8rem; font-family: 'Poppins', sans-serif;
-            cursor: pointer; display: block; margin: 14px auto 0;
-            text-decoration: underline; text-underline-offset: 3px;
-        }
 
         /* ── ABAS (TELAS) ──────────────────────────── */
         .tela { display: none; }
@@ -631,79 +636,46 @@
 <!-- ── CONTEÚDO PRINCIPAL ─────────────────────────────── -->
 <main id="app-content">
 
-    <!-- LOGIN 2 PASSOS -->
+    <!-- LOGIN TELA ÚNICA -->
     <div id="tela-login" style="padding:0;">
-
-        <!-- PASSO 1: Selecionar nome -->
-        <div id="passo-nome">
-            <div class="login-hero">
-                <div class="login-hero-topo">
-                    <img src="icon-192.png" alt="Locus">
-                    <span class="logo-nome">Locus</span>
-                    <button class="btn-voltar-hero" onclick="window.location.href='index.html'" title="Voltar">&#8592;</button>
-                    <button class="btn-dark-hero" id="btn-dark-mode" onclick="toggleDarkMode()" title="Modo escuro">&#127769;</button>
-                </div>
-                <div class="login-hero-titulo">&#128075; Bem-vindo!</div>
-                <div class="login-hero-sub">Selecione seu nome para continuar.</div>
+        <div class="login-hero">
+            <div class="login-hero-topo">
+                <img src="icon-192.png" alt="Locus">
+                <span class="logo-nome">Locus</span>
+                <button class="btn-voltar-hero" onclick="window.location.href='index.html'" title="Voltar">&#8592;</button>
+                <button class="btn-dark-hero" id="btn-dark-mode" onclick="toggleDarkMode()" title="Modo escuro">&#127769;</button>
             </div>
-            <div class="login-card-float">
-                <div class="login-passos">
-                    <div class="login-passo-dot ativo" id="dot1"></div>
-                    <div class="login-passo-dot" id="dot2"></div>
-                </div>
-                <label style="font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--texto-secundario);margin-bottom:8px;display:block;">Quem é você?</label>
-                <div class="select-nome-wrap">
-                    <select id="select-nome-login">
-                        <option value="">Carregando professores...</option>
-                    </select>
-                </div>
-                <button class="btn-avancar" id="btn-avancar" onclick="avancarParaPin()">
-                    Continuar ›
-                </button>
-                <div class="login-link">
-                    Primeiro acesso? <a href="cadasto.html">Ativar meu acesso</a>
-                </div>
-            </div>
+            <div class="login-hero-titulo">&#128274; Seu acesso</div>
+            <div class="login-hero-sub">Selecione seu nome e digite o PIN.</div>
         </div>
 
-        <!-- PASSO 2: PIN -->
-        <div id="passo-pin">
-            <div class="login-hero">
-                <div class="login-hero-topo">
-                    <img src="icon-192.png" alt="Locus">
-                    <span class="logo-nome">Locus</span>
-                    <button class="btn-voltar-hero" onclick="voltarParaNome()" title="Voltar">&#8592;</button>
-                    <button class="btn-dark-hero" onclick="toggleDarkMode()" title="Modo escuro">&#127769;</button>
-                </div>
-                <div class="login-hero-titulo">&#128274; Digite seu PIN</div>
-                <div class="login-hero-sub">4 dígitos de segurança.</div>
+        <div class="login-card-float">
+            <!-- Nome (compacto) -->
+            <div class="select-nome-wrap">
+                <label>Quem é você?</label>
+                <select id="select-nome-login">
+                    <option value="">Carregando...</option>
+                </select>
             </div>
-            <div class="login-card-float">
-                <div class="login-passos">
-                    <div class="login-passo-dot ativo"></div>
-                    <div class="login-passo-dot ativo"></div>
-                </div>
-                <div class="pin-boas-vindas">
-                    <div class="pin-avatar">&#128104;&#8205;&#127979;</div>
-                    <div class="nome" id="pin-nome-exibido">—</div>
-                    <div class="dica">Digite seu PIN de 4 dígitos</div>
-                </div>
-                <div class="pin-boxes-grande">
-                    <input type="password" inputmode="numeric" maxlength="1" class="pin-box-g" id="pg1">
-                    <input type="password" inputmode="numeric" maxlength="1" class="pin-box-g" id="pg2">
-                    <input type="password" inputmode="numeric" maxlength="1" class="pin-box-g" id="pg3">
-                    <input type="password" inputmode="numeric" maxlength="1" class="pin-box-g" id="pg4">
-                </div>
-                <input type="hidden" id="pin-professor">
-                <button class="btn-entrar" id="btn-login" onclick="fazerLogin()">
-                    Entrar
-                </button>
-                <button class="btn-trocar-usuario" onclick="voltarParaNome()">
-                    ← Trocar usuário
-                </button>
+
+            <!-- Divisor -->
+            <div class="pin-divider"><span>PIN de acesso</span></div>
+
+            <!-- PIN boxes -->
+            <div class="pin-boxes-grande">
+                <input type="tel" maxlength="1" class="pin-box-g" id="pg1" autocomplete="one-time-code">
+                <input type="tel" maxlength="1" class="pin-box-g" id="pg2" autocomplete="off">
+                <input type="tel" maxlength="1" class="pin-box-g" id="pg3" autocomplete="off">
+                <input type="tel" maxlength="1" class="pin-box-g" id="pg4" autocomplete="off">
+            </div>
+            <input type="hidden" id="pin-professor">
+
+            <button class="btn-entrar" id="btn-login" onclick="fazerLogin()">Entrar</button>
+
+            <div class="login-link">
+                Primeiro acesso? <a href="cadasto.html">Ativar meu acesso</a>
             </div>
         </div>
-
     </div>
 
         <!-- TELA AGENDAR -->
