@@ -74,79 +74,52 @@ async function carregarListaNomesLogin() {
 }
 
 // ============================================================
-//  PIN BOXES — auto-avanço corrigido
+//  PIN — input único invisível, visuais atualizados via JS
 // ============================================================
 
 function configurarPinBoxesGrande() {
-    const ids = ['pg1','pg2','pg3','pg4'];
-    const boxes = ids.map(id => document.getElementById(id)).filter(Boolean);
-    if (!boxes.length) return;
+    const inputReal = document.getElementById('pin-input-real');
+    const dots = [0,1,2,3].map(i => document.getElementById('pd' + i));
+    if (!inputReal || !dots[0]) return;
 
-    boxes.forEach((box, i) => {
-        // Usa 'input' para capturar qualquer digitação (teclado físico e virtual)
-        box.addEventListener('input', () => {
-            // Mantém só o último dígito digitado
-            const val = box.value.replace(/\D/g, '').slice(-1);
-            box.value = val;
-
-            if (val) {
-                box.classList.add('preenchido');
-                if (i < boxes.length - 1) {
-                    boxes[i + 1].focus();
-                } else {
-                    // Último dígito: monta PIN e loga
-                    const pin = boxes.map(b => b.value).join('');
-                    if (pin.length === 4) {
-                        document.getElementById('pin-professor').value = pin;
-                        fazerLogin();
-                    }
-                }
+    function atualizarDots(val) {
+        dots.forEach((dot, i) => {
+            dot.classList.remove('ativo', 'preenchido');
+            if (i < val.length) {
+                dot.textContent = '●';
+                dot.classList.add('preenchido');
             } else {
-                box.classList.remove('preenchido');
+                dot.textContent = '';
+                if (i === val.length) dot.classList.add('ativo');
             }
         });
+    }
 
-        // Backspace: volta para o anterior
-        box.addEventListener('keydown', e => {
-            if (e.key === 'Backspace') {
-                if (box.value) {
-                    box.value = '';
-                    box.classList.remove('preenchido');
-                } else if (i > 0) {
-                    boxes[i - 1].value = '';
-                    boxes[i - 1].classList.remove('preenchido');
-                    boxes[i - 1].focus();
-                }
-                e.preventDefault();
-            }
-        });
+    // Foca no input e mostra o primeiro dot ativo
+    inputReal.addEventListener('focus', () => {
+        const val = inputReal.value.replace(/\D/g, '').slice(0, 4);
+        atualizarDots(val);
+    });
 
-        // Seleciona o conteúdo ao focar (facilita correção)
-        box.addEventListener('focus', () => {
-            setTimeout(() => box.select(), 0);
-        });
+    inputReal.addEventListener('blur', () => {
+        dots.forEach(d => d.classList.remove('ativo'));
+    });
 
-        // Impede colar mais de 1 caractere por box
-        box.addEventListener('paste', e => {
-            e.preventDefault();
-            const texto = (e.clipboardData || window.clipboardData)
-                .getData('text').replace(/\D/g, '');
-            // Distribui os dígitos colados nos boxes a partir deste
-            [...texto].slice(0, boxes.length - i).forEach((d, j) => {
-                if (boxes[i + j]) {
-                    boxes[i + j].value = d;
-                    boxes[i + j].classList.add('preenchido');
-                }
-            });
-            const prox = Math.min(i + texto.length, boxes.length - 1);
-            boxes[prox].focus();
-            // Se todos preenchidos, loga
-            const pin = boxes.map(b => b.value).join('');
-            if (pin.length === 4) {
-                document.getElementById('pin-professor').value = pin;
-                fazerLogin();
-            }
-        });
+    inputReal.addEventListener('input', () => {
+        // Filtra só dígitos e limita a 4
+        const val = inputReal.value.replace(/\D/g, '').slice(0, 4);
+        inputReal.value = val;
+        atualizarDots(val);
+
+        // Auto-login ao completar 4 dígitos
+        if (val.length === 4) {
+            fazerLogin();
+        }
+    });
+
+    // Toque em qualquer dot foca o input
+    dots.forEach(dot => {
+        dot.parentElement?.addEventListener('click', () => inputReal.focus());
     });
 }
 
@@ -154,19 +127,27 @@ function configurarPinBoxesGrande() {
 //  AUTENTICAÇÃO
 // ============================================================
 
+function limparPin() {
+    const inputReal = document.getElementById('pin-input-real');
+    if (inputReal) {
+        inputReal.value = '';
+        inputReal.dispatchEvent(new Event('input')); // atualiza os dots
+        setTimeout(() => inputReal.focus(), 50);
+    }
+}
+
 window.fazerLogin = async function() {
     const select = document.getElementById('select-nome-login');
     const profId = select?.value;
-    const pin = ['pg1','pg2','pg3','pg4']
-        .map(id => document.getElementById(id)?.value || '')
-        .join('');
+    const pin = (document.getElementById('pin-input-real')?.value || '').replace(/\D/g, '').slice(0, 4);
 
     if (!profId) {
+        limparPin();
         return Swal.fire({ icon: 'warning', title: 'Selecione seu nome', text: 'Escolha seu nome na lista antes de continuar.', confirmButtonColor: '#7c3aed' });
     }
 
     if (pin.length < 4) {
-        return Swal.fire({ icon: 'warning', title: 'PIN incompleto', text: 'Digite os 4 dígitos do PIN.', confirmButtonColor: '#7c3aed' });
+        return; // auto-login só dispara quando pin.length === 4
     }
 
     const btnLogin = document.getElementById('btn-login');
@@ -182,16 +163,8 @@ window.fazerLogin = async function() {
 
         if (error || !data.session) {
             if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-
-            // Feedback tátil de erro
             if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
-
-            // Limpa os boxes e volta ao primeiro
-            ['pg1','pg2','pg3','pg4'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) { el.value = ''; el.classList.remove('preenchido'); }
-            });
-            setTimeout(() => document.getElementById('pg1')?.focus(), 50);
+            limparPin();
 
             const mensagem = error?.message?.includes('rate limit')
                 ? 'Muitas tentativas. Aguarde alguns minutos.'
@@ -205,6 +178,7 @@ window.fazerLogin = async function() {
         if (!professorLogado) {
             await supabase.auth.signOut();
             if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+            limparPin();
             return Swal.fire({ icon: 'error', title: 'Erro', text: 'Perfil não encontrado. Contate a coordenação.', confirmButtonColor: '#7c3aed' });
         }
 
@@ -215,6 +189,7 @@ window.fazerLogin = async function() {
     } catch (err) {
         console.error('Erro no login:', err);
         if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+        limparPin();
         Swal.fire({ icon: 'error', title: 'Erro de conexão', text: 'Tente novamente.', confirmButtonColor: '#7c3aed' });
     }
 }

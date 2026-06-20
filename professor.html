@@ -337,26 +337,55 @@
         }
 
         /* PIN boxes — grandes e táteis */
-        .pin-boxes-grande {
-            display: flex; gap: 10px; justify-content: center; margin-bottom: 22px;
+        /* PIN: input invisível + 4 divs visuais */
+        .pin-wrapper {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 22px;
         }
-        .pin-box-g {
+
+        /* Input real — invisível, cobre toda a área dos dots */
+        #pin-input-real {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            font-size: 16px; /* evita zoom no iOS */
+            border: none;
+            outline: none;
+            background: transparent;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .pin-dots {
+            display: flex;
+            gap: 12px;
+            pointer-events: none;
+        }
+
+        .pin-dot {
             width: 60px; height: 66px;
-            border: 2px solid var(--borda); border-radius: 14px;
-            background: var(--bg-input); color: var(--texto-principal);
-            font-size: 1.6rem; font-weight: 700; font-family: 'Poppins', sans-serif;
-            text-align: center; outline: none;
-            transition: border-color .15s, box-shadow .15s, transform .12s;
-            -webkit-appearance: none;
-            /* esconde cursor piscante */
-            caret-color: transparent;
+            border: 2px solid var(--borda);
+            border-radius: 14px;
+            background: var(--bg-input);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.65rem; font-weight: 700; color: var(--texto-principal);
+            transition: border-color .15s, box-shadow .15s, transform .12s, background .15s;
         }
-        .pin-box-g:focus {
+
+        .pin-dot.ativo {
             border-color: #7c3aed;
             box-shadow: 0 0 0 3px rgba(124,58,237,.15);
             transform: scale(1.07);
         }
-        .pin-box-g.preenchido { border-color: #7c3aed; background: var(--bg-card); }
+
+        .pin-dot.preenchido {
+            border-color: #7c3aed;
+            background: var(--bg-card);
+        }
 
         /* Botão entrar */
         .btn-entrar {
@@ -661,14 +690,24 @@
             <!-- Divisor -->
             <div class="pin-divider"><span>PIN de acesso</span></div>
 
-            <!-- PIN boxes -->
-            <div class="pin-boxes-grande">
-                <input type="tel" maxlength="1" class="pin-box-g" id="pg1" autocomplete="one-time-code">
-                <input type="tel" maxlength="1" class="pin-box-g" id="pg2" autocomplete="off">
-                <input type="tel" maxlength="1" class="pin-box-g" id="pg3" autocomplete="off">
-                <input type="tel" maxlength="1" class="pin-box-g" id="pg4" autocomplete="off">
+            <!-- PIN: input único invisível + visuais -->
+            <div class="pin-wrapper" onclick="document.getElementById('pin-input-real').focus()">
+                <input
+                    type="tel"
+                    id="pin-input-real"
+                    maxlength="4"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    autocomplete="one-time-code"
+                    placeholder=""
+                >
+                <div class="pin-dots">
+                    <div class="pin-dot" id="pd0"></div>
+                    <div class="pin-dot" id="pd1"></div>
+                    <div class="pin-dot" id="pd2"></div>
+                    <div class="pin-dot" id="pd3"></div>
+                </div>
             </div>
-            <input type="hidden" id="pin-professor">
 
             <button class="btn-entrar" id="btn-login" onclick="fazerLogin()">Entrar</button>
 
