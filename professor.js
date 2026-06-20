@@ -1,10 +1,11 @@
-/* professor.js — correção do login com select de nome + PIN */
+/* professor.js — login em 2 passos: selecionar nome → PIN */
 import { supabase, toggleDarkMode as _toggleDarkMode, carregarPreferenciaModo, registrarServiceWorker, getProfessorLogado, fazerLogoutAuth } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 let professorLogado = null;
 let buscandoAulasAtualmente = false;
 let telaAtual = 'agendar';
+let professorIdSelecionado = null; // ID do professor escolhido no passo 1
 
 // ============================================================
 //  INICIALIZAÇÃO
@@ -14,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
     carregarPreferenciaModo();
     atualizarBtnDarkMode();
     registrarServiceWorker();
+    carregarListaNomesLogin(); // Pré-carrega a lista de professores
 
     setTimeout(() => {
         const splash = document.getElementById('splash');
@@ -21,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
         setTimeout(async () => {
             splash.style.display = 'none';
             await verificarSessaoAtiva();
+            configurarPinBoxesGrande();
         }, 500);
     }, 2000);
 });
@@ -38,14 +41,128 @@ window.toggleDarkMode = function() {
     atualizarBtnDarkMode();
 }
 
-// Verifica sessão JWT ativa ao carregar
-async function verificarSessaoAtiva() {
-    const professor = await getProfessorLogado();
-    if (professor) {
-        professorLogado = professor;
-        mostrarAppLogado();
+// ============================================================
+//  CARREGA LISTA DE NOMES (passo 1)
+// ============================================================
+
+async function carregarListaNomesLogin() {
+    const select = document.getElementById('select-nome-login');
+    if (!select) return;
+
+    try {
+        // Busca apenas professores que já têm acesso ativo (auth_user_id preenchido)
+        const { data, error } = await supabase
+            .from('professores')
+            .select('id, nome')
+            .not('auth_user_id', 'is', null)
+            .order('nome');
+
+        if (error) throw error;
+
+        select.innerHTML = '<option value="">Selecione seu nome...</option>';
+
+        if (!data || data.length === 0) {
+            select.innerHTML = '<option value="">Nenhum professor cadastrado</option>';
+            return;
+        }
+
+        data.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.nome;
+            select.appendChild(opt);
+        });
+
+    } catch (err) {
+        console.error('Erro ao carregar professores:', err);
+        if (select) select.innerHTML = '<option value="">Erro ao carregar lista</option>';
     }
-    // Sem sessão: mostra tela de login normalmente
+}
+
+// ============================================================
+//  NAVEGAÇÃO ENTRE PASSOS
+// ============================================================
+
+window.avancarParaPin = function() {
+    const select = document.getElementById('select-nome-login');
+    const profId = select?.value;
+    const profNome = select?.options[select.selectedIndex]?.text;
+
+    if (!profId) {
+        Swal.fire({ icon: 'warning', title: 'Selecione seu nome', text: 'Escolha seu nome na lista antes de continuar.', confirmButtonColor: '#7c3aed' });
+        return;
+    }
+
+    professorIdSelecionado = profId;
+
+    // Exibe o nome no passo 2
+    const nomeExibido = document.getElementById('pin-nome-exibido');
+    if (nomeExibido) nomeExibido.textContent = profNome;
+
+    // Limpa PIN anterior
+    ['pg1','pg2','pg3','pg4'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.value = ''; el.classList.remove('preenchido'); }
+    });
+
+    // Troca de passo com animação
+    const p1 = document.getElementById('passo-nome');
+    const p2 = document.getElementById('passo-pin');
+    p1.style.display = 'none';
+    p2.style.display = 'flex';
+
+    // Foca no primeiro box do PIN
+    setTimeout(() => document.getElementById('pg1')?.focus(), 100);
+}
+
+window.voltarParaNome = function() {
+    professorIdSelecionado = null;
+    document.getElementById('passo-nome').style.display = 'flex';
+    document.getElementById('passo-pin').style.display = 'none';
+    document.getElementById('btn-login').innerText = 'Entrar';
+    document.getElementById('btn-login').disabled = false;
+}
+
+// ============================================================
+//  COMPORTAMENTO DAS PIN BOXES (passo 2)
+// ============================================================
+
+function configurarPinBoxesGrande() {
+    const ids = ['pg1','pg2','pg3','pg4'];
+    const boxes = ids.map(id => document.getElementById(id)).filter(Boolean);
+
+    boxes.forEach((box, i) => {
+        box.addEventListener('input', () => {
+            // Aceita só dígitos
+            box.value = box.value.replace(/\D/g, '');
+            if (box.value) {
+                box.classList.add('preenchido');
+                // Avança automaticamente
+                if (i < boxes.length - 1) boxes[i + 1].focus();
+                // Se é o último, tenta login automaticamente
+                else {
+                    const pin = boxes.map(b => b.value).join('');
+                    if (pin.length === 4) {
+                        document.getElementById('pin-professor').value = pin;
+                        fazerLogin();
+                    }
+                }
+            } else {
+                box.classList.remove('preenchido');
+            }
+        });
+
+        box.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !box.value && i > 0) {
+                boxes[i - 1].focus();
+                boxes[i - 1].value = '';
+                boxes[i - 1].classList.remove('preenchido');
+            }
+        });
+
+        // Seleciona todo o conteúdo ao focar
+        box.addEventListener('focus', () => box.select());
+    });
 }
 
 // ============================================================
@@ -53,39 +170,24 @@ async function verificarSessaoAtiva() {
 // ============================================================
 
 window.fazerLogin = async function() {
-    const nomeDigitado = document.getElementById('nome-professor-login')?.value?.trim();
-    const pin = document.getElementById('pin-professor')?.value?.trim();
+    const pin = ['pg1','pg2','pg3','pg4']
+        .map(id => document.getElementById(id)?.value || '')
+        .join('');
 
-    if (!nomeDigitado) {
-        return Swal.fire({ icon: 'warning', title: 'Atenção!', text: 'Digite seu nome.', confirmButtonColor: '#7c3aed' });
+    if (!professorIdSelecionado) {
+        return voltarParaNome();
     }
 
-    if (!pin) {
-        return Swal.fire({ icon: 'warning', title: 'Atenção!', text: 'Digite seu PIN.', confirmButtonColor: '#7c3aed' });
+    if (pin.length < 4) {
+        return Swal.fire({ icon: 'warning', title: 'PIN incompleto', text: 'Digite os 4 dígitos do PIN.', confirmButtonColor: '#7c3aed' });
     }
 
     const btnLogin = document.getElementById('btn-login');
     if (btnLogin) { btnLogin.innerText = 'Entrando... ⏳'; btnLogin.disabled = true; }
 
     try {
-        // 1. Busca o professor_id pelo nome via Edge Function (no servidor)
-        //    Assim nunca expõe a lista de professores publicamente
-        const { data: resultado, error: erroFuncao } = await supabase.functions.invoke('buscar-professor-por-nome', {
-            body: { nome: nomeDigitado }
-        });
-
-        if (erroFuncao || !resultado?.professor_id) {
-            if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-            return Swal.fire({
-                icon: 'error',
-                title: 'Nome não encontrado',
-                text: 'Verifique seu nome e tente novamente. Se for seu primeiro acesso, use a página de ativação.',
-                confirmButtonColor: '#7c3aed'
-            });
-        }
-
-        // 2. Monta o email fictício e faz login com o PIN
-        const emailFicticio = `prof-${resultado.professor_id}@locus.interno`;
+        // Email fictício montado com o ID escolhido (sem expor nome ao Supabase Auth)
+        const emailFicticio = `prof-${professorIdSelecionado}@locus.interno`;
 
         const { data, error } = await supabase.auth.signInWithPassword({
             email: emailFicticio,
@@ -95,14 +197,24 @@ window.fazerLogin = async function() {
         if (error || !data.session) {
             if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
 
+            // Vibra o celular como feedback de erro
+            if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+
+            // Limpa os boxes
+            ['pg1','pg2','pg3','pg4'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.value = ''; el.classList.remove('preenchido'); }
+            });
+            setTimeout(() => document.getElementById('pg1')?.focus(), 50);
+
             const mensagem = error?.message?.includes('rate limit')
                 ? 'Muitas tentativas. Aguarde alguns minutos.'
-                : 'PIN incorreto. Verifique e tente novamente.';
+                : 'PIN incorreto. Tente novamente.';
 
             return Swal.fire({ icon: 'error', title: 'Ops!', text: mensagem, confirmButtonColor: '#7c3aed' });
         }
 
-        // 3. Busca dados completos via JWT
+        // Busca dados completos via JWT
         professorLogado = await getProfessorLogado();
 
         if (!professorLogado) {
