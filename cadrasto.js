@@ -1,133 +1,105 @@
-/* cadrasto.js — versão com Supabase Auth */
-import { supabase, carregarPreferenciaModo, registrarServiceWorker } from './utils.js'
+/* cadrasto.js — professor envia solicitação de acesso */
+import { supabase, carregarPreferenciaModo } from './utils.js'
 
-let professoresSemAcesso = [];
-
-document.addEventListener("DOMContentLoaded", () => {
+// ── PIN BOXES ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
     carregarPreferenciaModo();
-    registrarServiceWorker();
-    buscarProfessoresLiberados();
-
-    document.getElementById('select-professor-cadastro').addEventListener('change', (e) => {
-        const prof = professoresSemAcesso.find(p => p.id == e.target.value);
-        const inputDisciplina = document.getElementById('disciplina-cadastro-visual');
-        inputDisciplina.value = prof ? prof.disciplina : '';
-    });
+    carregarDisciplinas();
+    configurarPin();
 });
 
-// Professores liberados pela coord que ainda não têm auth_user_id
-async function buscarProfessoresLiberados() {
-    const select = document.getElementById('select-professor-cadastro');
+function configurarPin() {
+    const input = document.getElementById('pin-input-cad');
+    const dots  = [0,1,2,3].map(i => document.getElementById('cd' + i));
+    const chars = [0,1,2,3].map(i => document.getElementById('cc' + i));
+    if (!input || !dots[0]) return;
 
+    function atualizar(val) {
+        dots.forEach((dot, i) => {
+            dot.classList.remove('ativo', 'preenchido');
+            if (i < val.length) {
+                chars[i].textContent = '●';
+                dot.classList.add('preenchido');
+            } else {
+                chars[i].textContent = '';
+                if (i === val.length) dot.classList.add('ativo');
+            }
+        });
+    }
+
+    atualizar('');
+
+    input.addEventListener('focus', () => atualizar(input.value.replace(/\D/g, '').slice(0,4)));
+    input.addEventListener('blur',  () => dots.forEach(d => d.classList.remove('ativo')));
+    input.addEventListener('input', () => {
+        const val = input.value.replace(/\D/g, '').slice(0, 4);
+        input.value = val;
+        atualizar(val);
+    });
+
+    document.querySelector('.pin-wrapper')?.addEventListener('click', () => input.focus());
+}
+
+// ── DISCIPLINAS ───────────────────────────────────────────
+async function carregarDisciplinas() {
+    const select = document.getElementById('input-disciplina');
     try {
-        // MUDANÇA: filtra por auth_user_id nulo em vez de pin nulo
-        const { data, error } = await supabase
-            .from('professores')
-            .select('id, nome, disciplina')
-            .is('auth_user_id', null);
-
-        if (error) throw error;
-
-        professoresSemAcesso = data || [];
-        select.innerHTML = '<option value="">Selecione seu nome...</option>';
-
-        if (professoresSemAcesso.length === 0) {
-            select.innerHTML = '<option value="">Nenhum cadastro pendente</option>';
-            return;
+        const { data } = await supabase.from('disciplinas').select('nome').order('nome');
+        if (data?.length) {
+            data.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.nome;
+                opt.textContent = d.nome;
+                select.appendChild(opt);
+            });
         }
-
-        professoresSemAcesso.forEach(prof => {
+    } catch (e) {
+        console.warn('Tabela disciplinas não encontrada — usando lista fixa');
+        // Fallback com disciplinas comuns caso não exista a tabela
+        const fixas = ['Artes','Biologia','Ciências','Educação Física','Filosofia','Física','Geografia','História','Inglês','Língua Portuguesa','Matemática','Química','Sociologia'];
+        fixas.forEach(d => {
             const opt = document.createElement('option');
-            opt.value = prof.id;
-            opt.textContent = prof.nome;
+            opt.value = d; opt.textContent = d;
             select.appendChild(opt);
         });
-
-    } catch (err) {
-        console.error("Erro ao buscar professores:", err);
-        select.innerHTML = '<option value="">Erro ao carregar</option>';
     }
 }
 
-window.cadastrarProfessor = async function() {
-    const professorId = document.getElementById('select-professor-cadastro').value;
-    const pinInput = document.getElementById('pin-cadastro').value.trim();
-    const codigoConvite = document.getElementById('codigo-escola-cadastro').value.trim();
+// ── ENVIAR SOLICITAÇÃO ────────────────────────────────────
+window.enviarSolicitacao = async function() {
+    const nome       = document.getElementById('input-nome').value.trim();
+    const disciplina = document.getElementById('input-disciplina').value;
+    const pin        = document.getElementById('pin-input-cad').value.replace(/\D/g,'').slice(0,4);
 
-    // ── Validações no front-end (redundantes — servidor também valida) ──
-    if (!professorId || !pinInput || !codigoConvite) {
-        return Swal.fire({
-            icon: 'warning',
-            title: 'Campos obrigatórios',
-            text: 'Preencha todos os campos.',
-            confirmButtonColor: '#6C63FF'
-        });
+    if (!nome) {
+        return Swal.fire({ icon:'warning', title:'Nome obrigatório', text:'Digite seu nome completo.', confirmButtonColor:'#7c3aed' });
+    }
+    if (!disciplina) {
+        return Swal.fire({ icon:'warning', title:'Selecione a disciplina', text:'Escolha sua disciplina na lista.', confirmButtonColor:'#7c3aed' });
+    }
+    if (pin.length < 4) {
+        return Swal.fire({ icon:'warning', title:'PIN incompleto', text:'Digite os 4 dígitos do seu PIN.', confirmButtonColor:'#7c3aed' });
     }
 
-    if (!/^\d{4}$/.test(pinInput)) {
-        return Swal.fire({
-            icon: 'warning',
-            title: 'PIN Inválido',
-            text: 'O PIN deve ter exatamente 4 números.',
-            confirmButtonColor: '#6C63FF'
-        });
-    }
-
-    const btn = document.getElementById('btn-cadastrar');
-    btn.innerText = 'Ativando acesso... ⏳';
+    const btn = document.getElementById('btn-enviar');
+    btn.textContent = 'Enviando... ⏳';
     btn.disabled = true;
 
     try {
-        // MUDANÇA: chama a Edge Function em vez de fazer UPDATE direto no banco
-        // O código de convite é validado no SERVIDOR, não aqui
-        // O PIN vira senha no Supabase Auth com bcrypt automático
-        const { data, error } = await supabase.functions.invoke('ativar-professor', {
-            body: {
-                professor_id: professorId,
-                pin: pinInput,
-                codigo_convite: codigoConvite
-            }
-        })
+        const { error } = await supabase
+            .from('solicitacoes_acesso')
+            .insert([{ nome, disciplina, pin, status: 'pendente' }]);
 
-        if (error || !data?.sucesso) {
-            const mensagem = data?.erro || 'Não foi possível ativar seu acesso.'
-            Swal.fire({
-                icon: 'error',
-                title: 'Erro na ativação',
-                text: mensagem,
-                confirmButtonColor: '#ff4d4d'
-            });
-            btn.innerText = 'Concluir Ativação';
-            btn.disabled = false;
-            return;
-        }
+        if (error) throw error;
 
-        // ── Loga automaticamente após ativar ──
-        // O email fictício é prof-{id}@locus.interno (gerado pela Edge Function)
-        const emailFicticio = `prof-${professorId}@locus.interno`
-        await supabase.auth.signInWithPassword({
-            email: emailFicticio,
-            password: pinInput
-        })
-
-        Swal.fire({
-            icon: 'success',
-            title: 'Acesso Ativado!',
-            text: 'Seu PIN foi configurado. Você já pode fazer login!',
-            confirmButtonColor: '#00b09b'
-        }).then(() => {
-            window.location.href = 'index.html';
-        });
+        // Mostra tela de sucesso
+        document.getElementById('tela-form').style.display = 'none';
+        document.getElementById('tela-sucesso').style.display = 'block';
 
     } catch (err) {
-        console.error("Erro na ativação:", err);
-        Swal.fire({
-            icon: 'error',
-            title: 'Erro de Conexão',
-            text: 'Tente novamente em instantes.',
-            confirmButtonColor: '#6C63FF'
-        });
-        btn.innerText = 'Concluir Ativação';
+        console.error('Erro ao enviar solicitação:', err);
+        btn.textContent = 'Enviar solicitação';
         btn.disabled = false;
+        Swal.fire({ icon:'error', title:'Erro ao enviar', text:'Tente novamente em instantes.', confirmButtonColor:'#7c3aed' });
     }
 }

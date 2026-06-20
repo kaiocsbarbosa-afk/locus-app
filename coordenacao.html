@@ -48,34 +48,27 @@
         </div>
     </div>
 
-    <!-- Gerenciar professores (cadastro + lista juntos) -->
+    <!-- Solicitações de acesso pendentes -->
     <div class="card-gerenciar">
         <button class="card-gerenciar-toggle" onclick="alternarGerenciamentoProfessores(event)">
-            <span>👨‍🏫 Professores</span>
+            <span>👨‍🏫 Professores <span id="badge-pendentes" style="display:none; background:#ef4444; color:#fff; border-radius:10px; padding:1px 7px; font-size:.72rem; margin-left:6px; font-weight:700;"></span></span>
             <span id="icone-gerenciar-professores">▾</span>
         </button>
 
         <div id="conteudo-gerenciar-professores" class="card-gerenciar-conteudo hidden">
-            <p class="card-subtitulo" style="margin-top:0;">Autorize novos professores e gerencie os existentes — edite dados, resete PINs ou remova acessos.</p>
 
-            <div class="form-group">
-                <label for="coord-nome-professor">Nome completo</label>
-                <input type="text" id="coord-nome-professor" placeholder="Ex: Prof. Carlos Silva">
+            <!-- Aba de solicitações pendentes -->
+            <div class="separador-gerenciar" style="margin-top:0;">
+                <span>Solicitações pendentes</span>
             </div>
 
-            <div class="form-group">
-                <label for="coord-disciplina-professor">Disciplina</label>
-                <select id="coord-disciplina-professor">
-                    <option value="">Selecione a disciplina...</option>
-                </select>
+            <div id="lista-solicitacoes">
+                <div class="gerenciar-vazio">Carregando...</div>
             </div>
 
-            <button type="button" class="btn-liberar-cadastro" onclick="salvarPreCadastro()">
-                ➕ Liberar cadastro
-            </button>
-
+            <!-- Lista de professores já cadastrados -->
             <div class="separador-gerenciar">
-                <span>Professores cadastrados</span>
+                <span>Professores com acesso ativo</span>
             </div>
 
             <div class="gerenciar-lista-professores" id="lista-professores">

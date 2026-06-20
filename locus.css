@@ -1509,3 +1509,70 @@ body.dark-mode .badge-aula {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* ── SOLICITAÇÕES DE ACESSO (coordenacao) ──────────────── */
+.solicitacao-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 13px 14px;
+    border: 1.5px solid var(--borda);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    background: var(--bg-card);
+    transition: border-color .2s;
+}
+
+.solicitacao-card:hover { border-color: #7c3aed; }
+
+.solicitacao-info { flex: 1; min-width: 0; }
+
+.solicitacao-nome {
+    font-weight: 700;
+    font-size: .92rem;
+    color: var(--texto-principal);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.solicitacao-meta {
+    font-size: .76rem;
+    color: var(--texto-secundario);
+    margin-top: 2px;
+}
+
+.solicitacao-acoes {
+    display: flex;
+    gap: 7px;
+    flex-shrink: 0;
+}
+
+.btn-aprovar, .btn-rejeitar {
+    padding: 7px 13px;
+    border-radius: 8px;
+    border: none;
+    font-size: .8rem;
+    font-weight: 700;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    transition: opacity .2s, transform .15s;
+}
+
+.btn-aprovar {
+    background: #059669;
+    color: #fff;
+}
+
+.btn-rejeitar {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+body.dark-mode .btn-rejeitar {
+    background: #450a0a;
+    color: #fca5a5;
+}
+
+.btn-aprovar:active, .btn-rejeitar:active { transform: scale(.95); opacity: .85; }

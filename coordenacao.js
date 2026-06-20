@@ -176,34 +176,140 @@ async function carregarDisciplinasNoPreCadastro() {
     } catch (erro) { console.error("Erro ao carregar disciplinas:", erro); }
 }
 
-window.salvarPreCadastro = async function() {
-    if (!exigirToken()) return;
+// ============================================================
+//  SOLICITAÇÕES DE ACESSO
+// ============================================================
 
-    const nome = document.getElementById('coord-nome-professor').value.trim();
-    const disciplina = document.getElementById('coord-disciplina-professor').value;
+async function carregarSolicitacoes() {
+    const lista = document.getElementById('lista-solicitacoes');
+    const badge = document.getElementById('badge-pendentes');
+    if (!lista) return;
 
-    if (!nome || !disciplina) {
-        dispararAlerta({ icon: 'warning', title: 'Campos obrigatórios', text: 'Preencha o nome e selecione a disciplina do professor.', confirmButtonColor: 'var(--cor-primaria)' });
-        return;
-    }
+    lista.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>';
 
     try {
-        const { error } = await supabase.from('professores').insert([{ nome, disciplina, auth_user_id: null }]);
+        const { data, error } = await supabase
+            .from('solicitacoes_acesso')
+            .select('*')
+            .eq('status', 'pendente')
+            .order('criado_em', { ascending: true });
+
         if (error) throw error;
 
-        dispararAlerta({ icon: 'success', title: 'Professor liberado!', text: `${nome} já pode ativar seu acesso.`, confirmButtonColor: 'var(--cor-sucesso)', timer: 2500, showConfirmButton: false });
-        document.getElementById('coord-nome-professor').value = '';
-        document.getElementById('coord-disciplina-professor').value = '';
-        // Só atualiza a lista se a seção de professores estiver aberta
-        const secaoProfessores = document.getElementById('conteudo-gerenciar-professores');
-        if (secaoProfessores && !secaoProfessores.classList.contains('hidden')) {
-            carregarListaProfessores();
+        // Badge de contagem
+        if (badge) {
+            if (data?.length) {
+                badge.textContent = data.length;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
         }
-        carregarProfessoresNoFiltro();
+
+        if (!data || data.length === 0) {
+            lista.innerHTML = '<div class="gerenciar-vazio" style="padding:20px 0;">Nenhuma solicitação pendente. ✅</div>';
+            return;
+        }
+
+        lista.innerHTML = data.map(s => {
+            const data_fmt = new Date(s.criado_em).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+            return `
+            <div class="solicitacao-card" id="sol-${s.id}">
+                <div class="solicitacao-info">
+                    <div class="solicitacao-nome">${s.nome}</div>
+                    <div class="solicitacao-meta">${s.disciplina} · ${data_fmt}</div>
+                </div>
+                <div class="solicitacao-acoes">
+                    <button class="btn-aprovar" onclick="aprovarSolicitacao('${s.id}', '${s.nome.replace(/'/g,"\'")}', '${s.disciplina}', '${s.pin}')">✓ Aprovar</button>
+                    <button class="btn-rejeitar" onclick="rejeitarSolicitacao('${s.id}', '${s.nome.replace(/'/g,"\'")}')">✕ Rejeitar</button>
+                </div>
+            </div>`;
+        }).join('');
 
     } catch (err) {
-        console.error("Erro ao pré-cadastrar professor:", err);
-        dispararAlerta({ icon: 'error', title: 'Erro de banco de dados', text: 'Não foi possível autorizar o professor.', confirmButtonColor: 'var(--cor-perigo)' });
+        console.error('Erro ao carregar solicitações:', err);
+        lista.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar solicitações.</div>';
+    }
+}
+
+window.aprovarSolicitacao = async function(id, nome, disciplina, pin) {
+    if (!exigirToken()) return;
+
+    const confirmar = await dispararAlerta({
+        icon: 'question',
+        title: `Aprovar ${nome}?`,
+        text: `Isso criará o acesso de ${nome} (${disciplina}) com o PIN escolhido por ele.`,
+        showCancelButton: true,
+        confirmButtonText: 'Sim, aprovar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: 'var(--cor-sucesso)',
+    });
+
+    if (!confirmar.isConfirmed) return;
+
+    try {
+        // 1. Cria professor na tabela
+        const { data: prof, error: errProf } = await supabase
+            .from('professores')
+            .insert([{ nome, disciplina, auth_user_id: null }])
+            .select('id')
+            .single();
+
+        if (errProf) throw errProf;
+
+        // 2. Ativa via Edge Function (cria auth user + faz hash do PIN)
+        const { data: resultado, error: errFn } = await supabase.functions.invoke('ativar-professor', {
+            body: { professor_id: prof.id, pin, codigo_convite: 'COORD_APROVADO' }
+        });
+
+        if (errFn || !resultado?.sucesso) {
+            // Reverte inserção em caso de erro na Edge Function
+            await supabase.from('professores').delete().eq('id', prof.id);
+            throw new Error(resultado?.erro || 'Falha ao ativar acesso');
+        }
+
+        // 3. Marca solicitação como aprovada
+        await supabase.from('solicitacoes_acesso').update({ status: 'aprovado', atualizado_em: new Date().toISOString() }).eq('id', id);
+
+        // Remove o card da lista
+        document.getElementById(`sol-${id}`)?.remove();
+
+        // Atualiza badge e estado vazio
+        carregarSolicitacoes();
+        carregarListaProfessores();
+        carregarProfessoresNoFiltro();
+
+        dispararAlerta({ icon: 'success', title: 'Aprovado!', text: `${nome} já pode fazer login no Locus.`, confirmButtonColor: 'var(--cor-sucesso)', timer: 2500, showConfirmButton: false });
+
+    } catch (err) {
+        console.error('Erro ao aprovar:', err);
+        dispararAlerta({ icon: 'error', title: 'Erro ao aprovar', text: err.message || 'Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' });
+    }
+}
+
+window.rejeitarSolicitacao = async function(id, nome) {
+    if (!exigirToken()) return;
+
+    const confirmar = await dispararAlerta({
+        icon: 'warning',
+        title: `Rejeitar ${nome}?`,
+        text: 'O professor não terá acesso ao sistema. Essa ação não pode ser desfeita.',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, rejeitar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: 'var(--cor-perigo)',
+    });
+
+    if (!confirmar.isConfirmed) return;
+
+    try {
+        await supabase.from('solicitacoes_acesso').update({ status: 'rejeitado', atualizado_em: new Date().toISOString() }).eq('id', id);
+        document.getElementById(`sol-${id}`)?.remove();
+        carregarSolicitacoes();
+        dispararAlerta({ icon: 'info', title: 'Solicitação rejeitada', text: `${nome} não terá acesso ao sistema.`, confirmButtonColor: 'var(--cor-primaria)', timer: 2200, showConfirmButton: false });
+    } catch (err) {
+        console.error('Erro ao rejeitar:', err);
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível rejeitar a solicitação.', confirmButtonColor: 'var(--cor-perigo)' });
     }
 }
 
@@ -451,9 +557,11 @@ window.alternarGerenciamentoProfessores = function(event) {
     const toggle = event.currentTarget;
     conteudo.classList.toggle('hidden');
     toggle.classList.toggle('aberto');
-    if (!conteudo.classList.contains('hidden') && !gerenciamentoProfessoresCarregado) {
-        gerenciamentoProfessoresCarregado = true;
-        carregarListaProfessores();
+    if (!conteudo.classList.contains('hidden')) {
+        carregarSolicitacoes();
+        if (!gerenciamentoProfessoresCarregado) {
+            gerenciamentoProfessoresCarregado = true;
+            carregarListaProfessores();
     }
 }
 
@@ -629,7 +737,10 @@ supabase
     .on('postgres_changes', { event: '*', schema: 'public', table: 'professores' }, () => {
         if (tokenValido()) {
             const conteudo = document.getElementById('conteudo-gerenciar-professores');
-            if (conteudo && !conteudo.classList.contains('hidden')) carregarListaProfessores();
+            if (conteudo && !conteudo.classList.contains('hidden')) {
+                carregarSolicitacoes();
+                carregarListaProfessores();
+            }
             carregarProfessoresNoFiltro();
         }
     })
