@@ -300,6 +300,14 @@ window.aprovarSolicitacao = async function(id, nome, disciplina, pin) {
         carregarListaProfessores();
         carregarProfessoresNoFiltro();
 
+        // Notifica o professor (se já tiver inscrição push registrada)
+        enviarNotificacao(
+            '✅ Acesso aprovado!',
+            `Olá, ${nome}! Seu acesso ao Locus foi aprovado. Já pode fazer login com seu PIN.`,
+            'professor',
+            prof.id
+        );
+
         dispararAlerta({ icon: 'success', title: 'Aprovado!', text: `${nome} já pode fazer login no Locus.`, confirmButtonColor: 'var(--cor-sucesso)', timer: 2500, showConfirmButton: false });
 
     } catch (err) {
@@ -327,6 +335,14 @@ window.rejeitarSolicitacao = async function(id, nome) {
         await supabase.from('solicitacoes_acesso').update({ status: 'rejeitado', atualizado_em: new Date().toISOString() }).eq('id', id);
         document.getElementById(`sol-${id}`)?.remove();
         carregarSolicitacoes();
+
+        // Tenta notificar o professor (pode não ter inscrição push ainda)
+        enviarNotificacao(
+            '❌ Solicitação não aprovada',
+            `${nome}, sua solicitação de acesso ao Locus não foi aprovada. Entre em contato com a coordenação.`,
+            'coordenacao' // fallback: envia para coordenação (professor ainda não tem conta)
+        );
+
         dispararAlerta({ icon: 'info', title: 'Solicitação rejeitada', text: `${nome} não terá acesso ao sistema.`, confirmButtonColor: 'var(--cor-primaria)', timer: 2200, showConfirmButton: false });
     } catch (err) {
         console.error('Erro ao rejeitar:', err);
