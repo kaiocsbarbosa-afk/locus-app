@@ -690,6 +690,90 @@
             margin-bottom: 12px;
             opacity: .5;
         }
+
+        /* ── BANNER NOTIFICAÇÕES ─────────────── */
+        #banner-notif {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+            border: 1.5px solid #c4b5fd;
+            border-radius: 14px;
+            padding: 13px 14px;
+            margin-bottom: 14px;
+            animation: surgir-banner .4s cubic-bezier(.34,1.56,.64,1) both;
+        }
+        body.dark-mode #banner-notif {
+            background: linear-gradient(135deg, #2e1065, #3b0764);
+            border-color: #6d28d9;
+        }
+        @keyframes surgir-banner {
+            from { opacity: 0; transform: translateY(-10px) scale(.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .banner-notif-icone { font-size: 1.6rem; flex-shrink: 0; }
+        .banner-notif-texto { flex: 1; min-width: 0; }
+        .banner-notif-titulo {
+            font-size: .83rem; font-weight: 700; color: #5b21b6; margin-bottom: 2px;
+        }
+        body.dark-mode .banner-notif-titulo { color: #c4b5fd; }
+        .banner-notif-sub {
+            font-size: .73rem; color: #6d28d9; line-height: 1.4;
+        }
+        body.dark-mode .banner-notif-sub { color: #a78bfa; }
+        .banner-notif-acoes { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+        #btn-notif-banner {
+            background: #7c3aed; color: #fff; border: none; border-radius: 8px;
+            padding: 7px 12px; font-size: .78rem; font-weight: 700;
+            font-family: 'Poppins', sans-serif; cursor: pointer;
+            transition: opacity .2s, transform .15s; white-space: nowrap;
+        }
+        #btn-notif-banner:active { transform: scale(.93); opacity: .85; }
+        #btn-notif-banner:disabled { opacity: .6; cursor: not-allowed; }
+        .btn-dispensar-notif {
+            background: none; border: none; color: #7c3aed;
+            font-size: .7rem; font-family: 'Poppins', sans-serif;
+            cursor: pointer; text-align: center; padding: 2px; opacity: .7;
+        }
+        body.dark-mode .btn-dispensar-notif { color: #a78bfa; }
+
+        /* ── BANNER BOAS-VINDAS (primeiro login) ─ */
+        #banner-aprovado {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            border: 1.5px solid #6ee7b7;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 14px;
+            animation: surgir-banner .5s cubic-bezier(.34,1.56,.64,1) both;
+        }
+        body.dark-mode #banner-aprovado {
+            background: linear-gradient(135deg, #064e3b, #065f46);
+            border-color: #059669;
+        }
+        .banner-aprovado-titulo {
+            font-size: .95rem; font-weight: 700; color: #065f46;
+        }
+        body.dark-mode .banner-aprovado-titulo { color: #6ee7b7; }
+        .banner-aprovado-sub {
+            font-size: .8rem; color: #047857; line-height: 1.5;
+        }
+        body.dark-mode .banner-aprovado-sub { color: #34d399; }
+        .btn-aprovado-notif {
+            background: #059669; color: #fff; border: none; border-radius: 10px;
+            padding: 10px; font-size: .85rem; font-weight: 700;
+            font-family: 'Poppins', sans-serif; cursor: pointer;
+            transition: opacity .2s, transform .15s;
+        }
+        .btn-aprovado-notif:active { transform: scale(.96); opacity: .85; }
+        .btn-fechar-aprovado {
+            background: none; border: none; color: #047857;
+            font-size: .75rem; font-family: 'Poppins', sans-serif;
+            cursor: pointer; text-align: center; opacity: .7;
+        }
+        body.dark-mode .btn-fechar-aprovado { color: #34d399; }
     </style>
 </head>
 <body>
@@ -775,6 +859,14 @@
                 <button id="btn-notif-banner" onclick="ativarNotifBanner()">Permitir</button>
                 <button class="btn-dispensar-notif" onclick="fecharBannerNotif()">Agora não</button>
             </div>
+        </div>
+
+        <!-- Banner de boas-vindas (primeiro login após aprovação) -->
+        <div id="banner-aprovado">
+            <div class="banner-aprovado-titulo">🎉 Acesso aprovado! Bem-vindo ao Locus!</div>
+            <div class="banner-aprovado-sub">Sua solicitação foi aprovada pela coordenação. Ative as notificações para receber lembretes antes das suas aulas.</div>
+            <button class="btn-aprovado-notif" onclick="ativarNotifPrimeiroLogin()">🔔 Ativar notificações agora</button>
+            <button class="btn-fechar-aprovado" onclick="fecharBannerAprovado()">Fazer isso depois</button>
         </div>
 
         <div class="saudacao" id="status-usuario">
