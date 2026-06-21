@@ -56,6 +56,48 @@
         .btn-rejeitar { background: #fee2e2; color: #dc2626; }
         body.dark-mode .btn-rejeitar { background: #450a0a; color: #fca5a5; }
         .btn-aprovar:active, .btn-rejeitar:active { transform: scale(.95); opacity: .85; }
+
+        /* ── BADGE PENDENTES COM PULSE ── */
+        #badge-pendentes {
+            display: none;
+            background: #ef4444;
+            color: #fff;
+            border-radius: 10px;
+            padding: 1px 7px;
+            font-size: .72rem;
+            margin-left: 6px;
+            font-weight: 700;
+            animation: pulse-badge 1.8s infinite;
+        }
+
+        @keyframes pulse-badge {
+            0%   { box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
+            70%  { box-shadow: 0 0 0 7px rgba(239,68,68,0); }
+            100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+        }
+
+        /* ── CARDS SOLICITAÇÃO COM ANIMAÇÃO ── */
+        .solicitacao-card {
+            animation: entrar-card .3s cubic-bezier(.34,1.56,.64,1) both;
+        }
+
+        @keyframes entrar-card {
+            from { opacity: 0; transform: translateY(14px) scale(.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .solicitacao-card:nth-child(2) { animation-delay: .06s; }
+        .solicitacao-card:nth-child(3) { animation-delay: .12s; }
+        .solicitacao-card:nth-child(4) { animation-delay: .18s; }
+
+        /* ── ESTADO VAZIO MELHORADO ── */
+        .solicitacoes-vazio {
+            text-align: center;
+            padding: 24px 16px;
+            color: var(--texto-secundario);
+            font-size: .85rem;
+        }
+        .solicitacoes-vazio-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -99,7 +141,7 @@
     <!-- Solicitações de acesso pendentes -->
     <div class="card-gerenciar">
         <button class="card-gerenciar-toggle" onclick="alternarGerenciamentoProfessores(event)">
-            <span>👨‍🏫 Professores <span id="badge-pendentes" style="display:none; background:#ef4444; color:#fff; border-radius:10px; padding:1px 7px; font-size:.72rem; margin-left:6px; font-weight:700;"></span></span>
+            <span>👨‍🏫 Professores <span id="badge-pendentes"></span></span>
             <span id="icone-gerenciar-professores">▾</span>
         </button>
 
