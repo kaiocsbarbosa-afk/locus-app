@@ -225,7 +225,10 @@ async function carregarSolicitacoes() {
         }
 
         if (!data || data.length === 0) {
-            lista.innerHTML = '<div class="gerenciar-vazio" style="padding:20px 0;">Nenhuma solicitação pendente. ✅</div>';
+            lista.innerHTML = `<div class="solicitacoes-vazio">
+                <span class="solicitacoes-vazio-icon">✅</span>
+                Nenhuma solicitação pendente
+            </div>`;
             return;
         }
 
