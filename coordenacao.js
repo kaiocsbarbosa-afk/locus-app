@@ -277,7 +277,7 @@ window.aprovarSolicitacao = async function(id, nome, disciplina, pin) {
 
         // 2. Ativa via Edge Function (cria auth user + faz hash do PIN)
         const { data: resultado, error: errFn } = await supabase.functions.invoke('ativar-professor', {
-            body: { professor_id: prof.id, pin, codigo_convite: 'COORD_APROVADO' }
+            body: { professor_id: prof.id, pin }
         });
 
         if (errFn || !resultado?.sucesso) {
