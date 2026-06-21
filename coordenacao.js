@@ -253,7 +253,7 @@ async function carregarSolicitacoes() {
 window.aprovarSolicitacao = async function(id, nome, disciplina, pin) {
     if (!exigirToken()) return;
 
-    const confirmar = await dispararAlerta({
+    const confirmar = await Swal.fire({
         icon: 'question',
         title: `Aprovar ${nome}?`,
         text: `Isso criará o acesso de ${nome} (${disciplina}) com o PIN escolhido por ele.`,
@@ -308,7 +308,7 @@ window.aprovarSolicitacao = async function(id, nome, disciplina, pin) {
 window.rejeitarSolicitacao = async function(id, nome) {
     if (!exigirToken()) return;
 
-    const confirmar = await dispararAlerta({
+    const confirmar = await Swal.fire({
         icon: 'warning',
         title: `Rejeitar ${nome}?`,
         text: 'O professor não terá acesso ao sistema. Essa ação não pode ser desfeita.',
