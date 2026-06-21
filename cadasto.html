@@ -162,7 +162,24 @@
             transition: opacity .2s, transform .15s;
         }
         .btn-enviar:active { transform: scale(.97); opacity: .9; }
-        .btn-enviar:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+        .btn-enviar:disabled { opacity: .75; cursor: not-allowed; transform: none; }
+
+        .btn-enviar.carregando {
+            position: relative;
+            color: transparent;
+        }
+        .btn-enviar.carregando::after {
+            content: '';
+            position: absolute;
+            width: 18px; height: 18px;
+            border: 2.5px solid rgba(255,255,255,.35);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
 
         .btn-voltar-login {
             width: 100%; padding: 13px;
