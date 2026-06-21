@@ -201,8 +201,18 @@ function mostrarAppLogado() {
     document.getElementById('app-header').classList.add('visivel');
     document.getElementById('bottom-nav').classList.add('visivel');
 
-    const status = document.getElementById('status-usuario');
-    if (status) status.innerHTML = `Olá, <strong>${professorLogado.nome}</strong>! 👋`;
+    // Saudação personalizada com período do dia
+    const hora = new Date().getHours();
+    const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+    const emoji   = hora < 12 ? '☀️' : hora < 18 ? '🌤️' : '🌙';
+    const primeiroNome = professorLogado.nome?.split(' ')[0] || professorLogado.nome;
+
+    const elPeriodo = document.getElementById('saudacao-periodo');
+    const elNome    = document.getElementById('saudacao-nome');
+    const elDisc    = document.getElementById('saudacao-disciplina');
+    if (elPeriodo) elPeriodo.textContent = `${emoji} ${periodo}!`;
+    if (elNome)    elNome.textContent    = primeiroNome;
+    if (elDisc)    elDisc.textContent    = professorLogado.disciplina || '';
 
     document.getElementById('tela-agendar').classList.add('ativa');
     configurarCalendarioSemana();
@@ -263,6 +273,17 @@ function atualizarPerfil() {
     const disc = document.getElementById('perfil-disciplina');
     if (nome) nome.textContent = professorLogado.nome;
     if (disc) disc.textContent = professorLogado.disciplina || 'Sem disciplina';
+
+    // Iniciais dinâmicas no avatar
+    const iniciais = document.getElementById('perfil-iniciais');
+    if (iniciais && professorLogado.nome) {
+        const partes = professorLogado.nome.trim().split(' ').filter(Boolean);
+        const sigla = partes.length >= 2
+            ? partes[0][0] + partes[partes.length - 1][0]
+            : partes[0]?.slice(0, 2) || '?';
+        iniciais.textContent = sigla.toUpperCase();
+    }
+
     atualizarStatusNotificacoes();
 }
 
