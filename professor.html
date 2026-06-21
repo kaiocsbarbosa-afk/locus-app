@@ -763,6 +763,20 @@
 
         <!-- TELA AGENDAR -->
     <div id="tela-agendar" class="tela">
+
+        <!-- Banner de ativação de notificações -->
+        <div id="banner-notif">
+            <div class="banner-notif-icone">🔔</div>
+            <div class="banner-notif-texto">
+                <div class="banner-notif-titulo">Ativar notificações</div>
+                <div class="banner-notif-sub">Receba lembretes 5 min antes das aulas e alertas de reserva.</div>
+            </div>
+            <div class="banner-notif-acoes">
+                <button id="btn-notif-banner" onclick="ativarNotifBanner()">Permitir</button>
+                <button class="btn-dispensar-notif" onclick="fecharBannerNotif()">Agora não</button>
+            </div>
+        </div>
+
         <div class="saudacao" id="status-usuario">
             <div class="saudacao-titulo" id="saudacao-periodo">Bem-vindo ao Locus</div>
             <div class="saudacao-nome" id="saudacao-nome">Carregando...</div>
