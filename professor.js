@@ -182,7 +182,6 @@ window.fazerLogin = async function() {
 
         if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
         mostrarAppLogado();
-        ativarNotificacoes('professor', professorLogado.id);
 
     } catch (err) {
         console.error('Erro no login:', err);
@@ -219,6 +218,55 @@ function mostrarAppLogado() {
     carregarTurmas();
     carregarSalas();
     carregarHistorico();
+
+    // Mostra banner de notificações se ainda não foi permitido/negado
+    setTimeout(() => verificarBannerNotificacoes(), 1200);
+}
+
+function verificarBannerNotificacoes() {
+    const banner = document.getElementById('banner-notif');
+    if (!banner) return;
+
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+        banner.style.display = 'none';
+        return;
+    }
+
+    if (Notification.permission === 'default') {
+        // Ainda não pediu — mostra o banner convidativo
+        banner.style.display = 'flex';
+    } else {
+        // Já concedido ou negado — esconde
+        banner.style.display = 'none';
+    }
+}
+
+window.ativarNotifBanner = async function() {
+    const banner = document.getElementById('banner-notif');
+    const btnBanner = document.getElementById('btn-notif-banner');
+    if (btnBanner) { btnBanner.textContent = 'Ativando...'; btnBanner.disabled = true; }
+
+    const sucesso = await ativarNotificacoes('professor', professorLogado?.id);
+
+    if (sucesso) {
+        if (banner) banner.style.display = 'none';
+        Swal.fire({ icon: 'success', title: '🔔 Notificações ativas!', text: 'Você receberá lembretes 5 min antes de cada aula e alertas de reserva.', confirmButtonColor: '#059669', timer: 3000, showConfirmButton: false });
+    } else {
+        if (btnBanner) { btnBanner.textContent = 'Permitir'; btnBanner.disabled = false; }
+        if (Notification.permission === 'denied') {
+            if (banner) banner.style.display = 'none'; // esconde se negou definitivamente
+            Swal.fire({ icon: 'info', title: 'Notificações bloqueadas', text: 'Para ativar, vá em Configurações do navegador → Notificações → Locus → Permitir.', confirmButtonColor: '#7c3aed' });
+        }
+    }
+
+    atualizarStatusNotificacoes();
+}
+
+window.fecharBannerNotif = function() {
+    const banner = document.getElementById('banner-notif');
+    if (banner) banner.style.display = 'none';
+    // Guarda que o professor dispensou — não mostra de novo nesta sessão
+    sessionStorage.setItem('banner_notif_dispensado', '1');
 }
 
 // ============================================================
