@@ -172,6 +172,16 @@
             background: rgba(255,255,255,.04);
             pointer-events: none;
         }
+        /* Segundo círculo menor na esquerda */
+        .login-hero-deco {
+            position: absolute;
+            bottom: 30px; left: -30px;
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.03);
+            pointer-events: none;
+            z-index: 0;
+        }
         .login-hero::after {
             content: '';
             position: absolute;
@@ -213,6 +223,11 @@
             border: 1px solid var(--borda);
             box-shadow: 0 4px 24px rgba(109,40,217,.12), 0 1px 4px rgba(0,0,0,.06);
             position: relative; z-index: 2;
+            animation: cardEntrar .5s cubic-bezier(.34,1.56,.64,1) both .1s;
+        }
+        @keyframes cardEntrar {
+            from { opacity:0; transform: translateY(24px) scale(.97); }
+            to   { opacity:1; transform: translateY(0) scale(1); }
         }
 
         /* Selector de nome compacto */
@@ -380,6 +395,20 @@
 
         .nav-tab.ativa { color: var(--cor-primaria); }
 
+        /* Linha indicadora no topo da tab ativa */
+        .nav-tab.ativa::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 20%; right: 20%;
+            height: 2.5px;
+            background: var(--cor-primaria);
+            border-radius: 0 0 3px 3px;
+        }
+
+        .nav-tab {
+            position: relative;
+        }
+
         .nav-tab span {
             font-size: 10px;
             font-weight: 500;
@@ -389,20 +418,48 @@
         .nav-tab .nav-icon {
             font-size: 22px;
             line-height: 1;
+            transition: transform .2s cubic-bezier(.34,1.56,.64,1);
         }
+
+        .nav-tab.ativa .nav-icon { transform: scale(1.15) translateY(-1px); }
 
         /* ── TELA AGENDAR ──────────────────────────── */
         .saudacao {
-            background: var(--cor-primaria-clara);
-            border-radius: var(--raio-sm);
-            padding: 14px 16px;
+            background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+            border-radius: 16px;
+            padding: 16px 18px;
             margin-bottom: 20px;
-            font-size: .9rem;
-            font-weight: 500;
-            color: var(--cor-primaria);
+            color: #fff;
+            position: relative;
+            overflow: hidden;
         }
-
-        body.dark-mode .saudacao { color: #c4b5fd; }
+        .saudacao::after {
+            content: '';
+            position: absolute;
+            top: -20px; right: -20px;
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.06);
+            pointer-events: none;
+        }
+        .saudacao-titulo {
+            font-size: .78rem;
+            font-weight: 600;
+            color: rgba(255,255,255,.7);
+            letter-spacing: .03em;
+            margin-bottom: 3px;
+        }
+        .saudacao-nome {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: -.2px;
+        }
+        .saudacao-disciplina {
+            font-size: .78rem;
+            color: rgba(255,255,255,.6);
+            margin-top: 2px;
+        }
 
         .secao-titulo {
             font-size: .75rem;
@@ -443,27 +500,41 @@
         }
 
         .perfil-avatar {
-            width: 72px;
-            height: 72px;
-            background: var(--cor-primaria-clara);
+            width: 76px;
+            height: 76px;
+            background: linear-gradient(135deg, #7c3aed, #5b21b6);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto 12px;
+            margin: 0 auto 14px;
             font-size: 1.6rem;
+            box-shadow: 0 4px 16px rgba(109,40,217,.35);
+            color: #fff;
+            font-weight: 800;
+            font-size: 1.5rem;
+            letter-spacing: -.5px;
         }
 
         .perfil-nome {
             font-size: 1.15rem;
-            font-weight: 600;
+            font-weight: 700;
             color: var(--texto-principal);
             margin: 0 0 4px;
+            letter-spacing: -.3px;
         }
 
         .perfil-disciplina {
-            font-size: .85rem;
+            font-size: .82rem;
             color: var(--texto-secundario);
+            display: inline-block;
+            background: var(--cor-primaria-clara);
+            color: var(--cor-primaria);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: .75rem;
+            margin-top: 4px;
         }
 
         .perfil-opcoes {
@@ -476,13 +547,14 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 16px 4px;
-            border-bottom: 1px solid var(--borda);
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: var(--bg-card);
+            border: 1px solid var(--borda);
             font-size: .95rem;
             color: var(--texto-principal);
+            box-shadow: 0 1px 4px rgba(0,0,0,.04);
         }
-
-        .perfil-item:last-child { border-bottom: none; }
 
         .perfil-item-esq {
             display: flex;
@@ -504,38 +576,39 @@
         .perfil-item-icone.vermelho { background: var(--cor-perigo-clara); color: var(--cor-perigo); }
 
         .perfil-toggle {
-            background: none;
-            border: none;
-            padding: 8px 14px;
+            padding: 7px 16px;
             border-radius: 20px;
             background: var(--bg-body);
-            border: 1px solid var(--borda);
+            border: 1.5px solid var(--borda);
             font-family: 'Poppins', sans-serif;
-            font-size: .82rem;
-            font-weight: 500;
+            font-size: .8rem;
+            font-weight: 600;
             color: var(--texto-secundario);
             cursor: pointer;
+            transition: all .2s;
+        }
+        .perfil-toggle.ativo {
+            background: var(--cor-primaria-clara);
+            border-color: var(--cor-primaria);
+            color: var(--cor-primaria);
         }
 
         .perfil-sair {
             width: 100%;
-            margin-top: 32px;
-            padding: 15px;
-            background: var(--cor-perigo-clara);
-            color: var(--cor-perigo-texto);
-            border: 1px solid var(--cor-perigo-borda);
-            border-radius: var(--raio-sm);
+            margin-top: 24px;
+            padding: 14px;
+            background: transparent;
+            color: #ef4444;
+            border: 1.5px solid #fca5a5;
+            border-radius: 12px;
             font-family: 'Poppins', sans-serif;
-            font-size: 1rem;
-            font-weight: 600;
+            font-size: .92rem;
+            font-weight: 700;
             cursor: pointer;
             transition: all .2s;
         }
-
-        .perfil-sair:hover {
-            background: var(--cor-perigo);
-            color: #fff;
-        }
+        .perfil-sair:active { background: #fee2e2; transform: scale(.98); }
+        body.dark-mode .perfil-sair { border-color: #7f1d1d; color: #fca5a5; }
 
         /* ── ANIMAÇÃO DE TRANSIÇÃO DE TELA ─────────── */
         .tela {
@@ -568,6 +641,55 @@
             from { opacity: 0; transform: translateX(-48px); }
             to   { opacity: 1; transform: translateX(0); }
         }
+
+        /* ── BOTÃO ATUALIZAR SEMANA ── */
+        .btn-atualizar-semana {
+            background: var(--cor-primaria-clara);
+            color: var(--cor-primaria);
+            border: none;
+            border-radius: 10px;
+            padding: 9px 14px;
+            font-size: .8rem;
+            font-weight: 700;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: transform .15s, opacity .15s;
+        }
+        .btn-atualizar-semana:active { transform: scale(.93); opacity: .8; }
+
+        /* ── SECAO TITULO MELHORADO ── */
+        .secao-titulo {
+            font-size: .7rem;
+            font-weight: 700;
+            color: var(--texto-secundario);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            margin: 22px 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .secao-titulo::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--borda);
+        }
+
+        /* ── MINHAS AULAS VAZIO ── */
+        .minhas-aulas-vazio {
+            text-align: center;
+            padding: 48px 16px;
+            color: var(--texto-terciario);
+            font-size: .88rem;
+        }
+        .minhas-aulas-vazio::before {
+            content: '📋';
+            display: block;
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            opacity: .5;
+        }
     </style>
 </head>
 <body>
@@ -590,6 +712,7 @@
     <!-- LOGIN TELA ÚNICA -->
     <div id="tela-login" style="padding:0;">
         <div class="login-hero">
+            <div class="login-hero-deco"></div>
             <div class="login-hero-topo">
                 <img src="icon-192.png" alt="Locus">
                 <span class="logo-nome">Locus</span>
@@ -640,7 +763,11 @@
 
         <!-- TELA AGENDAR -->
     <div id="tela-agendar" class="tela">
-        <div class="saudacao" id="status-usuario">Carregando...</div>
+        <div class="saudacao" id="status-usuario">
+            <div class="saudacao-titulo" id="saudacao-periodo">Bem-vindo ao Locus</div>
+            <div class="saudacao-nome" id="saudacao-nome">Carregando...</div>
+            <div class="saudacao-disciplina" id="saudacao-disciplina"></div>
+        </div>
 
         <div class="form-group">
             <label for="data-agendamento">Data</label>
@@ -677,14 +804,17 @@
                 <div style="font-size:1rem;font-weight:600;color:var(--texto-principal)">Visão semanal</div>
                 <div class="semana-sala-info" id="semana-sala-info">Selecione uma sala na aba Agendar</div>
             </div>
-            <button onclick="carregarVisaoSemanal()" style="background:var(--cor-primaria-clara);color:var(--cor-primaria);border:none;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;">↻ Atualizar</button>
+            <button onclick="carregarVisaoSemanal()" class="btn-atualizar-semana">↻ Atualizar</button>
         </div>
         <div id="visao-semanal"></div>
     </div>
 
     <!-- TELA MINHAS AULAS -->
     <div id="tela-minhas-aulas" class="tela">
-        <div class="secao-titulo">Seus agendamentos ativos</div>
+        <div class="minhas-aulas-header">
+            <div class="minhas-aulas-titulo">📋 Meus agendamentos</div>
+            <div class="minhas-aulas-sub">Reservas a partir de hoje</div>
+        </div>
         <div id="historico-lista">
             <div class="minhas-aulas-vazio">Carregando...</div>
         </div>
@@ -693,12 +823,12 @@
     <!-- TELA PERFIL -->
     <div id="tela-perfil" class="tela">
         <div class="perfil-header">
-            <div class="perfil-avatar">👨‍🏫</div>
+            <div class="perfil-avatar" id="perfil-avatar"><span id="perfil-iniciais">?</span></div>
             <div class="perfil-nome" id="perfil-nome">—</div>
             <div class="perfil-disciplina" id="perfil-disciplina">—</div>
         </div>
 
-        <div class="perfil-opcoes">
+        <div class="perfil-opcoes" style="display:flex;flex-direction:column;gap:10px;">
             <div class="perfil-item">
                 <div class="perfil-item-esq">
                     <div class="perfil-item-icone roxo">🌙</div>
@@ -711,8 +841,8 @@
                 <div class="perfil-item-esq">
                     <div class="perfil-item-icone roxo">🔔</div>
                     <div>
-                        <div style="font-size:.9rem;">Notificações</div>
-                        <div style="font-size:.75rem;color:var(--texto-secundario)" id="status-notif-desc">Verificando...</div>
+                        <div style="font-size:.88rem;font-weight:600;">Notificações</div>
+                        <div style="font-size:.74rem;color:var(--texto-secundario);margin-top:1px;" id="status-notif-desc">Verificando...</div>
                     </div>
                 </div>
                 <button class="perfil-toggle" id="btn-notif" onclick="gerenciarNotificacoes()">—</button>
@@ -720,10 +850,10 @@
 
             <div class="perfil-item">
                 <div class="perfil-item-esq">
-                    <div class="perfil-item-icone roxo">📍</div>
+                    <div class="perfil-item-icone roxo">🏷️</div>
                     <span>Versão</span>
                 </div>
-                <span style="font-size:.82rem;color:var(--texto-secundario)">Locus 2.0</span>
+                <span style="font-size:.8rem;color:var(--texto-secundario);font-weight:600;">Locus 2.0</span>
             </div>
         </div>
 
