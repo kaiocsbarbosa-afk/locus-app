@@ -1,5 +1,6 @@
 /* cadrasto.js — professor envia solicitação de acesso */
 import { supabase, carregarPreferenciaModo } from './utils.js'
+import { enviarNotificacao } from './push.js'
 
 // ── PIN BOXES ─────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -91,6 +92,13 @@ window.enviarSolicitacao = async function() {
             .insert([{ nome, disciplina, pin, status: 'pendente' }]);
 
         if (error) throw error;
+
+        // Notifica coordenação
+        enviarNotificacao(
+            '📋 Nova solicitação de acesso',
+            `${nome} (${disciplina}) solicitou acesso ao Locus.`,
+            'coordenacao'
+        );
 
         // Mostra tela de sucesso
         document.getElementById('tela-form').style.display = 'none';
