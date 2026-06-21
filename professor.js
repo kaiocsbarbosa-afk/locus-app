@@ -224,21 +224,59 @@ function mostrarAppLogado() {
 }
 
 function verificarBannerNotificacoes() {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+
+    // Verifica se é o primeiro login (nunca tinha chave de sessão)
+    const chaveLogin = `locus_logado_${professorLogado?.id}`;
+    const primeiroLogin = !localStorage.getItem(chaveLogin);
+
+    if (primeiroLogin) {
+        // Marca que já logou antes
+        localStorage.setItem(chaveLogin, '1');
+        // Mostra banner verde de boas-vindas com CTA de notificação
+        const bannerAprovado = document.getElementById('banner-aprovado');
+        if (bannerAprovado && Notification.permission === 'default') {
+            bannerAprovado.style.display = 'flex';
+            return; // não mostra o banner roxo por cima
+        }
+    }
+
+    // Login normal — mostra banner roxo só se permissão ainda não foi decidida
     const banner = document.getElementById('banner-notif');
     if (!banner) return;
 
-    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-        banner.style.display = 'none';
-        return;
-    }
-
-    if (Notification.permission === 'default') {
-        // Ainda não pediu — mostra o banner convidativo
+    if (Notification.permission === 'default' && !sessionStorage.getItem('banner_notif_dispensado')) {
         banner.style.display = 'flex';
     } else {
-        // Já concedido ou negado — esconde
         banner.style.display = 'none';
     }
+}
+
+window.ativarNotifPrimeiroLogin = async function() {
+    const bannerAprovado = document.getElementById('banner-aprovado');
+    const btn = bannerAprovado?.querySelector('.btn-aprovado-notif');
+    if (btn) { btn.textContent = 'Ativando...'; btn.disabled = true; }
+
+    const sucesso = await ativarNotificacoes('professor', professorLogado?.id);
+
+    if (bannerAprovado) bannerAprovado.style.display = 'none';
+
+    if (sucesso) {
+        Swal.fire({ icon: 'success', title: '🔔 Tudo pronto!', text: 'Você receberá lembretes antes das suas aulas.', confirmButtonColor: '#059669', timer: 2800, showConfirmButton: false });
+    } else if (Notification.permission === 'denied') {
+        Swal.fire({ icon: 'info', title: 'Notificações bloqueadas', text: 'Você pode ativar depois em Configurações do navegador → Notificações → Locus.', confirmButtonColor: '#7c3aed' });
+    }
+    atualizarStatusNotificacoes();
+}
+
+window.fecharBannerAprovado = function() {
+    const b = document.getElementById('banner-aprovado');
+    if (b) b.style.display = 'none';
+    // Mostra o banner roxo padrão já que a permissão ainda não foi dada
+    setTimeout(() => {
+        const bn = document.getElementById('banner-notif');
+        if (bn && Notification.permission === 'default') bn.style.display = 'flex';
+    }, 500);
 }
 
 window.ativarNotifBanner = async function() {
