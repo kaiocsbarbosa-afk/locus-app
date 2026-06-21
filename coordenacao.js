@@ -562,6 +562,7 @@ window.alternarGerenciamentoProfessores = function(event) {
         if (!gerenciamentoProfessoresCarregado) {
             gerenciamentoProfessoresCarregado = true;
             carregarListaProfessores();
+        }
     }
 }
 
