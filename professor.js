@@ -468,11 +468,14 @@ window.agendarAula = async function(numeroAula) {
     if (error) {
         Swal.fire({ icon: 'error', title: 'Vaga indisponível', text: 'Pode ter sido preenchida agora mesmo.', confirmButtonColor: '#7c3aed' });
     } else {
+        const nomeSala = document.getElementById('select-sala').selectedOptions[0]?.textContent || 'uma sala';
         Swal.fire({ icon: 'success', title: 'Agendado!', text: 'Sua reserva foi confirmada. 🎉', confirmButtonColor: '#059669', timer: 2000, showConfirmButton: false });
         buscarAulas();
         carregarHistorico();
-        const nomeSala = document.getElementById('select-sala').selectedOptions[0]?.textContent || 'uma sala';
-        enviarNotificacao('Novo agendamento', `${professorLogado.nome} reservou ${nomeSala} (Aula ${numeroAula}) em ${dataBr}.`, 'coordenacao');
+        // Notifica coordenação
+        enviarNotificacao('📅 Novo agendamento', `${professorLogado.nome} reservou ${nomeSala} — Aula ${numeroAula} em ${dataBr}.`, 'coordenacao');
+        // Notifica o próprio professor como confirmação no dispositivo
+        enviarNotificacao('✅ Reserva confirmada!', `${nomeSala} — Aula ${numeroAula} em ${dataBr} está reservada para você.`, 'professor', professorLogado.id);
     }
 }
 
@@ -528,7 +531,7 @@ window.cancelarAgendamento = async function(id, nomeSala, numeroAula, dataBr) {
         Swal.fire({ icon: 'error', title: 'Erro!', text: 'Não foi possível cancelar.', confirmButtonColor: '#7c3aed' });
     } else {
         Swal.fire({ icon: 'success', title: 'Cancelada!', confirmButtonColor: '#059669', timer: 1500, showConfirmButton: false });
-        enviarNotificacao('Reserva cancelada', `${professorLogado.nome} cancelou ${nomeSala} (Aula ${numeroAula}) em ${dataBr}.`, 'coordenacao');
+        enviarNotificacao('🗑️ Reserva cancelada', `${professorLogado.nome} cancelou ${nomeSala} — Aula ${numeroAula} em ${dataBr}.`, 'coordenacao');
         buscarAulas();
         carregarHistorico();
     }
