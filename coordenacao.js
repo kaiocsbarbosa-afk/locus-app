@@ -127,6 +127,7 @@ function mostrarDashboard() {
 
     carregarRelatorioGeral();
     ativarNotificacoes('coordenacao');
+    atualizarBadgePendentes(); // badge de solicitações pendentes
 }
 
 async function carregarSalasNoFiltro() {
@@ -179,6 +180,23 @@ async function carregarDisciplinasNoPreCadastro() {
 // ============================================================
 //  SOLICITAÇÕES DE ACESSO
 // ============================================================
+
+async function atualizarBadgePendentes() {
+    const badge = document.getElementById('badge-pendentes');
+    if (!badge) return;
+    try {
+        const { count } = await supabase
+            .from('solicitacoes_acesso')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'pendente');
+        if (count > 0) {
+            badge.textContent = count;
+            badge.style.display = 'inline';
+        } else {
+            badge.style.display = 'none';
+        }
+    } catch (e) { /* silencioso */ }
+}
 
 async function carregarSolicitacoes() {
     const lista = document.getElementById('lista-solicitacoes');
@@ -744,5 +762,18 @@ supabase
             }
             carregarProfessoresNoFiltro();
         }
+    })
+    .subscribe();
+
+// Realtime para solicitações de acesso — atualiza badge e lista em tempo real
+supabase
+    .channel('mudancas-solicitacoes-coord')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitacoes_acesso' }, () => {
+        const conteudo = document.getElementById('conteudo-gerenciar-professores');
+        if (conteudo && !conteudo.classList.contains('hidden')) {
+            carregarSolicitacoes();
+        }
+        // Atualiza badge mesmo com a seção fechada
+        atualizarBadgePendentes();
     })
     .subscribe();
