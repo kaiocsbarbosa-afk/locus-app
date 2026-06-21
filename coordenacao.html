@@ -2,13 +2,61 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Locus — Coordenação</title>
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./icon-192.png">
+    <link rel="icon" href="./icon-96.png" type="image/png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="locus.css">
+    <style>
+        /* ── SOLICITAÇÕES DE ACESSO ── */
+        .solicitacao-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 13px 14px;
+            border: 1.5px solid var(--borda);
+            border-radius: 12px;
+            margin-bottom: 10px;
+            background: var(--bg-card);
+            transition: border-color .2s;
+        }
+        .solicitacao-card:hover { border-color: #7c3aed; }
+        .solicitacao-info { flex: 1; min-width: 0; }
+        .solicitacao-nome {
+            font-weight: 700;
+            font-size: .92rem;
+            color: var(--texto-principal);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .solicitacao-meta {
+            font-size: .76rem;
+            color: var(--texto-secundario);
+            margin-top: 2px;
+        }
+        .solicitacao-acoes { display: flex; gap: 7px; flex-shrink: 0; }
+        .btn-aprovar, .btn-rejeitar {
+            padding: 7px 13px;
+            border-radius: 8px;
+            border: none;
+            font-size: .8rem;
+            font-weight: 700;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: opacity .2s, transform .15s;
+        }
+        .btn-aprovar { background: #059669; color: #fff; }
+        .btn-rejeitar { background: #fee2e2; color: #dc2626; }
+        body.dark-mode .btn-rejeitar { background: #450a0a; color: #fca5a5; }
+        .btn-aprovar:active, .btn-rejeitar:active { transform: scale(.95); opacity: .85; }
+    </style>
 </head>
 <body>
 
