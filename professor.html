@@ -146,209 +146,317 @@
             padding: 16px 16px calc(80px + env(safe-area-inset-bottom)) 16px;
         }
 
-        /* ── LOGIN (tela única) ─────────────────────── */
+        /* ══════════════════════════════════════════
+           LOGIN — Dark Mode (design Figma)
+           ══════════════════════════════════════════ */
         #tela-login {
+            min-height: 100dvh;
+            background: #080c14;
             display: flex;
             flex-direction: column;
-            min-height: 100dvh;
-            padding: 0;
-        }
-
-        /* Hero */
-        .login-hero {
-            background: linear-gradient(140deg, #7c3aed 0%, #5b21b6 60%, #4c1d95 100%);
-            padding: 22px 20px 50px;
-            padding-top: calc(22px + env(safe-area-inset-top));
+            align-items: center;
+            justify-content: center;
+            padding: env(safe-area-inset-top) 20px env(safe-area-inset-bottom);
             position: relative;
             overflow: hidden;
-            flex-shrink: 0;
         }
-        .login-hero::before {
+
+        /* Glow de fundo */
+        #tela-login::before {
             content: '';
             position: absolute;
-            top: -60px; right: -60px;
-            width: 220px; height: 220px;
+            top: -120px; left: 50%;
+            transform: translateX(-50%);
+            width: 500px; height: 500px;
             border-radius: 50%;
-            background: rgba(255,255,255,.04);
+            background: radial-gradient(circle, rgba(59,127,255,.12) 0%, transparent 70%);
             pointer-events: none;
         }
-        /* Segundo círculo menor na esquerda */
-        .login-hero-deco {
-            position: absolute;
-            bottom: 30px; left: -30px;
-            width: 120px; height: 120px;
-            border-radius: 50%;
-            background: rgba(255,255,255,.03);
-            pointer-events: none;
-            z-index: 0;
-        }
-        .login-hero::after {
+        #tela-login::after {
             content: '';
             position: absolute;
-            bottom: -30px; left: 0; right: 0;
-            height: 60px;
-            background: var(--bg-body);
-            border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+            bottom: -80px; right: -80px;
+            width: 300px; height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(34,197,94,.06) 0%, transparent 70%);
+            pointer-events: none;
         }
-        .login-hero-topo {
-            display: flex; align-items: center; gap: 10px;
-            margin-bottom: 16px; position: relative; z-index: 1;
-        }
-        .login-hero-topo img { width: 28px; height: 28px; border-radius: 7px; }
-        .login-hero-topo .logo-nome { font-size: 1.05rem; font-weight: 800; color: #fff; letter-spacing: -.3px; }
-        .login-hero-topo .btn-voltar-hero,
-        .login-hero-topo .btn-dark-hero {
-            background: rgba(255,255,255,.13); border: 1.5px solid rgba(255,255,255,.22);
-            border-radius: 50%; width: 32px; height: 32px;
+
+        /* Botão dark mode flutuante */
+        .login-btn-dark {
+            position: absolute;
+            top: calc(16px + env(safe-area-inset-top));
+            right: 16px;
+            background: rgba(255,255,255,.08);
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 50%;
+            width: 36px; height: 36px;
             display: flex; align-items: center; justify-content: center;
-            color: #fff; font-size: .85rem; cursor: pointer; transition: background .2s;
+            font-size: .95rem; cursor: pointer;
+            transition: background .2s;
+            z-index: 10;
         }
-        .login-hero-topo .btn-voltar-hero { margin-left: auto; }
-        .login-hero-titulo {
-            font-size: 1.45rem; font-weight: 700; color: #fff;
-            letter-spacing: -.3px; line-height: 1.2; margin-bottom: 4px;
-            position: relative; z-index: 1;
+        .login-btn-dark:active { background: rgba(255,255,255,.15); }
+
+        /* Logo section */
+        .login-logo-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 28px;
+            animation: fadeUp .5s ease both;
         }
-        .login-hero-sub {
-            font-size: .82rem; color: rgba(255,255,255,.6);
-            position: relative; z-index: 1;
+        .login-logo-icon {
+            width: 64px; height: 64px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #3b7fff, #1d4ed8);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem;
+            margin-bottom: 14px;
+            box-shadow: 0 8px 32px rgba(59,127,255,.35);
+        }
+        .login-logo-nome {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #ffffff;
+            letter-spacing: -.5px;
         }
 
-        /* Card flutuante */
-        .login-card-float {
-            margin: -26px 16px 0;
-            background: var(--bg-card);
-            border-radius: 20px;
-            padding: 20px 18px 18px;
-            border: 1px solid var(--borda);
-            box-shadow: 0 4px 24px rgba(109,40,217,.12), 0 1px 4px rgba(0,0,0,.06);
-            position: relative; z-index: 2;
-            animation: cardEntrar .5s cubic-bezier(.34,1.56,.64,1) both .1s;
-        }
-        @keyframes cardEntrar {
-            from { opacity:0; transform: translateY(24px) scale(.97); }
-            to   { opacity:1; transform: translateY(0) scale(1); }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* Selector de nome compacto */
-        .select-nome-wrap { position: relative; margin-bottom: 22px; }
-        .select-nome-wrap label {
-            font-size: .7rem; font-weight: 700; text-transform: uppercase;
-            letter-spacing: .07em; color: var(--texto-secundario);
-            display: block; margin-bottom: 7px;
+        /* Card principal */
+        .login-card {
+            width: 100%;
+            max-width: 360px;
+            background: #111827;
+            border: 1px solid rgba(255,255,255,.07);
+            border-radius: 24px;
+            padding: 28px 24px 24px;
+            box-shadow: 0 24px 64px rgba(0,0,0,.5);
+            animation: fadeUp .5s ease both .1s;
         }
-        .select-nome-wrap select {
-            width: 100%; padding: 13px 38px 13px 14px;
-            border: 1.5px solid var(--borda); border-radius: 12px;
-            font-size: .9rem; font-family: 'Poppins', sans-serif;
-            background: var(--bg-input); color: var(--texto-principal);
-            outline: none; -webkit-appearance: none; cursor: pointer;
+
+        /* ── PASSO 1: selecionar perfil ── */
+        #login-step1 { display: flex; flex-direction: column; }
+        #login-step2 { display: none; flex-direction: column; align-items: center; }
+
+        .login-card-titulo {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+        .login-card-sub {
+            font-size: .83rem;
+            color: #6b7280;
+            text-align: center;
+            margin-bottom: 22px;
+        }
+
+        /* Select estilizado */
+        .login-select-wrap { position: relative; margin-bottom: 14px; }
+        .login-select-wrap select {
+            width: 100%;
+            padding: 15px 42px 15px 16px;
+            background: #1f2937;
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 14px;
+            color: #d1d5db;
+            font-size: .93rem;
+            font-family: 'Poppins', sans-serif;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
             transition: border-color .2s, box-shadow .2s;
         }
-        .select-nome-wrap select:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.12); }
-        .select-nome-wrap::after {
-            content: '▾'; position: absolute; right: 13px; bottom: 15px;
-            color: var(--texto-secundario); pointer-events: none; font-size: .9rem;
+        .login-select-wrap select:focus {
+            border-color: #3b7fff;
+            box-shadow: 0 0 0 3px rgba(59,127,255,.15);
+        }
+        .login-select-wrap::after {
+            content: '';
+            position: absolute;
+            right: 16px; top: 50%;
+            transform: translateY(-50%);
+            width: 0; height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid #6b7280;
+            pointer-events: none;
         }
 
-        /* Divider */
-        .pin-divider {
-            display: flex; align-items: center; gap: 10px;
-            margin-bottom: 18px;
+        /* Botão continuar */
+        .btn-continuar {
+            width: 100%;
+            padding: 15px;
+            background: #1f2937;
+            color: #6b7280;
+            border: none;
+            border-radius: 14px;
+            font-size: .95rem;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: background .25s, color .25s, box-shadow .25s, transform .15s;
+            margin-top: 4px;
         }
-        .pin-divider::before, .pin-divider::after {
-            content: ''; flex: 1; height: 1px; background: var(--borda);
+        .btn-continuar.ativo {
+            background: #3b7fff;
+            color: #fff;
+            box-shadow: 0 6px 20px rgba(59,127,255,.35);
         }
-        .pin-divider span {
-            font-size: .69rem; font-weight: 700; text-transform: uppercase;
-            letter-spacing: .08em; color: var(--texto-secundario); white-space: nowrap;
+        .btn-continuar:active { transform: scale(.97); }
+
+        /* ── PASSO 2: PIN ── */
+        /* Cabeçalho: back + avatar + nome */
+        .pin-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            align-self: stretch;
+            margin-bottom: 28px;
+        }
+        .pin-back-btn {
+            width: 36px; height: 36px;
+            background: #1f2937;
+            border: 1px solid rgba(255,255,255,.1);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #9ca3af;
+            font-size: 1rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: background .2s;
+        }
+        .pin-back-btn:active { background: #374151; }
+        .pin-usuario-pill {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #1f2937;
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 30px;
+            padding: 8px 14px 8px 8px;
+        }
+        .pin-avatar-circle {
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b7fff, #1d4ed8);
+            display: flex; align-items: center; justify-content: center;
+            font-size: .75rem;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .pin-usuario-nome {
+            font-size: .88rem;
+            font-weight: 600;
+            color: #e5e7eb;
         }
 
-        /* PIN boxes — grandes e táteis */
-        /* PIN: input invisível + 4 divs visuais */
+        /* Ícone de impressão digital */
+        .pin-fingerprint {
+            width: 64px; height: 64px;
+            background: rgba(59,127,255,.12);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.8rem;
+            margin-bottom: 16px;
+        }
+        .pin-titulo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+        .pin-sub {
+            font-size: .8rem;
+            color: #6b7280;
+            margin-bottom: 28px;
+        }
+
+        /* PIN wrapper */
         .pin-wrapper {
             position: relative;
             display: flex;
             justify-content: center;
-            margin-bottom: 22px;
+            margin-bottom: 24px;
+            align-self: stretch;
         }
-
-        /* Input real — invisível, cobre toda a área dos dots */
         #pin-input-real {
             position: absolute;
             inset: 0;
             opacity: 0;
-            width: 100%;
-            height: 100%;
-            font-size: 16px; /* evita zoom no iOS */
-            border: none;
-            outline: none;
+            width: 100%; height: 100%;
+            font-size: 16px;
+            border: none; outline: none;
             background: transparent;
             cursor: pointer;
             z-index: 2;
         }
-
-        .pin-dots {
-            display: flex;
-            gap: 12px;
-            pointer-events: none;
-        }
-
+        .pin-dots { display: flex; gap: 10px; pointer-events: none; }
         .pin-dot {
-            width: 60px; height: 66px;
-            border: 2px solid var(--borda);
+            width: 58px; height: 64px;
+            border: 2px solid rgba(255,255,255,.1);
             border-radius: 14px;
-            background: var(--bg-input);
+            background: #1f2937;
             display: flex; align-items: center; justify-content: center;
-            transition: border-color .15s, box-shadow .15s, transform .12s, background .15s;
+            transition: border-color .15s, box-shadow .15s, transform .12s;
             position: relative;
         }
-
-        /* Placeholder visível no estado vazio */
         .pin-dot::before {
             content: '';
-            width: 10px; height: 10px;
+            width: 9px; height: 9px;
             border-radius: 50%;
-            background: var(--borda);
+            background: rgba(255,255,255,.15);
             transition: background .15s, transform .15s;
         }
-
-        /* Dot ativo (cursor piscando simulado) */
         .pin-dot.ativo {
-            border-color: #7c3aed;
-            box-shadow: 0 0 0 3px rgba(124,58,237,.15);
+            border-color: #3b7fff;
+            box-shadow: 0 0 0 3px rgba(59,127,255,.2);
             transform: scale(1.07);
         }
-        .pin-dot.ativo::before { background: #7c3aed; transform: scale(1.3); }
-
-        /* Dot preenchido — mostra o ● e esconde o ::before */
-        .pin-dot.preenchido {
-            border-color: #7c3aed;
-            background: var(--bg-card);
-        }
+        .pin-dot.ativo::before { background: #3b7fff; transform: scale(1.3); }
+        .pin-dot.preenchido { border-color: #3b7fff; background: rgba(59,127,255,.1); }
         .pin-dot.preenchido::before { display: none; }
-
         .pin-dot .pin-char {
-            font-size: 1.6rem;
-            font-weight: 800;
-            color: var(--texto-principal);
-            line-height: 1;
+            font-size: 1.5rem; font-weight: 800; color: #fff; line-height: 1;
         }
 
         /* Botão entrar */
         .btn-entrar {
-            width: 100%; padding: 14px;
-            background: linear-gradient(135deg, #7c3aed, #6d28d9);
-            color: #fff; border: none; border-radius: 12px;
-            font-size: .95rem; font-weight: 700; font-family: 'Poppins', sans-serif;
-            cursor: pointer; box-shadow: 0 4px 14px rgba(109,40,217,.3);
-            transition: opacity .2s, transform .15s;
+            width: 100%; padding: 15px;
+            background: #1f2937;
+            color: #6b7280;
+            border: none; border-radius: 14px;
+            font-size: .95rem; font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            transition: background .25s, color .25s, box-shadow .25s, transform .15s;
+            align-self: stretch;
         }
-        .btn-entrar:active { transform: scale(.97); opacity: .9; }
+        .btn-entrar.ativo {
+            background: #3b7fff;
+            color: #fff;
+            box-shadow: 0 6px 20px rgba(59,127,255,.35);
+        }
+        .btn-entrar:active { transform: scale(.97); }
         .btn-entrar:disabled { opacity: .6; cursor: not-allowed; transform: none; }
 
-        .login-link { text-align: center; margin-top: 14px; font-size: .77rem; color: var(--texto-secundario); }
-        .login-link a { color: #7c3aed; font-weight: 600; text-decoration: none; }
+        /* Footer */
+        .login-footer {
+            margin-top: 20px;
+            font-size: .72rem;
+            color: #374151;
+            text-align: center;
+            animation: fadeUp .5s ease both .2s;
+        }
+        .login-footer a { color: #3b7fff; text-decoration: none; font-weight: 600; }
 
         /* ── ABAS (TELAS) ──────────────────────────── */
         .tela { display: none; }
@@ -793,56 +901,77 @@
 <!-- ── CONTEÚDO PRINCIPAL ─────────────────────────────── -->
 <main id="app-content">
 
-    <!-- LOGIN TELA ÚNICA -->
-    <div id="tela-login" style="padding:0;">
-        <div class="login-hero">
-            <div class="login-hero-deco"></div>
-            <div class="login-hero-topo">
-                <img src="icon-192.png" alt="Locus">
-                <span class="logo-nome">Locus</span>
-                <button class="btn-dark-hero" id="btn-dark-mode" onclick="toggleDarkMode()" title="Modo escuro">&#127769;</button>
-            </div>
-            <div class="login-hero-titulo">&#128274; Seu acesso</div>
-            <div class="login-hero-sub">Selecione seu nome e digite o PIN.</div>
+    <!-- LOGIN — dark design Figma -->
+    <div id="tela-login">
+
+        <!-- Botão dark mode -->
+        <button class="login-btn-dark" id="btn-dark-mode" onclick="toggleDarkMode()">🌙</button>
+
+        <!-- Logo -->
+        <div class="login-logo-section">
+            <div class="login-logo-icon">📅</div>
+            <div class="login-logo-nome">Locus</div>
         </div>
 
-        <div class="login-card-float">
-            <!-- Nome (compacto) -->
-            <div class="select-nome-wrap">
-                <label>Quem é você?</label>
-                <select id="select-nome-login">
-                    <option value="">Carregando...</option>
-                </select>
-            </div>
+        <!-- Card -->
+        <div class="login-card">
 
-            <!-- Divisor -->
-            <div class="pin-divider"><span>PIN de acesso</span></div>
+            <!-- PASSO 1: selecionar perfil -->
+            <div id="login-step1">
+                <div class="login-card-titulo">Bem-vindo</div>
+                <div class="login-card-sub">Selecione seu perfil para acessar</div>
 
-            <!-- PIN: input único invisível + visuais -->
-            <div class="pin-wrapper" onclick="document.getElementById('pin-input-real').focus()">
-                <input
-                    type="tel"
-                    id="pin-input-real"
-                    maxlength="4"
-                    inputmode="numeric"
-                    pattern="[0-9]*"
-                    autocomplete="one-time-code"
-                    placeholder=""
-                >
-                <div class="pin-dots">
-                    <div class="pin-dot ativo" id="pd0"><span class="pin-char" id="pc0"></span></div>
-                    <div class="pin-dot" id="pd1"><span class="pin-char" id="pc1"></span></div>
-                    <div class="pin-dot" id="pd2"><span class="pin-char" id="pc2"></span></div>
-                    <div class="pin-dot" id="pd3"><span class="pin-char" id="pc3"></span></div>
+                <div class="login-select-wrap">
+                    <select id="select-nome-login" onchange="onSelectNome(this)">
+                        <option value="">Escolha seu perfil...</option>
+                    </select>
                 </div>
+
+                <button class="btn-continuar" id="btn-continuar" onclick="irParaPin()" disabled>
+                    Continuar
+                </button>
             </div>
 
-            <button class="btn-entrar" id="btn-login" onclick="fazerLogin()">Entrar</button>
+            <!-- PASSO 2: PIN -->
+            <div id="login-step2">
+                <!-- Cabeçalho: voltar + avatar + nome -->
+                <div class="pin-header">
+                    <button class="pin-back-btn" onclick="voltarStep1()">&#8592;</button>
+                    <div class="pin-usuario-pill">
+                        <div class="pin-avatar-circle" id="pin-avatar-iniciais">?</div>
+                        <span class="pin-usuario-nome" id="pin-usuario-nome">—</span>
+                    </div>
+                </div>
 
-            <div class="login-link">
-                Primeiro acesso? <a href="cadasto.html">Ativar meu acesso</a>
+                <!-- Fingerprint + título -->
+                <div class="pin-fingerprint">&#128273;</div>
+                <div class="pin-titulo">Digite seu PIN</div>
+                <div class="pin-sub">Use o teclado do celular</div>
+
+                <!-- PIN boxes -->
+                <div class="pin-wrapper" onclick="document.getElementById('pin-input-real').focus()">
+                    <input type="tel" id="pin-input-real" maxlength="4"
+                           inputmode="numeric" pattern="[0-9]*"
+                           autocomplete="one-time-code">
+                    <div class="pin-dots">
+                        <div class="pin-dot ativo" id="pd0"><span class="pin-char" id="pc0"></span></div>
+                        <div class="pin-dot" id="pd1"><span class="pin-char" id="pc1"></span></div>
+                        <div class="pin-dot" id="pd2"><span class="pin-char" id="pc2"></span></div>
+                        <div class="pin-dot" id="pd3"><span class="pin-char" id="pc3"></span></div>
+                    </div>
+                </div>
+
+                <button class="btn-entrar" id="btn-login" onclick="fazerLogin()" disabled>Entrar</button>
             </div>
+
         </div>
+
+        <!-- Footer -->
+        <div class="login-footer">
+            © 2026 Locus · Todos os direitos reservados<br>
+            Primeiro acesso? <a href="cadasto.html">Solicitar acesso</a>
+        </div>
+
     </div>
 
         <!-- TELA AGENDAR -->
