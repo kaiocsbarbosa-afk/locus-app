@@ -58,7 +58,7 @@ async function carregarListaNomesLogin() {
 
         if (error) throw error;
 
-        select.innerHTML = '<option value="">Selecione seu nome...</option>';
+        select.innerHTML = '<option value="">Escolha seu perfil...</option>';
 
         (data || []).forEach(p => {
             const opt = document.createElement('option');
@@ -71,6 +71,59 @@ async function carregarListaNomesLogin() {
         console.error('Erro ao carregar professores:', err);
         if (select) select.innerHTML = '<option value="">Erro ao carregar</option>';
     }
+}
+
+// Ativação dinâmica do botão Continuar ao selecionar nome
+window.onSelectNome = function(select) {
+    const btn = document.getElementById('btn-continuar');
+    if (btn) {
+        const temValor = !!select.value;
+        btn.disabled = !temValor;
+        btn.classList.toggle('ativo', temValor);
+    }
+}
+
+// Navega para o passo 2 (PIN)
+window.irParaPin = function() {
+    const select = document.getElementById('select-nome-login');
+    if (!select?.value) return;
+
+    const nome = select.options[select.selectedIndex]?.text || '';
+
+    // Avatar com iniciais
+    const partes = nome.trim().split(' ').filter(Boolean);
+    const iniciais = partes.length >= 2
+        ? partes[0][0] + partes[partes.length-1][0]
+        : partes[0]?.slice(0,2) || '?';
+
+    const elIniciais = document.getElementById('pin-avatar-iniciais');
+    const elNome = document.getElementById('pin-usuario-nome');
+    if (elIniciais) elIniciais.textContent = iniciais.toUpperCase();
+    if (elNome) elNome.textContent = nome;
+
+    // Limpa PIN
+    const inputReal = document.getElementById('pin-input-real');
+    if (inputReal) inputReal.value = '';
+    [0,1,2,3].forEach(i => {
+        const d = document.getElementById('pd'+i);
+        const ch = document.getElementById('pc'+i);
+        if (d) { d.classList.remove('ativo','preenchido'); if(i===0) d.classList.add('ativo'); }
+        if (ch) ch.textContent = '';
+    });
+
+    // Troca step
+    document.getElementById('login-step1').style.display = 'none';
+    document.getElementById('login-step2').style.display = 'flex';
+
+    setTimeout(() => document.getElementById('pin-input-real')?.focus(), 150);
+}
+
+// Volta ao passo 1
+window.voltarStep1 = function() {
+    document.getElementById('login-step2').style.display = 'none';
+    document.getElementById('login-step1').style.display = 'flex';
+    const btn = document.getElementById('btn-login');
+    if (btn) { btn.disabled = true; btn.classList.remove('ativo'); btn.textContent = 'Entrar'; }
 }
 
 // ============================================================
@@ -729,7 +782,7 @@ supabase
         if (payload.eventType === 'DELETE') {
             await Swal.fire({ icon: 'warning', title: 'Acesso removido', text: 'Sua conta foi removida pela coordenação.', confirmButtonColor: '#7c3aed', allowOutsideClick: false });
             await supabase.auth.signOut();
-            window.location.href = 'index.html';
+            window.location.href = 'professor.html';
             return;
         }
 
