@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Locus</title>
+    <title>Locus - Início</title>
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./apple-touch-icon.png">
     <meta name="theme-color" content="#7c3aed" id="meta-theme">
@@ -11,6 +11,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Locus">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
     <style>
     *, *::before, *::after {
         box-sizing: border-box; margin: 0; padding: 0;
@@ -29,10 +30,10 @@
         --subtexto:          #6b7280;
         --borda:             #e5e7eb;
         --bg:                #f5f3ff;
-        --card:              #ffffff;
-        --card-shadow:       0 2px 12px rgba(109,40,217,.08), 0 1px 3px rgba(0,0,0,.04);
-        --card-shadow-hover: 0 8px 28px rgba(109,40,217,.15), 0 2px 6px rgba(0,0,0,.06);
-        --hero-grad:         linear-gradient(140deg, #7c3aed 0%, #5b21b6 60%, #4c1d95 100%);
+        --card:              rgba(255, 255, 255, 0.85);
+        --card-border:       rgba(255, 255, 255, 0.6);
+        --card-shadow:       0 8px 32px rgba(109, 40, 217, 0.08);
+        --hero-grad:         linear-gradient(135deg, #7c3aed, #5b21b6, #3b0764);
         --retorno-grad:      linear-gradient(135deg, #7c3aed, #5b21b6);
     }
 
@@ -42,18 +43,14 @@
         --subtexto:          #9ca3af;
         --borda:             #2d2a45;
         --bg:                #0f0d1a;
-        --card:              #1a1730;
+        --card:              rgba(26, 23, 48, 0.75);
+        --card-border:       rgba(255, 255, 255, 0.05);
         --roxo-claro:        #2e1065;
         --verde-claro:       #064e3b;
         --laranja-claro:     #451a03;
-        --card-shadow:       0 2px 12px rgba(0,0,0,.35);
-        --card-shadow-hover: 0 8px 28px rgba(0,0,0,.5);
-        --hero-grad:         linear-gradient(140deg, #5b21b6 0%, #3b1280 60%, #1e0a4b 100%);
+        --card-shadow:       0 8px 32px rgba(0, 0, 0, 0.4);
+        --hero-grad:         linear-gradient(135deg, #4c1d95, #2e1065, #0f0d1a);
         --retorno-grad:      linear-gradient(135deg, #5b21b6, #3b1280);
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
     }
 
     html { height: 100%; overflow: hidden; }
@@ -66,519 +63,259 @@
         flex-direction: column;
         background: var(--bg);
         color: var(--texto);
-        transition: background .3s, color .3s;
+        transition: background .4s ease, color .4s ease;
     }
 
-    /* ── SPLASH ─────────────────────────────────────────── */
-    #splash {
-        position: fixed;
-        inset: 0;
-        background: var(--hero-grad);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        transition: opacity .55s cubic-bezier(.4,0,.2,1), transform .55s cubic-bezier(.4,0,.2,1);
+    /* ── ANIMAÇÕES GERAIS ───────────────────────────────── */
+    @keyframes gradientAnim {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
     }
-
-    #splash.saindo { opacity: 0; transform: scale(1.05); pointer-events: none; }
-
-    .splash-icon {
-        width: 104px;
-        height: 104px;
-        border-radius: 30px;
-        background: rgba(255,255,255,.13);
-        border: 1.5px solid rgba(255,255,255,.18);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 24px;
-        animation: pulsar 2s ease-in-out infinite;
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-8px); }
+        100% { transform: translateY(0px); }
     }
-
-    .splash-icon img { width: 68px; height: 68px; border-radius: 18px; }
-
-    .splash-nome {
-        font-size: 2.8rem;
-        font-weight: 800;
-        color: #fff;
-        letter-spacing: -2px;
-        animation: surgir .65s cubic-bezier(.34,1.56,.64,1) both .15s;
-    }
-
-    .splash-sub {
-        font-size: .85rem;
-        color: rgba(255,255,255,.55);
-        margin-top: 6px;
-        letter-spacing: .02em;
-        animation: surgir .65s cubic-bezier(.34,1.56,.64,1) both .28s;
-    }
-
-    .splash-loader {
-        margin-top: 60px;
-        width: 48px;
-        height: 3px;
-        background: rgba(255,255,255,.15);
-        border-radius: 2px;
-        overflow: hidden;
-        animation: surgir .5s ease both .4s;
-    }
-
-    .splash-loader-barra {
-        height: 100%;
-        background: rgba(255,255,255,.85);
-        border-radius: 2px;
-        animation: carregar 2s cubic-bezier(.4,0,.2,1) forwards;
-    }
-
-    @keyframes pulsar {
-        0%,100% { transform: scale(1);    box-shadow: 0 0 0 0   rgba(255,255,255,.18); }
-        50%      { transform: scale(1.06); box-shadow: 0 0 0 20px rgba(255,255,255,0); }
-    }
-    @keyframes surgir {
-        from { opacity: 0; transform: translateY(14px) scale(.97); }
+    @keyframes surgirDeBaixo {
+        from { opacity: 0; transform: translateY(25px) scale(0.95); }
         to   { opacity: 1; transform: translateY(0) scale(1); }
     }
-    @keyframes carregar {
-        from { width: 0%; }
-        to   { width: 100%; }
-    }
-    @keyframes surgirHero {
-        from { opacity: 0; transform: translateX(-12px); }
-        to   { opacity: 1; transform: translateX(0); }
-    }
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to   { opacity: 1; }
+    @keyframes rippleEffect {
+        to { transform: scale(4); opacity: 0; }
     }
 
-    /* ── HERO ───────────────────────────────────────────── */
+    /* ── SPLASH SCREEN ──────────────────────────────────── */
+    #splash {
+        position: fixed; inset: 0;
+        background: var(--hero-grad);
+        background-size: 200% 200%;
+        animation: gradientAnim 5s ease infinite;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        z-index: 9999;
+        transition: opacity .6s cubic-bezier(0.4, 0, 0.2, 1), transform .6s;
+    }
+    #splash.saindo { opacity: 0; transform: scale(1.1); pointer-events: none; }
+    
+    .splash-icon {
+        width: 110px; height: 110px;
+        border-radius: 32px;
+        background: rgba(255,255,255,.1);
+        border: 1px solid rgba(255,255,255,.2);
+        backdrop-filter: blur(10px);
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 24px;
+        animation: float 3s ease-in-out infinite;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .splash-icon img { width: 72px; height: 72px; border-radius: 18px; }
+    .splash-nome { font-size: 3rem; font-weight: 800; color: #fff; letter-spacing: -2px; }
+    .splash-loader {
+        margin-top: 50px; width: 60px; height: 4px;
+        background: rgba(255,255,255,.15); border-radius: 4px; overflow: hidden;
+    }
+    .splash-loader-barra {
+        height: 100%; width: 0%; background: #fff; border-radius: 4px;
+        transition: width 1.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ── HERO (FUNDO ANIMADO) ───────────────────────────── */
     .hero {
         background: var(--hero-grad);
-        padding: 20px 22px 46px;
-        padding-top: calc(20px + env(safe-area-inset-top));
-        flex-shrink: 0;
-        position: relative;
-        overflow: hidden;
-        transition: background .4s;
+        background-size: 200% 200%;
+        animation: gradientAnim 8s ease infinite;
+        padding: calc(24px + env(safe-area-inset-top)) 24px 50px;
+        position: relative; overflow: hidden; flex-shrink: 0;
+        border-radius: 0 0 35px 35px;
+        box-shadow: 0 10px 30px rgba(109, 40, 217, 0.15);
     }
-
-    /* Círculo decorativo */
-    .hero::before {
-        content: '';
-        position: absolute;
-        top: -50px; right: -50px;
-        width: 200px; height: 200px;
-        border-radius: 50%;
-        background: rgba(255,255,255,.04);
+    .hero::after {
+        content: ''; position: absolute; top: -50%; left: -50%;
+        width: 200%; height: 200%;
+        background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.08) 0%, transparent 60%);
         pointer-events: none;
     }
-
-    /* Segundo círculo */
-    .hero::after {
-        content: '';
-        position: absolute;
-        bottom: -30px; left: 0; right: 0;
-        height: 60px;
-        background: var(--bg);
-        border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-        transition: background .3s;
-    }
-
-    .hero-topo {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 20px;
-        position: relative;
-        z-index: 1;
-    }
-
-    .hero-logo {
-        display: flex;
-        align-items: center;
-        gap: 9px;
-    }
-
-    .hero-logo img {
-        width: 30px; height: 30px;
-        border-radius: 8px;
-    }
-
-    .hero-logo span {
-        font-size: 1.15rem;
-        font-weight: 800;
-        color: #fff;
-        letter-spacing: -.5px;
-    }
-
-    /* Botão dark mode no hero */
-    .btn-dark-hero {
-        width: 34px; height: 34px;
-        border-radius: 50%;
-        border: 1.5px solid rgba(255,255,255,.25);
-        background: rgba(255,255,255,.12);
-        backdrop-filter: blur(6px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-        cursor: pointer;
-        transition: background .2s, transform .15s;
-        -webkit-tap-highlight-color: transparent;
-    }
-    .btn-dark-hero:active { transform: scale(.88); }
-
-    /* Badge de professor logado */
+    
+    .hero-topo { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; position: relative; z-index: 2; }
+    .hero-logo { display: flex; align-items: center; gap: 10px; }
+    .hero-logo img { width: 34px; height: 34px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+    .hero-logo span { font-size: 1.3rem; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+    
     .hero-badge {
-        display: none;
-        align-items: center;
-        gap: 7px;
-        background: rgba(255,255,255,.14);
-        border: 1px solid rgba(255,255,255,.22);
-        border-radius: 20px;
-        padding: 5px 12px 5px 7px;
-        font-size: .76rem;
-        color: #fff;
-        font-weight: 500;
-        backdrop-filter: blur(6px);
-        animation: surgir .4s ease both;
-        cursor: default;
+        display: none; align-items: center; gap: 8px;
+        background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25);
+        border-radius: 20px; padding: 6px 14px 6px 6px;
+        font-size: 0.8rem; color: #fff; font-weight: 600;
+        backdrop-filter: blur(8px);
     }
-
-    .hero-badge.visivel { display: flex; }
-
+    .hero-badge.visivel { display: flex; animation: surgirDeBaixo 0.5s ease; }
     .hero-badge-avatar {
-        width: 22px; height: 22px;
-        border-radius: 50%;
-        background: rgba(255,255,255,.22);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: .68rem;
+        width: 26px; height: 26px; border-radius: 50%;
+        background: rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
     }
 
-    .hero-topo-direita {
-        display: flex;
-        align-items: center;
-        gap: 8px;
+    .btn-dark-hero {
+        width: 40px; height: 40px; border-radius: 50%;
+        border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.1);
+        backdrop-filter: blur(10px); color: #fff; display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
+    .btn-dark-hero:active { transform: scale(0.85); background: rgba(255,255,255,.3); }
 
-    .hero-conteudo {
-        position: relative;
-        z-index: 1;
-    }
-
-    .hero-titulo {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #fff;
-        letter-spacing: -.5px;
-        line-height: 1.22;
-        margin-bottom: 6px;
-        animation: surgirHero .6s cubic-bezier(.34,1.56,.64,1) both .05s;
-    }
-
-    .hero-titulo .nome-destaque { color: #ddd6fe; }
-
-    .hero-sub {
-        font-size: .83rem;
-        color: rgba(255,255,255,.6);
-        line-height: 1.5;
-        animation: surgirHero .6s cubic-bezier(.34,1.56,.64,1) both .12s;
-    }
+    .hero-titulo { font-size: 1.8rem; font-weight: 700; color: #fff; line-height: 1.2; margin-bottom: 8px; position: relative; z-index: 2; }
+    .hero-titulo .nome-destaque { color: #d8b4fe; font-weight: 800; }
+    .hero-sub { font-size: 0.9rem; color: rgba(255,255,255,.75); position: relative; z-index: 2; }
 
     /* ── CONTEÚDO PRINCIPAL ─────────────────────────────── */
     #app-content {
-        flex: 1;
-        overflow-y: auto;
-        overflow-x: hidden;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior-y: contain;
-        padding: 10px 18px calc(28px + env(safe-area-inset-bottom));
-        min-height: 0;
+        flex: 1; overflow-y: auto; overflow-x: hidden;
+        padding: 24px 20px calc(30px + env(safe-area-inset-bottom));
+        margin-top: -20px; /* Sobrepõe levemente o hero */
+        z-index: 3; position: relative;
     }
 
-    /* ── LABEL DE SEÇÃO ─────────────────────────────────── */
     .secao-label {
-        font-size: .68rem;
-        font-weight: 700;
-        color: var(--subtexto);
-        text-transform: uppercase;
-        letter-spacing: .12em;
-        margin: 22px 2px 10px;
-        opacity: .8;
+        font-size: 0.75rem; font-weight: 700; color: var(--subtexto);
+        text-transform: uppercase; letter-spacing: 0.15em;
+        margin: 24px 4px 12px; opacity: 0.8;
     }
 
-    /* ── CARDS DE NAVEGAÇÃO ─────────────────────────────── */
+    /* ── CARDS DE NAVEGAÇÃO (GLASSMORPHISM & RIPPLE) ────── */
     .nav-card {
-        display: flex;
-        align-items: center;
-        gap: 14px;
+        display: flex; align-items: center; gap: 16px;
         background: var(--card);
-        border: 1px solid var(--borda);
-        border-radius: 18px;
-        padding: 15px 14px;
-        text-decoration: none;
-        margin-bottom: 10px;
-        position: relative;
-        overflow: hidden;
+        border: 1px solid var(--card-border);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 20px;
+        padding: 18px 16px; text-decoration: none;
+        margin-bottom: 14px; position: relative; overflow: hidden;
         box-shadow: var(--card-shadow);
-        /* entrada animada */
-        opacity: 0;
-        transform: translateY(18px) scale(.97);
-        transition: background .3s, border-color .3s, box-shadow .3s;
-        will-change: transform, opacity;
+        opacity: 0; transform: translateY(30px);
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s, background 0.4s;
     }
 
-    .nav-card.animado {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        transition:
-            transform .5s cubic-bezier(.34,1.56,.64,1),
-            box-shadow .22s ease,
-            opacity .35s ease,
-            background .3s,
-            border-color .3s;
+    .nav-card.animado { opacity: 1; transform: translateY(0); }
+    
+    /* Hover/Active states */
+    @media (hover: hover) {
+        .nav-card:hover {
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 15px 35px rgba(109, 40, 217, 0.15);
+            background: var(--bg);
+        }
     }
+    .nav-card:active { transform: scale(0.96) !important; }
 
-    .nav-card:active {
-        transform: scale(.97) !important;
-        box-shadow: var(--card-shadow) !important;
-        opacity: .88 !important;
+    /* Efeito Ripple */
+    .ripple {
+        position: absolute; border-radius: 50%;
+        transform: scale(0); animation: rippleEffect 0.6s linear;
+        background: rgba(124, 58, 237, 0.15); pointer-events: none;
     }
+    body.dark-mode .ripple { background: rgba(255, 255, 255, 0.1); }
 
-    /* Acento colorido na borda esquerda */
-    .nav-card::before {
-        content: '';
-        position: absolute;
-        left: 0; top: 16%; bottom: 16%;
-        width: 3px;
-        border-radius: 0 3px 3px 0;
-        background: var(--roxo);
-        opacity: 0;
-        transition: opacity .3s;
-    }
-    .nav-card.verde::before  { background: var(--verde); }
-    .nav-card.laranja::before { background: var(--laranja); }
-    .nav-card.animado::before { opacity: 1; }
-
-    /* Gradiente sutil no canto direito */
-    .nav-card::after {
-        content: '';
-        position: absolute;
-        top: 0; right: 0;
-        width: 90px; height: 90px;
-        background: radial-gradient(circle at top right, rgba(124,58,237,.05), transparent 70%);
-        pointer-events: none;
-    }
-    .nav-card.verde::after  { background: radial-gradient(circle at top right, rgba(5,150,105,.05), transparent 70%); }
-    .nav-card.laranja::after { background: radial-gradient(circle at top right, rgba(217,119,6,.05), transparent 70%); }
-
-    /* Ícone */
     .nav-card-icone {
-        width: 48px; height: 48px;
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.4rem;
-        flex-shrink: 0;
-        transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+        width: 54px; height: 54px; border-radius: 16px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.6rem; flex-shrink: 0;
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
+    .nav-card-icone.roxo    { background: var(--roxo-claro); color: var(--roxo); }
+    .nav-card-icone.verde   { background: var(--verde-claro); color: var(--verde); }
+    .nav-card-icone.laranja { background: var(--laranja-claro); color: var(--laranja); }
 
-    .nav-card-icone.roxo    { background: var(--roxo-claro); }
-    .nav-card-icone.verde   { background: var(--verde-claro); }
-    .nav-card-icone.laranja { background: var(--laranja-claro); }
+    .nav-card:active .nav-card-icone { transform: scale(0.85) rotate(-10deg); }
 
-    .nav-card:active .nav-card-icone { transform: scale(.88) rotate(-5deg); }
-
-    .nav-card-texto { flex: 1; min-width: 0; }
-
-    .nav-card-titulo {
-        font-size: .9rem;
-        font-weight: 600;
-        color: var(--texto);
-        letter-spacing: -.2px;
-        margin-bottom: 2px;
-        transition: color .3s;
-    }
-
-    .nav-card-desc {
-        font-size: .76rem;
-        color: var(--subtexto);
-        line-height: 1.4;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        transition: color .3s;
-    }
+    .nav-card-texto { flex: 1; min-width: 0; position: relative; z-index: 2; }
+    .nav-card-titulo { font-size: 1rem; font-weight: 700; color: var(--texto); margin-bottom: 3px; }
+    .nav-card-desc { font-size: 0.8rem; color: var(--subtexto); line-height: 1.3; }
 
     .nav-card-seta {
-        width: 26px; height: 26px;
-        border-radius: 8px;
-        background: var(--bg);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--subtexto);
-        font-size: .88rem;
-        flex-shrink: 0;
-        transition: transform .2s, background .3s;
+        width: 32px; height: 32px; border-radius: 10px; background: var(--bg);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--subtexto); font-size: 1.2rem; transition: all 0.3s;
     }
+    .nav-card:hover .nav-card-seta { background: var(--roxo-claro); color: var(--roxo); transform: translateX(4px); }
 
-    .nav-card:active .nav-card-seta { transform: translateX(3px); }
-
-    /* ── CARD DE RETORNO (professor já logado) ──────────── */
+    /* ── CARD DE RETORNO RÁPIDO ─────────────────────────── */
     .card-retorno {
-        background: var(--retorno-grad);
-        border-radius: 18px;
-        padding: 16px 15px;
-        margin-bottom: 10px;
-        display: none;
-        align-items: center;
-        gap: 14px;
-        text-decoration: none;
-        box-shadow: 0 4px 22px rgba(109,40,217,.28);
-        opacity: 0;
-        transform: translateY(18px) scale(.97);
-        will-change: transform, opacity;
+        background: var(--retorno-grad); border-radius: 20px;
+        padding: 20px; margin-bottom: 16px; display: none; align-items: center; gap: 16px;
+        text-decoration: none; box-shadow: 0 10px 30px rgba(109,40,217,.3);
+        opacity: 0; transform: translateY(20px); position: relative; overflow: hidden;
     }
-
+    .card-retorno::after {
+        content: ''; position: absolute; right: -20px; top: -20px;
+        width: 100px; height: 100px; background: rgba(255,255,255,0.1);
+        border-radius: 50%; pointer-events: none;
+    }
     .card-retorno.visivel { display: flex; }
-
-    .card-retorno.animado {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        transition:
-            transform .5s cubic-bezier(.34,1.56,.64,1),
-            box-shadow .22s ease,
-            opacity .35s ease;
-    }
-
-    .card-retorno:active {
-        transform: scale(.97) !important;
-        box-shadow: 0 2px 10px rgba(109,40,217,.2) !important;
-    }
-
+    .card-retorno.animado { opacity: 1; transform: translateY(0); transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .card-retorno:active { transform: scale(0.96) !important; }
+    
     .retorno-avatar {
-        width: 44px; height: 44px;
-        border-radius: 12px;
-        background: rgba(255,255,255,.16);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.35rem;
-        flex-shrink: 0;
+        width: 50px; height: 50px; border-radius: 14px; background: rgba(255,255,255,.2);
+        display: flex; align-items: center; justify-content: center; font-size: 1.5rem; backdrop-filter: blur(5px);
     }
+    .retorno-texto { flex: 1; z-index: 2; }
+    .retorno-titulo { font-size: 0.8rem; color: rgba(255,255,255,.8); font-weight: 500; }
+    .retorno-nome { font-size: 1.1rem; font-weight: 800; color: #fff; }
+    .retorno-seta { color: #fff; font-size: 1.5rem; transition: transform 0.3s; }
+    .card-retorno:hover .retorno-seta { transform: translateX(5px); }
 
-    .retorno-texto { flex: 1; min-width: 0; }
-
-    .retorno-titulo {
-        font-size: .76rem;
-        color: rgba(255,255,255,.68);
-        margin-bottom: 2px;
-        font-weight: 500;
-    }
-
-    .retorno-nome {
-        font-size: .97rem;
-        font-weight: 700;
-        color: #fff;
-        letter-spacing: -.3px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .retorno-seta {
-        color: rgba(255,255,255,.55);
-        font-size: 1.3rem;
-        flex-shrink: 0;
-        transition: transform .2s;
-    }
-
-    .card-retorno:active .retorno-seta { transform: translateX(3px); }
-
-    /* ── TOAST DE FEEDBACK ──────────────────────────────── */
+    /* ── TOAST & RODAPÉ ─────────────────────────────────── */
     #toast {
-        position: fixed;
-        bottom: calc(28px + env(safe-area-inset-bottom));
-        left: 50%;
-        transform: translateX(-50%) translateY(20px);
-        background: var(--texto);
-        color: var(--card);
-        font-size: .8rem;
-        font-weight: 500;
-        padding: 10px 20px;
-        border-radius: 30px;
-        white-space: nowrap;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity .25s, transform .3s cubic-bezier(.34,1.56,.64,1);
-        z-index: 9000;
-        box-shadow: 0 4px 16px rgba(0,0,0,.18);
+        position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(30px);
+        background: rgba(30, 27, 75, 0.9); backdrop-filter: blur(10px); color: #fff;
+        padding: 12px 24px; border-radius: 30px; font-weight: 600; font-size: 0.85rem;
+        opacity: 0; pointer-events: none; transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); z-index: 9000;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.2);
     }
-    #toast.visivel {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-    }
+    body.dark-mode #toast { background: rgba(255, 255, 255, 0.9); color: #000; }
+    #toast.visivel { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* ── RODAPÉ ─────────────────────────────────────────── */
-    .rodape {
-        text-align: center;
-        padding: 14px 0 4px;
-        font-size: .7rem;
-        color: var(--subtexto);
-        opacity: .5;
-        letter-spacing: .01em;
-    }
+    .rodape { text-align: center; padding: 20px 0; font-size: 0.75rem; color: var(--subtexto); opacity: 0.6; font-weight: 500; }
     </style>
 </head>
 <body>
 
-<!-- SPLASH -->
 <div id="splash">
     <div class="splash-icon">
         <img src="./icon-192.png" alt="Locus">
     </div>
     <div class="splash-nome">Locus</div>
-    <div class="splash-sub">Agendamento de salas</div>
     <div class="splash-loader">
-        <div class="splash-loader-barra"></div>
+        <div class="splash-loader-barra" id="loader-barra"></div>
     </div>
 </div>
 
-<!-- HERO -->
 <div class="hero">
     <div class="hero-topo">
         <div class="hero-logo">
             <img src="./icon-192.png" alt="Locus">
             <span>Locus</span>
         </div>
-        <div class="hero-topo-direita">
+        <div style="display: flex; gap: 10px; align-items: center;">
             <div class="hero-badge" id="hero-badge">
                 <div class="hero-badge-avatar">👨‍🏫</div>
                 <span id="hero-badge-nome"></span>
             </div>
-            <button class="btn-dark-hero" id="btn-dark" title="Alternar modo escuro" aria-label="Alternar modo escuro">🌙</button>
+            <button class="btn-dark-hero" id="btn-dark">🌙</button>
         </div>
     </div>
-    <div class="hero-conteudo">
+    <div style="position: relative; z-index: 2;">
         <div class="hero-titulo" id="hero-titulo">Olá! 👋<br>O que deseja fazer?</div>
-        <div class="hero-sub" id="hero-sub">Sistema de agendamento de salas e laboratórios.</div>
+        <div class="hero-sub" id="hero-sub">Sistema inteligente de agendamento.</div>
     </div>
 </div>
 
-<!-- TOAST -->
 <div id="toast"></div>
 
-<!-- CONTEÚDO -->
 <main id="app-content">
 
-    <!-- Card de retorno rápido (professor já logado) -->
-    <a href="professor.html" class="card-retorno" id="card-retorno">
+    <a href="professor.html" class="card-retorno interativo" id="card-retorno">
         <div class="retorno-avatar">📅</div>
         <div class="retorno-texto">
             <div class="retorno-titulo">Continuar como</div>
@@ -589,7 +326,7 @@
 
     <div class="secao-label" id="label-rapido">Acesso rápido</div>
 
-    <a href="professor.html" class="nav-card" id="card-professor">
+    <a href="professor.html" class="nav-card interativo" id="card-professor">
         <div class="nav-card-icone roxo">👨‍🏫</div>
         <div class="nav-card-texto">
             <div class="nav-card-titulo">Área do Professor</div>
@@ -598,7 +335,7 @@
         <div class="nav-card-seta">›</div>
     </a>
 
-    <a href="cadasto.html" class="nav-card verde" id="card-cadastro">
+    <a href="cadasto.html" class="nav-card interativo verde" id="card-cadastro">
         <div class="nav-card-icone verde">🚀</div>
         <div class="nav-card-texto">
             <div class="nav-card-titulo">Ativar Meu Acesso</div>
@@ -609,7 +346,7 @@
 
     <div class="secao-label">Administração</div>
 
-    <a href="coordenacao.html" class="nav-card laranja" id="card-coord">
+    <a href="coordenacao.html" class="nav-card interativo laranja" id="card-coord">
         <div class="nav-card-icone laranja">🛡️</div>
         <div class="nav-card-texto">
             <div class="nav-card-titulo">Painel da Coordenação</div>
@@ -618,7 +355,7 @@
         <div class="nav-card-seta">›</div>
     </a>
 
-    <div class="rodape">Locus v2.0 · Sistema de agendamento escolar</div>
+    <div class="rodape">Locus v2.0 · Sistema Escolar Moderno</div>
 
 </main>
 
@@ -646,8 +383,28 @@
         toast.textContent = msg;
         toast.classList.add('visivel');
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => toast.classList.remove('visivel'), 2200);
+        toastTimer = setTimeout(() => toast.classList.remove('visivel'), 2500);
     }
+
+    // ── EFEITO RIPPLE (Onda ao tocar) ──────────────────────
+    document.querySelectorAll('.interativo').forEach(card => {
+        card.addEventListener('click', function(e) {
+            let x = e.clientX - e.target.getBoundingClientRect().left;
+            let y = e.clientY - e.target.getBoundingClientRect().top;
+            let ripple = document.createElement('span');
+            ripple.classList.add('ripple');
+            ripple.style.left = `${x}px`;
+            ripple.style.top = `${y}px`;
+            
+            // Define o tamanho da onda baseado no tamanho do card
+            let maxDim = Math.max(this.clientWidth, this.clientHeight);
+            ripple.style.width = ripple.style.height = `${maxDim}px`;
+            ripple.style.transform = `translate(-50%, -50%) scale(0)`;
+            
+            this.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        });
+    });
 
     // ── SAUDAÇÃO ───────────────────────────────────────────
     const hora = new Date().getHours();
@@ -655,7 +412,6 @@
     const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
 
     // ── SESSÃO SUPABASE ────────────────────────────────────
-    // Verifica sessão JWT ativa (não depende mais de prof_pin legado)
     const sb = createClient(
         'https://ixhuqbfzwkobhrvlzwgm.supabase.co',
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84',
@@ -684,53 +440,47 @@
     }
 
     function aplicarSaudacaoGenerica() {
-        document.getElementById('hero-titulo').innerHTML =
-            `${emoji} ${periodo}!<br>O que deseja fazer?`;
+        document.getElementById('hero-titulo').innerHTML = `${emoji} ${periodo}!<br>O que deseja fazer?`;
     }
 
     function aplicarSaudacaoPersonalizada(nomeCompleto) {
         const primeiroNome = nomeCompleto.split(' ')[0];
-
-        document.getElementById('hero-titulo').innerHTML =
-            `${emoji} ${periodo},<br><span class="nome-destaque">${primeiroNome}!</span>`;
-        document.getElementById('hero-sub').textContent =
-            'Toque abaixo para agendar ou gerenciar suas reservas.';
-
-        // Badge no hero
+        document.getElementById('hero-titulo').innerHTML = `${emoji} ${periodo},<br><span class="nome-destaque">${primeiroNome}!</span>`;
+        document.getElementById('hero-sub').textContent = 'Toque abaixo para gerenciar suas reservas.';
         document.getElementById('hero-badge-nome').textContent = primeiroNome;
         document.getElementById('hero-badge').classList.add('visivel');
-
-        // Card de retorno rápido
         document.getElementById('retorno-nome').textContent = nomeCompleto;
         document.getElementById('card-retorno').classList.add('visivel');
         document.getElementById('label-rapido').textContent = 'Suas opções';
-
-        // Esconde o card de ativação (já tem conta)
+        
         const cardCadastro = document.getElementById('card-cadastro');
         if (cardCadastro) cardCadastro.style.display = 'none';
     }
 
-    // ── ANIMAÇÃO DOS CARDS (escalonada após splash) ────────
+    // ── ANIMAÇÃO DOS CARDS ─────────────────────────────────
     function animarCards() {
         const cards = document.querySelectorAll('.nav-card, .card-retorno.visivel');
         cards.forEach((card, i) => {
-            setTimeout(() => card.classList.add('animado'), i * 75);
+            setTimeout(() => card.classList.add('animado'), i * 100);
         });
     }
 
-    // ── INICIALIZAÇÃO ──────────────────────────────────────
+    // ── INICIALIZAÇÃO E SPLASH ─────────────────────────────
     const splash = document.getElementById('splash');
+    const barra = document.getElementById('loader-barra');
+    
+    // Anima a barra de progresso do splash
+    setTimeout(() => { barra.style.width = '100%'; }, 100);
 
-    // Busca sessão em paralelo com o splash
     verificarSessao();
 
-    // Splash dura 2s, depois some e anima os cards
+    // Splash dura 2s, com saída suave
     setTimeout(() => {
         splash.classList.add('saindo');
         setTimeout(() => {
             splash.style.display = 'none';
             animarCards();
-        }, 550);
+        }, 600);
     }, 2000);
 
     // ── SERVICE WORKER ─────────────────────────────────────
