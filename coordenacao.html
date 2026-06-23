@@ -9,256 +9,779 @@
     <link rel="icon" href="./icon-96.png" type="image/png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="locus.css">
     <style>
-        /* ── SOLICITAÇÕES DE ACESSO ── */
-        .solicitacao-card {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 13px 14px;
-            border: 1.5px solid var(--borda);
-            border-radius: 12px;
-            margin-bottom: 10px;
-            background: var(--bg-card);
-            transition: border-color .2s;
-        }
-        .solicitacao-card:hover { border-color: #7c3aed; }
-        .solicitacao-info { flex: 1; min-width: 0; }
-        .solicitacao-nome {
-            font-weight: 700;
-            font-size: .92rem;
-            color: var(--texto-principal);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        .solicitacao-meta {
-            font-size: .76rem;
-            color: var(--texto-secundario);
-            margin-top: 2px;
-        }
-        .solicitacao-acoes { display: flex; gap: 7px; flex-shrink: 0; }
-        .btn-aprovar, .btn-rejeitar {
-            padding: 7px 13px;
-            border-radius: 8px;
-            border: none;
-            font-size: .8rem;
-            font-weight: 700;
-            font-family: 'Poppins', sans-serif;
-            cursor: pointer;
-            transition: opacity .2s, transform .15s;
-        }
-        .btn-aprovar { background: #059669; color: #fff; }
-        .btn-rejeitar { background: #fee2e2; color: #dc2626; }
-        body.dark-mode .btn-rejeitar { background: #450a0a; color: #fca5a5; }
-        .btn-aprovar:active, .btn-rejeitar:active { transform: scale(.95); opacity: .85; }
+    *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-        /* ── BADGE PENDENTES COM PULSE ── */
-        #badge-pendentes {
-            display: none;
-            background: #ef4444;
-            color: #fff;
-            border-radius: 10px;
-            padding: 1px 7px;
-            font-size: .72rem;
-            margin-left: 6px;
-            font-weight: 700;
-            animation: pulse-badge 1.8s infinite;
-        }
+    /* ══ BASE DARK ══════════════════════════════════════ */
+    :root {
+        --bg:         #080c14;
+        --surface:    #111827;
+        --surface2:   #1f2937;
+        --border:     rgba(255,255,255,.07);
+        --border2:    rgba(255,255,255,.12);
+        --txt:        #f9fafb;
+        --txt2:       #9ca3af;
+        --txt3:       #6b7280;
+        --blue:       #3b7fff;
+        --blue-glow:  rgba(59,127,255,.25);
+        --green:      #22c55e;
+        --red:        #ef4444;
+        --red-soft:   rgba(239,68,68,.12);
+    }
 
-        @keyframes pulse-badge {
-            0%   { box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
-            70%  { box-shadow: 0 0 0 7px rgba(239,68,68,0); }
-            100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
-        }
+    html { height: 100%; }
+    body {
+        font-family: 'Poppins', sans-serif;
+        background: var(--bg);
+        color: var(--txt);
+        min-height: 100dvh;
+        margin: 0; padding: 0;
+        overflow-x: hidden;
+    }
 
-        /* ── CARDS SOLICITAÇÃO COM ANIMAÇÃO ── */
-        .solicitacao-card {
-            animation: entrar-card .3s cubic-bezier(.34,1.56,.64,1) both;
-        }
+    /* Glows decorativos */
+    body::before {
+        content: '';
+        position: fixed;
+        top: -160px; left: 50%;
+        transform: translateX(-50%);
+        width: 600px; height: 600px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(59,127,255,.08) 0%, transparent 70%);
+        pointer-events: none; z-index: 0;
+    }
 
-        @keyframes entrar-card {
-            from { opacity: 0; transform: translateY(14px) scale(.97); }
-            to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
+    /* ══ LOGIN ══════════════════════════════════════════ */
+    #secao-login-coord {
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px 20px;
+        position: relative;
+        z-index: 1;
+    }
 
-        .solicitacao-card:nth-child(2) { animation-delay: .06s; }
-        .solicitacao-card:nth-child(3) { animation-delay: .12s; }
-        .solicitacao-card:nth-child(4) { animation-delay: .18s; }
+    .login-logo-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 28px;
+        animation: fadeUp .5s ease both;
+    }
+    .login-logo-icon {
+        width: 64px; height: 64px;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #3b7fff, #1d4ed8);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.6rem;
+        margin-bottom: 14px;
+        box-shadow: 0 8px 32px rgba(59,127,255,.35);
+    }
+    .login-logo-nome {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #fff;
+        letter-spacing: -.5px;
+    }
 
-        /* ── ESTADO VAZIO MELHORADO ── */
-        .solicitacoes-vazio {
-            text-align: center;
-            padding: 24px 16px;
-            color: var(--texto-secundario);
-            font-size: .85rem;
-        }
-        .solicitacoes-vazio-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
+    .login-card {
+        width: 100%;
+        max-width: 360px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 28px 24px 24px;
+        box-shadow: 0 24px 64px rgba(0,0,0,.5);
+        animation: fadeUp .5s ease both .08s;
+    }
+    .login-card-titulo { font-size: 1.3rem; font-weight: 700; color: #fff; margin-bottom: 4px; text-align: center; }
+    .login-card-sub { font-size: .82rem; color: var(--txt3); text-align: center; margin-bottom: 22px; }
+
+    .login-input-wrap { position: relative; margin-bottom: 14px; }
+    .login-input-wrap input {
+        width: 100%;
+        padding: 15px 16px;
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        border-radius: 13px;
+        color: var(--txt);
+        font-size: .93rem;
+        font-family: 'Poppins', sans-serif;
+        outline: none;
+        transition: border-color .2s, box-shadow .2s;
+    }
+    .login-input-wrap input::placeholder { color: #4b5563; }
+    .login-input-wrap input:focus {
+        border-color: var(--blue);
+        box-shadow: 0 0 0 3px var(--blue-glow);
+    }
+    .login-input-wrap .toggle-senha {
+        position: absolute; right: 14px; top: 50%;
+        transform: translateY(-50%);
+        background: none; border: none;
+        color: var(--txt3); cursor: pointer; font-size: .9rem;
+        padding: 4px;
+    }
+
+    .btn-acessar {
+        width: 100%; padding: 15px;
+        background: var(--blue);
+        color: #fff; border: none; border-radius: 14px;
+        font-size: .95rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        box-shadow: 0 6px 20px var(--blue-glow);
+        transition: opacity .2s, transform .15s;
+    }
+    .btn-acessar:active { transform: scale(.97); opacity: .9; }
+
+    .login-footer-link {
+        text-align: center;
+        margin-top: 18px;
+        font-size: .78rem;
+        color: var(--txt3);
+    }
+    .login-footer-link a { color: var(--blue); text-decoration: none; font-weight: 600; }
+
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(14px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ══ DASHBOARD ══════════════════════════════════════ */
+    #secao-dashboard {
+        display: none;
+        flex-direction: column;
+        min-height: 100dvh;
+        position: relative;
+        z-index: 1;
+    }
+    #secao-dashboard.visivel { display: flex; }
+
+    /* Header */
+    .header-painel {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 14px 18px;
+        padding-top: calc(14px + env(safe-area-inset-top));
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(12px);
+    }
+    .header-logo {
+        display: flex; align-items: center; gap: 10px;
+    }
+    .header-logo-icon {
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #3b7fff, #1d4ed8);
+        display: flex; align-items: center; justify-content: center;
+        font-size: .9rem;
+        flex-shrink: 0;
+    }
+    .header-logo-info .titulo { font-size: .95rem; font-weight: 700; color: var(--txt); }
+    .header-logo-info .sub { font-size: .68rem; color: var(--txt3); }
+    .header-acoes { display: flex; align-items: center; gap: 8px; }
+    .badge-admin {
+        background: rgba(59,127,255,.15);
+        border: 1px solid rgba(59,127,255,.25);
+        color: #93c5fd;
+        font-size: .7rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 20px;
+    }
+    .btn-header {
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        border-radius: 8px;
+        padding: 7px 12px;
+        color: var(--txt2);
+        font-size: .78rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: background .2s, color .2s;
+        white-space: nowrap;
+    }
+    .btn-header:active { background: #374151; }
+    .btn-sair {
+        background: var(--red-soft);
+        border: 1px solid rgba(239,68,68,.2);
+        color: #f87171;
+    }
+    .btn-sair:active { background: rgba(239,68,68,.2); }
+
+    /* Conteúdo scroll */
+    .dashboard-content {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 16px 16px calc(32px + env(safe-area-inset-bottom));
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    /* Banner notificações */
+    #banner-notif {
+        display: none;
+        align-items: center;
+        gap: 12px;
+        background: linear-gradient(135deg, rgba(59,127,255,.15), rgba(59,127,255,.08));
+        border: 1px solid rgba(59,127,255,.25);
+        border-radius: 14px;
+        padding: 14px 16px;
+        cursor: pointer;
+        transition: opacity .2s, transform .15s;
+    }
+    #banner-notif.visivel { display: flex; }
+    #banner-notif:active { transform: scale(.98); opacity: .9; }
+    .banner-notif-icone { font-size: 1.4rem; flex-shrink: 0; }
+    .banner-notif-texto { flex: 1; }
+    .banner-notif-titulo { font-weight: 700; font-size: .85rem; color: #93c5fd; }
+    .banner-notif-sub { font-size: .74rem; color: #6b9fd4; margin-top: 2px; }
+    .banner-notif-seta { color: var(--blue); font-size: 1.1rem; flex-shrink: 0; }
+
+    #banner-notif-ok {
+        display: none;
+        align-items: center; gap: 10px;
+        background: rgba(34,197,94,.08);
+        border: 1px solid rgba(34,197,94,.2);
+        border-radius: 14px;
+        padding: 12px 16px;
+        font-size: .82rem; font-weight: 600; color: #86efac;
+    }
+    #banner-notif-ok.visivel { display: flex; }
+
+    /* Cards de resumo */
+    .resumo-cards {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .card-mini {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    .card-mini::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--blue), #6366f1);
+        border-radius: 16px 16px 0 0;
+    }
+    .card-mini span {
+        display: block;
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--txt);
+        letter-spacing: -2px;
+        line-height: 1;
+        margin-bottom: 6px;
+    }
+    .card-mini label {
+        font-size: .78rem;
+        color: var(--txt3);
+        font-weight: 500;
+    }
+
+    /* Cards colapsáveis */
+    .card-gerenciar {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        overflow: hidden;
+        transition: border-color .2s;
+    }
+    .card-gerenciar:has(.card-gerenciar-conteudo:not(.hidden)) {
+        border-color: rgba(59,127,255,.2);
+    }
+    .card-gerenciar-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 18px;
+        background: none;
+        border: none;
+        color: var(--txt);
+        font-size: .93rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: background .2s;
+        text-align: left;
+    }
+    .card-gerenciar-toggle:active { background: rgba(255,255,255,.03); }
+    .card-gerenciar-toggle .toggle-icon {
+        color: var(--txt3);
+        font-size: .85rem;
+        transition: transform .2s;
+    }
+    .card-gerenciar-toggle.aberto .toggle-icon { transform: rotate(180deg); }
+
+    .card-gerenciar-conteudo {
+        padding: 0 18px 18px;
+        border-top: 1px solid var(--border);
+    }
+    .card-gerenciar-conteudo.hidden { display: none; }
+
+    .separador-gerenciar {
+        display: flex; align-items: center; gap: 10px;
+        margin: 16px 0 12px;
+        font-size: .68rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .1em;
+        color: var(--txt3);
+    }
+    .separador-gerenciar::before, .separador-gerenciar::after {
+        content: ''; flex: 1; height: 1px;
+        background: var(--border);
+    }
+
+    /* Badge pendentes */
+    #badge-pendentes {
+        display: none;
+        background: var(--red);
+        color: #fff;
+        border-radius: 10px;
+        padding: 1px 7px;
+        font-size: .68rem;
+        margin-left: 7px;
+        font-weight: 700;
+        animation: pulse-badge 1.8s infinite;
+        vertical-align: middle;
+    }
+    @keyframes pulse-badge {
+        0%   { box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
+        70%  { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+        100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+    }
+
+    /* Solicitações */
+    .solicitacao-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 13px 14px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        margin-bottom: 9px;
+        animation: entrar-card .3s cubic-bezier(.34,1.56,.64,1) both;
+        transition: border-color .2s;
+    }
+    .solicitacao-card:hover { border-color: rgba(59,127,255,.3); }
+    @keyframes entrar-card {
+        from { opacity: 0; transform: translateY(12px) scale(.97); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .solicitacao-card:nth-child(2) { animation-delay: .06s; }
+    .solicitacao-card:nth-child(3) { animation-delay: .12s; }
+    .solicitacao-card:nth-child(4) { animation-delay: .18s; }
+    .solicitacao-info { flex: 1; min-width: 0; }
+    .solicitacao-nome {
+        font-weight: 700; font-size: .88rem; color: var(--txt);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .solicitacao-meta { font-size: .74rem; color: var(--txt3); margin-top: 2px; }
+    .solicitacao-acoes { display: flex; gap: 7px; flex-shrink: 0; }
+    .btn-aprovar {
+        padding: 7px 13px; border-radius: 8px; border: none;
+        background: rgba(34,197,94,.15); color: #4ade80;
+        font-size: .78rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        transition: background .2s, transform .15s;
+        border: 1px solid rgba(34,197,94,.25);
+    }
+    .btn-aprovar:active { transform: scale(.94); background: rgba(34,197,94,.25); }
+    .btn-rejeitar {
+        padding: 7px 13px; border-radius: 8px; border: none;
+        background: var(--red-soft); color: #f87171;
+        font-size: .78rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        transition: background .2s, transform .15s;
+        border: 1px solid rgba(239,68,68,.2);
+    }
+    .btn-rejeitar:active { transform: scale(.94); background: rgba(239,68,68,.2); }
+
+    .solicitacoes-vazio {
+        text-align: center; padding: 24px 16px;
+        color: var(--txt3); font-size: .83rem;
+    }
+    .solicitacoes-vazio-icon { font-size: 1.8rem; display: block; margin-bottom: 8px; opacity: .5; }
+
+    /* Lista professores */
+    .gerenciar-lista-professores { display: flex; flex-direction: column; gap: 8px; }
+    .gerenciar-item-prof {
+        display: flex; align-items: center; gap: 12px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        padding: 11px 14px;
+    }
+    .gerenciar-prof-avatar {
+        width: 36px; height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #3b7fff, #1d4ed8);
+        display: flex; align-items: center; justify-content: center;
+        font-size: .8rem; font-weight: 700; color: #fff;
+        flex-shrink: 0;
+    }
+    .gerenciar-prof-info { flex: 1; min-width: 0; }
+    .gerenciar-prof-nome { font-weight: 600; font-size: .87rem; color: var(--txt); }
+    .gerenciar-prof-disc { font-size: .74rem; color: var(--txt3); }
+    .gerenciar-vazio { text-align: center; padding: 20px; color: var(--txt3); font-size: .82rem; }
+
+    /* Gerenciar salas/turmas */
+    .gerenciar-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+    .gerenciar-coluna h4 { font-size: .82rem; font-weight: 700; color: var(--txt2); margin-bottom: 10px; }
+    .gerenciar-form { display: flex; gap: 6px; margin-bottom: 10px; }
+    .gerenciar-form input {
+        flex: 1; padding: 10px 12px;
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        color: var(--txt); font-size: .82rem;
+        font-family: 'Poppins', sans-serif;
+        outline: none;
+        transition: border-color .2s;
+    }
+    .gerenciar-form input:focus { border-color: var(--blue); }
+    .gerenciar-form button {
+        padding: 10px 12px;
+        background: var(--blue); color: #fff;
+        border: none; border-radius: 10px;
+        font-size: .8rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        white-space: nowrap;
+        transition: opacity .2s;
+    }
+    .gerenciar-form button:active { opacity: .8; }
+    .gerenciar-lista { display: flex; flex-direction: column; gap: 6px; }
+    .gerenciar-item-tag {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        padding: 8px 11px;
+        font-size: .8rem; color: var(--txt2);
+    }
+    .gerenciar-item-tag .del-btn {
+        background: none; border: none;
+        color: #f87171; cursor: pointer; font-size: .85rem;
+        padding: 2px 4px;
+        transition: opacity .2s;
+    }
+    .gerenciar-item-tag .del-btn:active { opacity: .6; }
+
+    /* Filtros + tabela */
+    .tabela-larga {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        overflow: hidden;
+    }
+    .filtros-container {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: flex-end;
+    }
+    .filtro-item { display: flex; flex-direction: column; gap: 5px; min-width: 100px; flex: 1; }
+    .filtro-item label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--txt3); }
+    .filtro-item input, .filtro-item select {
+        padding: 10px 12px;
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        border-radius: 10px;
+        color: var(--txt); font-size: .83rem;
+        font-family: 'Poppins', sans-serif;
+        outline: none; -webkit-appearance: none;
+        transition: border-color .2s;
+    }
+    .filtro-item input:focus, .filtro-item select:focus { border-color: var(--blue); }
+    .btn-exportar {
+        padding: 10px 16px;
+        background: rgba(59,127,255,.12);
+        border: 1px solid rgba(59,127,255,.25);
+        border-radius: 10px;
+        color: #93c5fd; font-size: .82rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        transition: background .2s, transform .15s;
+        white-space: nowrap;
+        align-self: flex-end;
+    }
+    .btn-exportar:active { transform: scale(.96); background: rgba(59,127,255,.2); }
+    .filtros-acoes {
+        padding: 0 16px 14px;
+        display: flex; justify-content: flex-end;
+    }
+    .btn-limpar-filtros {
+        background: none; border: none;
+        color: var(--txt3); font-size: .78rem;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        transition: color .2s;
+    }
+    .btn-limpar-filtros:active { color: var(--txt); }
+
+    /* Tabela */
+    .table-responsive { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+        padding: 12px 16px;
+        font-size: .72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--txt3);
+        text-align: left;
+        background: var(--surface2);
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+    }
+    tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background .15s;
+    }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,.02); }
+    tbody td {
+        padding: 13px 16px;
+        font-size: .83rem;
+        color: var(--txt2);
+        vertical-align: middle;
+        white-space: nowrap;
+    }
+    tbody td:first-child { color: var(--txt); font-weight: 600; }
+
+    /* Status badges na tabela */
+    .badge-sala {
+        display: inline-block;
+        background: rgba(59,127,255,.12);
+        border: 1px solid rgba(59,127,255,.2);
+        color: #93c5fd;
+        font-size: .72rem;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 6px;
+    }
+    .btn-cancelar-coord {
+        padding: 5px 12px;
+        background: var(--red-soft);
+        border: 1px solid rgba(239,68,68,.2);
+        border-radius: 7px;
+        color: #f87171;
+        font-size: .75rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        transition: background .2s, transform .15s;
+    }
+    .btn-cancelar-coord:active { transform: scale(.93); background: rgba(239,68,68,.2); }
     </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="secao-login-coord" class="login-coord-box">
-    <div style="font-size:2.2rem; margin-bottom:14px;">🛡️</div>
-    <h2>Painel da Coordenação</h2>
-    <p>Acesso restrito. Digite a senha de administrador.</p>
-    <input type="password" id="senha-coord" placeholder="Senha de administrador..." autocomplete="current-password">
-    <button onclick="entrarPainel()">Acessar painel</button>
-    <div style="margin-top:16px;">
-        <a href="professor.html" style="font-size:.85rem; color:var(--texto-secundario); text-decoration:none;">← Voltar ao início</a>
+<!-- ══ LOGIN ══════════════════════════════════════════════ -->
+<div id="secao-login-coord">
+    <div class="login-logo-section">
+        <div class="login-logo-icon">🛡️</div>
+        <div class="login-logo-nome">Coordenação</div>
+    </div>
+
+    <div class="login-card">
+        <div class="login-card-titulo">Painel restrito</div>
+        <div class="login-card-sub">Digite a senha de administrador para continuar.</div>
+
+        <div class="login-input-wrap">
+            <input type="password" id="senha-coord" placeholder="Senha de administrador..."
+                   autocomplete="current-password"
+                   onkeydown="if(event.key==='Enter') entrarPainel()">
+            <button class="toggle-senha" onclick="toggleSenhaVisivel()" tabindex="-1">👁</button>
+        </div>
+
+        <button class="btn-acessar" onclick="entrarPainel()">Acessar painel</button>
+
+        <div class="login-footer-link">
+            <a href="professor.html">← Voltar ao login</a>
+        </div>
     </div>
 </div>
 
-<!-- DASHBOARD -->
-<div id="secao-dashboard" class="dashboard hidden">
+<!-- ══ DASHBOARD ══════════════════════════════════════════ -->
+<div id="secao-dashboard">
 
-    <!-- Header -->
+    <!-- Header fixo -->
     <div class="header-painel">
-        <div>
-            <h2>Painel da Coordenação</h2>
-            <small>Gerenciamento e auditoria em tempo real</small>
+        <div class="header-logo">
+            <div class="header-logo-icon">📅</div>
+            <div class="header-logo-info">
+                <div class="titulo">Locus</div>
+                <div class="sub">Painel da Coordenação</div>
+            </div>
         </div>
-        <div class="header-painel-direita">
-            <span class="badge-admin">🏫 Administrador</span>
-            <button class="btn-toggle-modo" onclick="toggleDarkMode()" id="txt-modo">🌙 Escuro</button>
-            <button class="btn-sair" onclick="sairPainel()">Sair 🚪</button>
-        </div>
-    </div>
-
-    <!-- Resumo -->
-    <div class="resumo-cards">
-        <div class="card-mini">
-            <span id="qtd-total">0</span>
-            <label>Reservas no filtro atual</label>
+        <div class="header-acoes">
+            <span class="badge-admin">🏫 Admin</span>
+            <button class="btn-header" onclick="toggleDarkMode()" id="txt-modo">🌙</button>
+            <button class="btn-header btn-sair" onclick="sairPainel()">Sair 🚪</button>
         </div>
     </div>
 
-    <!-- Solicitações de acesso pendentes -->
-    <div class="card-gerenciar">
-        <button class="card-gerenciar-toggle" onclick="alternarGerenciamentoProfessores(event)">
-            <span>👨‍🏫 Professores <span id="badge-pendentes"></span></span>
-            <span id="icone-gerenciar-professores">▾</span>
-        </button>
+    <!-- Conteúdo scrollável -->
+    <div class="dashboard-content">
 
-        <div id="conteudo-gerenciar-professores" class="card-gerenciar-conteudo hidden">
-
-            <!-- Aba de solicitações pendentes -->
-            <div class="separador-gerenciar" style="margin-top:0;">
-                <span>Solicitações pendentes</span>
+        <!-- Banner notificações -->
+        <div id="banner-notif" onclick="ativarNotifCoord()">
+            <div class="banner-notif-icone">🔔</div>
+            <div class="banner-notif-texto">
+                <div class="banner-notif-titulo">Ativar notificações</div>
+                <div class="banner-notif-sub">Receba alertas de novas solicitações em tempo real</div>
             </div>
+            <div class="banner-notif-seta">›</div>
+        </div>
+        <div id="banner-notif-ok">
+            <span>🔔</span> Notificações ativas — você será avisada sobre novas solicitações
+        </div>
 
-            <div id="lista-solicitacoes">
-                <div class="gerenciar-vazio">Carregando...</div>
-            </div>
-
-            <!-- Lista de professores já cadastrados -->
-            <div class="separador-gerenciar">
-                <span>Professores com acesso ativo</span>
-            </div>
-
-            <div class="gerenciar-lista-professores" id="lista-professores">
-                <div class="gerenciar-vazio">Carregando...</div>
+        <!-- Resumo -->
+        <div class="resumo-cards">
+            <div class="card-mini">
+                <span id="qtd-total">0</span>
+                <label>Reservas no filtro atual</label>
             </div>
         </div>
-    </div>
 
-    <!-- Gerenciar salas e turmas -->
-    <div class="card-gerenciar">
-        <button class="card-gerenciar-toggle" onclick="alternarGerenciamento(event)">
-            <span>🏫 Gerenciar salas e turmas</span>
-            <span id="icone-gerenciar">▾</span>
-        </button>
-
-        <div id="conteudo-gerenciar" class="card-gerenciar-conteudo hidden">
-            <div class="gerenciar-grid">
-
-                <!-- SALAS -->
-                <div class="gerenciar-coluna">
-                    <h4>Salas</h4>
-                    <div class="gerenciar-form">
-                        <input type="text" id="nova-sala-nome" placeholder="Nome da nova sala">
-                        <button onclick="adicionarSala()">➕ Adicionar</button>
-                    </div>
-                    <div class="gerenciar-lista" id="lista-salas">
-                        <div class="gerenciar-vazio">Carregando...</div>
-                    </div>
-                </div>
-
-                <!-- TURMAS -->
-                <div class="gerenciar-coluna">
-                    <h4>Turmas</h4>
-                    <div class="gerenciar-form">
-                        <input type="text" id="nova-turma-nome" placeholder="Nome da nova turma">
-                        <button onclick="adicionarTurma()">➕ Adicionar</button>
-                    </div>
-                    <div class="gerenciar-lista" id="lista-turmas">
-                        <div class="gerenciar-vazio">Carregando...</div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-    <!-- Tabela de agendamentos -->
-    <div class="tabela-larga">
-
-        <div class="filtros-container">
-            <div class="filtro-item">
-                <label for="filtroData">Data</label>
-                <input type="date" id="filtroData">
-            </div>
-            <div class="filtro-item">
-                <label for="filtroSala">Sala</label>
-                <select id="filtroSala">
-                    <option value="">Todas as salas</option>
-                </select>
-            </div>
-            <div class="filtro-item">
-                <label for="filtroProfessor">Professor</label>
-                <select id="filtroProfessor">
-                    <option value="">Todos os professores</option>
-                </select>
-            </div>
-            <button class="btn-exportar" onclick="exportarParaPlanilha()">
-                📊 Exportar planilha
+        <!-- Professores / Solicitações -->
+        <div class="card-gerenciar">
+            <button class="card-gerenciar-toggle" onclick="alternarGerenciamentoProfessores(event)">
+                <span>👨‍🏫 Professores <span id="badge-pendentes"></span></span>
+                <span class="toggle-icon" id="icone-gerenciar-professores">▾</span>
             </button>
+
+            <div id="conteudo-gerenciar-professores" class="card-gerenciar-conteudo hidden">
+                <div class="separador-gerenciar"><span>Solicitações pendentes</span></div>
+                <div id="lista-solicitacoes">
+                    <div class="gerenciar-vazio">Carregando...</div>
+                </div>
+                <div class="separador-gerenciar"><span>Professores com acesso ativo</span></div>
+                <div class="gerenciar-lista-professores" id="lista-professores">
+                    <div class="gerenciar-vazio">Carregando...</div>
+                </div>
+            </div>
         </div>
 
-        <div class="filtros-acoes">
-            <button class="btn-limpar-filtros" onclick="limparFiltros()">✕ Limpar filtros</button>
+        <!-- Salas e turmas -->
+        <div class="card-gerenciar">
+            <button class="card-gerenciar-toggle" onclick="alternarGerenciamento(event)">
+                <span>🏫 Salas e turmas</span>
+                <span class="toggle-icon" id="icone-gerenciar">▾</span>
+            </button>
+
+            <div id="conteudo-gerenciar" class="card-gerenciar-conteudo hidden">
+                <div class="gerenciar-grid">
+                    <div class="gerenciar-coluna">
+                        <h4>Salas</h4>
+                        <div class="gerenciar-form">
+                            <input type="text" id="nova-sala-nome" placeholder="Nova sala...">
+                            <button onclick="adicionarSala()">➕</button>
+                        </div>
+                        <div class="gerenciar-lista" id="lista-salas">
+                            <div class="gerenciar-vazio">Carregando...</div>
+                        </div>
+                    </div>
+                    <div class="gerenciar-coluna">
+                        <h4>Turmas</h4>
+                        <div class="gerenciar-form">
+                            <input type="text" id="nova-turma-nome" placeholder="Nova turma...">
+                            <button onclick="adicionarTurma()">➕</button>
+                        </div>
+                        <div class="gerenciar-lista" id="lista-turmas">
+                            <div class="gerenciar-vazio">Carregando...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <div class="table-responsive">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Data</th>
-                        <th>Aula</th>
-                        <th>Local</th>
-                        <th>Professor</th>
-                        <th>Turma</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="listaAgendamentos">
-                    <tr>
-                        <td colspan="6" style="text-align:center; padding:40px; color:var(--texto-secundario);">
-                            Selecione uma data para ver os agendamentos.
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- Tabela de agendamentos -->
+        <div class="tabela-larga">
+            <div class="filtros-container">
+                <div class="filtro-item">
+                    <label>Data</label>
+                    <input type="date" id="filtroData">
+                </div>
+                <div class="filtro-item">
+                    <label>Sala</label>
+                    <select id="filtroSala">
+                        <option value="">Todas as salas</option>
+                    </select>
+                </div>
+                <div class="filtro-item">
+                    <label>Professor</label>
+                    <select id="filtroProfessor">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <button class="btn-exportar" onclick="exportarParaPlanilha()">📊 Exportar</button>
+            </div>
+            <div class="filtros-acoes">
+                <button class="btn-limpar-filtros" onclick="limparFiltros()">✕ Limpar filtros</button>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Aula</th>
+                            <th>Local</th>
+                            <th>Professor</th>
+                            <th>Turma</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaAgendamentos">
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:40px; color:var(--txt3);">
+                                Selecione uma data para ver os agendamentos.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
     </div>
 </div>
 
+<script>
+// Toggle senha visível
+function toggleSenhaVisivel() {
+    const inp = document.getElementById('senha-coord');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+</script>
 <script type="module" src="coordenacao.js"></script>
 </body>
 </html>
