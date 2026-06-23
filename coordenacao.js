@@ -118,16 +118,16 @@ function exigirToken() {
 // ============================================================
 
 function mostrarDashboard() {
-    document.getElementById('secao-login-coord').classList.add('hidden');
-    document.getElementById('secao-dashboard').classList.remove('hidden');
+    document.getElementById('secao-login-coord').style.display = 'none';
+    document.getElementById('secao-dashboard').classList.add('visivel');
 
     const hoje = new Date();
     const inputData = document.getElementById('filtroData');
     if (inputData) inputData.value = hoje.toISOString().split('T')[0];
 
     carregarRelatorioGeral();
-    ativarNotificacoes('coordenacao');
-    atualizarBadgePendentes(); // badge de solicitações pendentes
+    atualizarBadgePendentes();
+    verificarStatusNotificacoes(); // Mostra banner se permissão ainda não foi dada
 }
 
 async function carregarSalasNoFiltro() {
