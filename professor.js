@@ -187,6 +187,44 @@ function limparPin() {
     }
 }
 
+// ── FEEDBACK DE ERRO NO PIN (sem popup) ─────────────────────
+// Tremida + flash vermelho + mensagem inline + vibração háptica
+function erroPin(mensagem, isRateLimit = false) {
+    const dotsWrap = document.querySelector('.pin-dots');
+    const dots     = [0,1,2,3].map(i => document.getElementById('pd' + i));
+    const erroMsg  = document.getElementById('pin-erro-msg');
+
+    // 1. Vibração háptica (celular)
+    if (navigator.vibrate) navigator.vibrate(isRateLimit ? [120, 60, 120, 60, 120] : [80, 40, 80]);
+
+    // 2. Flash vermelho nos dots + tremida no container
+    dots.forEach(d => d?.classList.add('pin-erro'));
+    dotsWrap?.classList.add('pin-shake');
+
+    // 3. Mensagem inline
+    if (erroMsg) {
+        erroMsg.textContent = mensagem;
+        erroMsg.classList.add('visivel');
+    }
+
+    // 4. Remove shake (permite reanimar na próxima tentativa)
+    dotsWrap?.addEventListener('animationend', function handler() {
+        dotsWrap.classList.remove('pin-shake');
+        dotsWrap.removeEventListener('animationend', handler);
+    });
+
+    // 5. Limpa dots vermelhos e PIN após curta pausa visual
+    setTimeout(() => {
+        dots.forEach(d => d?.classList.remove('pin-erro'));
+        limparPin();
+    }, 480);
+
+    // 6. Esconde a mensagem depois de 2.5s
+    setTimeout(() => {
+        if (erroMsg) erroMsg.classList.remove('visivel');
+    }, 2500);
+}
+
 window.fazerLogin = async function() {
     const select = document.getElementById('select-nome-login');
     const profId = select?.value;
@@ -214,14 +252,12 @@ window.fazerLogin = async function() {
 
         if (error || !data.session) {
             if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-            if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
-            limparPin();
-
-            const mensagem = error?.message?.includes('rate limit')
-                ? 'Muitas tentativas. Aguarde alguns minutos.'
+            const isRateLimit = error?.message?.includes('rate limit');
+            const mensagem = isRateLimit
+                ? 'Muitas tentativas. Aguarde.'
                 : 'PIN incorreto. Tente novamente.';
-
-            return Swal.fire({ icon: 'error', title: 'Ops!', text: mensagem, confirmButtonColor: '#7c3aed' });
+            erroPin(mensagem, isRateLimit);
+            return;
         }
 
         professorLogado = await getProfessorLogado();
@@ -229,8 +265,8 @@ window.fazerLogin = async function() {
         if (!professorLogado) {
             await supabase.auth.signOut();
             if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-            limparPin();
-            return Swal.fire({ icon: 'error', title: 'Erro', text: 'Perfil não encontrado. Contate a coordenação.', confirmButtonColor: '#7c3aed' });
+            erroPin('Perfil não encontrado. Contate a coordenação.');
+            return;
         }
 
         if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
@@ -239,8 +275,7 @@ window.fazerLogin = async function() {
     } catch (err) {
         console.error('Erro no login:', err);
         if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-        limparPin();
-        Swal.fire({ icon: 'error', title: 'Erro de conexão', text: 'Tente novamente.', confirmButtonColor: '#7c3aed' });
+        erroPin('Erro de conexão. Tente novamente.');
     }
 }
 
