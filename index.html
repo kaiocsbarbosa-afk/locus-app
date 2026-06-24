@@ -623,7 +623,7 @@
 </main>
 
 <script type="module">
-    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+    import { supabase as sb } from './utils.js'; // reutiliza o cliente único de utils.js
 
     // ── DARK MODE ──────────────────────────────────────────
     const isDark = localStorage.getItem('darkMode') === 'enabled';
@@ -656,11 +656,6 @@
 
     // ── SESSÃO SUPABASE ────────────────────────────────────
     // Verifica sessão JWT ativa (não depende mais de prof_pin legado)
-    const sb = createClient(
-        'https://ixhuqbfzwkobhrvlzwgm.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84',
-        { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } }
-    );
 
     async function verificarSessao() {
         try {
