@@ -1,6 +1,6 @@
 // IMPORTANTE: incremente a versão do cache a cada deploy
 // para garantir que usuários recebam os arquivos atualizados
-const CACHE_NAME = 'locus-cache-v6';
+const CACHE_NAME = 'locus-cache-v7';
 
 const ASSETS = [
   './',
@@ -21,7 +21,8 @@ const ASSETS = [
   './icon-512.png',
   './icon-notification.png',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm',
+  'https://cdn.jsdelivr.net/npm/sweetalert2@11'
 ];
 
 self.addEventListener('install', e => {
@@ -69,12 +70,12 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
           return response;
         })
-        .catch(() => caches.match(e.request))
+        .catch(() => caches.match(e.request).then(cached => cached || new Response('Offline', { status: 503 })))
     );
   } else {
     // Cache first: imagens, fontes, CSS
     e.respondWith(
-      caches.match(e.request).then(cached => cached || fetch(e.request))
+      caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => new Response('', { status: 503 })))
     );
   }
 });
