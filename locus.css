@@ -32,7 +32,7 @@
     --shadow-sm:  0 1px 3px rgba(109,40,217,.06), 0 1px 2px rgba(0,0,0,.04);
     --shadow-md:  0 4px 12px rgba(109,40,217,.08), 0 2px 4px rgba(0,0,0,.04);
     --shadow-lg:  0 12px 32px rgba(109,40,217,.10), 0 4px 8px rgba(0,0,0,.04);
-    --raio:       16px;
+    --raio:       18px;
     --raio-sm:    10px;
     --raio-xs:    8px;
     --trans:      all .2s ease;
@@ -42,13 +42,13 @@
    TOKENS — Dark Mode
    ------------------------------------------------------------ */
 body.dark-mode {
-    --bg-body:             #0f0d1a;
-    --bg-card:             #1a1730;
-    --bg-input:            #13111f;
+    --bg-body:             #07030f;
+    --bg-card:             #0f0920;
+    --bg-input:            #160d2c;
     --texto-principal:     #f0eeff;
     --texto-secundario:    #9ca3af;
     --texto-terciario:     #6b7280;
-    --borda:               #2d2a45;
+    --borda:               rgba(124,58,237,.2);
     --borda-foco:          #a78bfa;
 
     --cor-primaria:        #7c3aed;
@@ -1576,3 +1576,80 @@ body.dark-mode .btn-rejeitar {
 }
 
 .btn-aprovar:active, .btn-rejeitar:active { transform: scale(.95); opacity: .85; }
+
+/* ============================================================
+   MELHORIAS DE DESIGN — v2.1
+   ============================================================ */
+
+/* ── DOT GRID em páginas dark ── */
+body.dark-page {
+    background: #07030f;
+    position: relative;
+}
+body.dark-page::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: radial-gradient(circle, rgba(124,58,237,.16) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 0%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 50% at 50% 0%, black 0%, transparent 100%);
+    pointer-events: none; z-index: 0;
+}
+
+/* ── Cards no dark mode com accent line ── */
+body.dark-mode .container {
+    background: rgba(15,9,28,.9);
+    border-color: rgba(124,58,237,.2);
+    box-shadow: 0 24px 64px rgba(0,0,0,.5), 0 0 0 1px rgba(124,58,237,.06);
+    backdrop-filter: blur(16px);
+    position: relative; overflow: hidden;
+}
+body.dark-mode .container::before {
+    content: '';
+    position: absolute; top: 0; left: 20%; right: 20%; height: 1.5px;
+    border-radius: 0 0 3px 3px;
+    background: linear-gradient(to right, transparent, rgba(124,58,237,.7), transparent);
+    pointer-events: none;
+}
+
+/* ── Inputs dark mode melhores ── */
+body.dark-mode .form-group input,
+body.dark-mode .form-group select {
+    background: rgba(22,13,44,.85);
+    border-color: rgba(124,58,237,.2);
+}
+body.dark-mode .form-group input:focus,
+body.dark-mode .form-group select:focus {
+    border-color: #7c3aed;
+    box-shadow: 0 0 0 3px rgba(124,58,237,.15);
+}
+
+/* ── Botões dark mode ── */
+body.dark-mode .btn-primary {
+    box-shadow: 0 6px 24px rgba(124,58,237,.3);
+}
+
+/* ── Spinner loading ── */
+.spinner-container {
+    display: flex; flex-direction: column;
+    align-items: center; padding: 40px 0; gap: 12px;
+}
+.spinner {
+    width: 28px; height: 28px;
+    border: 3px solid rgba(124,58,237,.2);
+    border-top-color: #7c3aed;
+    border-radius: 50%;
+    animation: locus-spin .75s linear infinite;
+}
+@keyframes locus-spin { to { transform: rotate(360deg); } }
+
+/* ── Status badges ── */
+.badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; border-radius: 20px;
+    font-size: .72rem; font-weight: 700;
+}
+.badge-verde  { background: var(--cor-sucesso-clara); color: var(--cor-sucesso-texto); }
+.badge-vermelho { background: var(--cor-perigo-clara); color: var(--cor-perigo-texto); }
+body.dark-mode .badge-verde  { background: rgba(16,185,129,.15); color: #6ee7b7; }
+body.dark-mode .badge-vermelho { background: rgba(239,68,68,.12); color: #fca5a5; }

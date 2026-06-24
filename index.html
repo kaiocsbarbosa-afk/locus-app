@@ -6,7 +6,8 @@
     <title>Locus</title>
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./apple-touch-icon.png">
-    <meta name="theme-color" content="#7c3aed" id="meta-theme">
+    <link rel="icon" href="./icon-96.png" type="image/png">
+    <meta name="theme-color" content="#07030f">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Locus">
@@ -17,43 +18,26 @@
         -webkit-tap-highlight-color: transparent;
     }
 
-    :root {
-        --roxo:              #7c3aed;
-        --roxo-escuro:       #4c1d95;
-        --roxo-claro:        #ede9fe;
-        --verde:             #059669;
-        --verde-claro:       #d1fae5;
-        --laranja:           #d97706;
-        --laranja-claro:     #fef3c7;
-        --texto:             #1e1b4b;
-        --subtexto:          #6b7280;
-        --borda:             #e5e7eb;
-        --bg:                #f5f3ff;
-        --card:              #ffffff;
-        --card-shadow:       0 2px 12px rgba(109,40,217,.08), 0 1px 3px rgba(0,0,0,.04);
-        --card-shadow-hover: 0 8px 28px rgba(109,40,217,.15), 0 2px 6px rgba(0,0,0,.06);
-        --hero-grad:         linear-gradient(140deg, #7c3aed 0%, #5b21b6 60%, #4c1d95 100%);
-        --retorno-grad:      linear-gradient(135deg, #7c3aed, #5b21b6);
-    }
-
-    /* ── DARK MODE ──────────────────────────────────────── */
-    body.dark-mode {
-        --texto:             #f0eeff;
-        --subtexto:          #9ca3af;
-        --borda:             #2d2a45;
-        --bg:                #0f0d1a;
-        --card:              #1a1730;
-        --roxo-claro:        #2e1065;
-        --verde-claro:       #064e3b;
-        --laranja-claro:     #451a03;
-        --card-shadow:       0 2px 12px rgba(0,0,0,.35);
-        --card-shadow-hover: 0 8px 28px rgba(0,0,0,.5);
-        --hero-grad:         linear-gradient(140deg, #5b21b6 0%, #3b1280 60%, #1e0a4b 100%);
-        --retorno-grad:      linear-gradient(135deg, #5b21b6, #3b1280);
-    }
-
     @media (prefers-reduced-motion: reduce) {
         *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+
+    :root {
+        --purple:        #7c3aed;
+        --purple-bright: #9b5cf6;
+        --purple-dim:    rgba(124,58,237,0.18);
+        --purple-border: rgba(124,58,237,0.35);
+        --green:         #10b981;
+        --green-dim:     rgba(16,185,129,0.15);
+        --green-border:  rgba(16,185,129,0.35);
+        --orange:        #f59e0b;
+        --orange-dim:    rgba(245,158,11,0.12);
+        --orange-border: rgba(245,158,11,0.3);
+        --bg:            #07030f;
+        --surface:       rgba(15,9,28,0.85);
+        --text:          #f0eeff;
+        --text2:         rgba(240,238,255,0.55);
+        --text3:         rgba(240,238,255,0.35);
     }
 
     html { height: 100%; overflow: hidden; }
@@ -65,15 +49,14 @@
         display: flex;
         flex-direction: column;
         background: var(--bg);
-        color: var(--texto);
-        transition: background .3s, color .3s;
+        color: var(--text);
     }
 
-    /* ── SPLASH ─────────────────────────────────────────── */
+    /* ── SPLASH ─────────────────────────── */
     #splash {
         position: fixed;
         inset: 0;
-        background: var(--hero-grad);
+        background: var(--bg);
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -81,458 +64,330 @@
         z-index: 9999;
         transition: opacity .55s cubic-bezier(.4,0,.2,1), transform .55s cubic-bezier(.4,0,.2,1);
     }
-
-    #splash.saindo { opacity: 0; transform: scale(1.05); pointer-events: none; }
+    #splash.saindo { opacity: 0; transform: scale(1.04); pointer-events: none; }
 
     .splash-icon {
-        width: 104px;
-        height: 104px;
-        border-radius: 30px;
-        background: rgba(255,255,255,.13);
-        border: 1.5px solid rgba(255,255,255,.18);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 24px;
-        animation: pulsar 2s ease-in-out infinite;
+        width: 88px; height: 88px;
+        border-radius: 26px;
+        background: var(--purple-dim);
+        border: 1px solid var(--purple-border);
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 20px;
+        animation: pulsar 2.2s ease-in-out infinite;
+        box-shadow: 0 0 60px rgba(124,58,237,0.25);
     }
-
-    .splash-icon img { width: 68px; height: 68px; border-radius: 18px; }
+    .splash-icon img { width: 60px; height: 60px; border-radius: 16px; }
 
     .splash-nome {
-        font-size: 2.8rem;
-        font-weight: 800;
-        color: #fff;
+        font-size: 2.4rem; font-weight: 800; color: var(--text);
         letter-spacing: -2px;
-        animation: surgir .65s cubic-bezier(.34,1.56,.64,1) both .15s;
+        animation: surgir .6s cubic-bezier(.34,1.56,.64,1) both .12s;
     }
-
     .splash-sub {
-        font-size: .85rem;
-        color: rgba(255,255,255,.55);
-        margin-top: 6px;
-        letter-spacing: .02em;
-        animation: surgir .65s cubic-bezier(.34,1.56,.64,1) both .28s;
+        font-size: .8rem; color: var(--text2);
+        margin-top: 5px; letter-spacing: .04em;
+        animation: surgir .6s cubic-bezier(.34,1.56,.64,1) both .22s;
     }
-
     .splash-loader {
-        margin-top: 60px;
-        width: 48px;
-        height: 3px;
-        background: rgba(255,255,255,.15);
-        border-radius: 2px;
-        overflow: hidden;
-        animation: surgir .5s ease both .4s;
+        margin-top: 56px; width: 44px; height: 2px;
+        background: rgba(124,58,237,.2); border-radius: 2px; overflow: hidden;
+        animation: surgir .4s ease both .38s;
     }
-
     .splash-loader-barra {
-        height: 100%;
-        background: rgba(255,255,255,.85);
-        border-radius: 2px;
+        height: 100%; background: var(--purple-bright); border-radius: 2px;
         animation: carregar 2s cubic-bezier(.4,0,.2,1) forwards;
     }
 
     @keyframes pulsar {
-        0%,100% { transform: scale(1);    box-shadow: 0 0 0 0   rgba(255,255,255,.18); }
-        50%      { transform: scale(1.06); box-shadow: 0 0 0 20px rgba(255,255,255,0); }
+        0%,100% { box-shadow: 0 0 40px rgba(124,58,237,.2); }
+        50%      { box-shadow: 0 0 70px rgba(124,58,237,.4); }
     }
     @keyframes surgir {
-        from { opacity: 0; transform: translateY(14px) scale(.97); }
+        from { opacity: 0; transform: translateY(12px) scale(.97); }
         to   { opacity: 1; transform: translateY(0) scale(1); }
     }
     @keyframes carregar {
-        from { width: 0%; }
-        to   { width: 100%; }
+        from { width: 0; } to { width: 100%; }
     }
-    @keyframes surgirHero {
-        from { opacity: 0; transform: translateX(-12px); }
-        to   { opacity: 1; transform: translateX(0); }
-    }
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to   { opacity: 1; }
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(18px); }
+        to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── HERO ───────────────────────────────────────────── */
+    /* ── HERO ───────────────────────────── */
     .hero {
-        background: var(--hero-grad);
-        padding: 20px 22px 46px;
-        padding-top: calc(20px + env(safe-area-inset-top));
         flex-shrink: 0;
         position: relative;
         overflow: hidden;
-        transition: background .4s;
+        padding: calc(22px + env(safe-area-inset-top)) 22px 52px;
+        background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(124,58,237,.35) 0%, transparent 70%),
+                    var(--bg);
     }
 
-    /* Círculo decorativo */
+    /* Dot grid — the signature element */
     .hero::before {
         content: '';
         position: absolute;
-        top: -50px; right: -50px;
-        width: 200px; height: 200px;
-        border-radius: 50%;
-        background: rgba(255,255,255,.04);
+        inset: 0;
+        background-image: radial-gradient(circle, rgba(124,58,237,.22) 1px, transparent 1px);
+        background-size: 26px 26px;
+        mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black 30%, transparent 100%);
+        -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black 30%, transparent 100%);
         pointer-events: none;
     }
 
-    /* Segundo círculo */
+    /* Bottom fade into content */
     .hero::after {
         content: '';
         position: absolute;
-        bottom: -30px; left: 0; right: 0;
-        height: 60px;
-        background: var(--bg);
-        border-radius: 50% 50% 0 0 / 100% 100% 0 0;
-        transition: background .3s;
+        bottom: 0; left: 0; right: 0; height: 56px;
+        background: linear-gradient(to bottom, transparent, var(--bg));
+        pointer-events: none;
     }
 
     .hero-topo {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 20px;
-        position: relative;
-        z-index: 1;
+        margin-bottom: 28px;
+        position: relative; z-index: 1;
     }
 
     .hero-logo {
-        display: flex;
-        align-items: center;
-        gap: 9px;
+        display: flex; align-items: center; gap: 9px;
     }
-
     .hero-logo img {
-        width: 30px; height: 30px;
-        border-radius: 8px;
+        width: 28px; height: 28px; border-radius: 8px;
     }
-
     .hero-logo span {
-        font-size: 1.15rem;
-        font-weight: 800;
-        color: #fff;
-        letter-spacing: -.5px;
+        font-size: 1.1rem; font-weight: 800; color: var(--text);
+        letter-spacing: -.4px;
     }
 
-    /* Botão dark mode no hero */
     .btn-dark-hero {
-        width: 34px; height: 34px;
-        border-radius: 50%;
-        border: 1.5px solid rgba(255,255,255,.25);
-        background: rgba(255,255,255,.12);
-        backdrop-filter: blur(6px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-        cursor: pointer;
+        width: 34px; height: 34px; border-radius: 50%;
+        border: 1px solid rgba(124,58,237,.4);
+        background: rgba(124,58,237,.12);
+        display: flex; align-items: center; justify-content: center;
+        font-size: .95rem; cursor: pointer;
         transition: background .2s, transform .15s;
-        -webkit-tap-highlight-color: transparent;
     }
     .btn-dark-hero:active { transform: scale(.88); }
 
-    /* Badge de professor logado */
-    .hero-badge {
-        display: none;
-        align-items: center;
-        gap: 7px;
-        background: rgba(255,255,255,.14);
-        border: 1px solid rgba(255,255,255,.22);
-        border-radius: 20px;
-        padding: 5px 12px 5px 7px;
-        font-size: .76rem;
-        color: #fff;
-        font-weight: 500;
-        backdrop-filter: blur(6px);
-        animation: surgir .4s ease both;
-        cursor: default;
+    .hero-conteudo { position: relative; z-index: 1; }
+
+    .hero-eyebrow {
+        font-size: .68rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .14em;
+        color: var(--purple-bright); margin-bottom: 8px;
+        display: flex; align-items: center; gap: 6px;
+        animation: fadeUp .5s ease both .05s;
     }
-
-    .hero-badge.visivel { display: flex; }
-
-    .hero-badge-avatar {
-        width: 22px; height: 22px;
-        border-radius: 50%;
-        background: rgba(255,255,255,.22);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: .68rem;
-    }
-
-    .hero-topo-direita {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .hero-conteudo {
-        position: relative;
-        z-index: 1;
+    .hero-eyebrow::before {
+        content: '';
+        width: 18px; height: 1.5px;
+        background: var(--purple-bright); border-radius: 2px;
     }
 
     .hero-titulo {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #fff;
-        letter-spacing: -.5px;
-        line-height: 1.22;
-        margin-bottom: 6px;
-        animation: surgirHero .6s cubic-bezier(.34,1.56,.64,1) both .05s;
+        font-size: 1.75rem; font-weight: 800;
+        color: var(--text); letter-spacing: -.6px; line-height: 1.18;
+        margin-bottom: 8px;
+        animation: fadeUp .5s ease both .1s;
     }
-
-    .hero-titulo .nome-destaque { color: #ddd6fe; }
+    .hero-titulo .destaque {
+        color: transparent;
+        background: linear-gradient(135deg, #a78bfa, #7c3aed);
+        -webkit-background-clip: text; background-clip: text;
+    }
 
     .hero-sub {
-        font-size: .83rem;
-        color: rgba(255,255,255,.6);
-        line-height: 1.5;
-        animation: surgirHero .6s cubic-bezier(.34,1.56,.64,1) both .12s;
+        font-size: .82rem; color: var(--text2); line-height: 1.55;
+        animation: fadeUp .5s ease both .16s;
     }
 
-    /* ── CONTEÚDO PRINCIPAL ─────────────────────────────── */
+    /* Badge de professor logado */
+    .hero-badge {
+        display: none; align-items: center; gap: 7px;
+        background: rgba(124,58,237,.15);
+        border: 1px solid rgba(124,58,237,.3);
+        border-radius: 20px; padding: 5px 12px 5px 7px;
+        font-size: .74rem; color: #c4b5fd; font-weight: 600;
+        backdrop-filter: blur(8px); animation: surgir .4s ease both;
+    }
+    .hero-badge.visivel { display: flex; }
+    .hero-badge-dot {
+        width: 20px; height: 20px; border-radius: 50%;
+        background: rgba(124,58,237,.25);
+        display: flex; align-items: center; justify-content: center; font-size: .65rem;
+    }
+
+    /* ── CONTEÚDO ───────────────────────── */
     #app-content {
-        flex: 1;
-        overflow-y: auto;
-        overflow-x: hidden;
+        flex: 1; overflow-y: auto; overflow-x: hidden;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior-y: contain;
-        padding: 10px 18px calc(28px + env(safe-area-inset-bottom));
+        padding: 14px 18px calc(24px + env(safe-area-inset-bottom));
         min-height: 0;
     }
 
-    /* ── LABEL DE SEÇÃO ─────────────────────────────────── */
+    /* ── LABEL DE SEÇÃO ─────────────────── */
     .secao-label {
-        font-size: .68rem;
-        font-weight: 700;
-        color: var(--subtexto);
-        text-transform: uppercase;
-        letter-spacing: .12em;
-        margin: 22px 2px 10px;
-        opacity: .8;
+        font-size: .64rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .14em;
+        color: var(--text3); margin: 20px 2px 10px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .secao-label::after {
+        content: ''; flex: 1; height: 1px;
+        background: rgba(124,58,237,.15);
     }
 
-    /* ── CARDS DE NAVEGAÇÃO ─────────────────────────────── */
+    /* ── NAV CARDS ──────────────────────── */
     .nav-card {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        background: var(--card);
-        border: 1px solid var(--borda);
-        border-radius: 18px;
-        padding: 15px 14px;
-        text-decoration: none;
-        margin-bottom: 10px;
-        position: relative;
-        overflow: hidden;
-        box-shadow: var(--card-shadow);
-        /* entrada animada */
-        opacity: 0;
-        transform: translateY(18px) scale(.97);
-        transition: background .3s, border-color .3s, box-shadow .3s;
+        display: flex; align-items: center; gap: 14px;
+        background: var(--surface);
+        border: 1px solid rgba(124,58,237,.15);
+        border-radius: 18px; padding: 15px 14px;
+        text-decoration: none; margin-bottom: 10px;
+        position: relative; overflow: hidden;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 2px 20px rgba(0,0,0,.35);
+        opacity: 0; transform: translateY(16px);
+        transition: border-color .25s, box-shadow .25s, opacity .35s, transform .45s;
         will-change: transform, opacity;
     }
 
-    .nav-card.animado {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        transition:
-            transform .5s cubic-bezier(.34,1.56,.64,1),
-            box-shadow .22s ease,
-            opacity .35s ease,
-            background .3s,
-            border-color .3s;
+    .nav-card.verde  { border-color: rgba(16,185,129,.2); }
+    .nav-card.laranja { border-color: rgba(245,158,11,.18); }
+
+    /* Accent line at top of card */
+    .nav-card::before {
+        content: '';
+        position: absolute; top: 0; left: 20%; right: 20%; height: 1.5px;
+        border-radius: 0 0 3px 3px;
+        background: linear-gradient(to right, transparent, var(--purple), transparent);
+        opacity: 0; transition: opacity .3s;
     }
+    .nav-card.verde::before {
+        background: linear-gradient(to right, transparent, var(--green), transparent);
+    }
+    .nav-card.laranja::before {
+        background: linear-gradient(to right, transparent, var(--orange), transparent);
+    }
+
+    .nav-card.animado {
+        opacity: 1; transform: translateY(0);
+        transition:
+            transform .48s cubic-bezier(.34,1.56,.64,1),
+            opacity .35s ease,
+            border-color .25s, box-shadow .25s;
+    }
+    .nav-card.animado::before { opacity: 1; }
 
     .nav-card:active {
         transform: scale(.97) !important;
-        box-shadow: var(--card-shadow) !important;
-        opacity: .88 !important;
+        box-shadow: 0 1px 8px rgba(0,0,0,.4) !important;
     }
-
-    /* Acento colorido na borda esquerda */
-    .nav-card::before {
-        content: '';
-        position: absolute;
-        left: 0; top: 16%; bottom: 16%;
-        width: 3px;
-        border-radius: 0 3px 3px 0;
-        background: var(--roxo);
-        opacity: 0;
-        transition: opacity .3s;
-    }
-    .nav-card.verde::before  { background: var(--verde); }
-    .nav-card.laranja::before { background: var(--laranja); }
-    .nav-card.animado::before { opacity: 1; }
-
-    /* Gradiente sutil no canto direito */
-    .nav-card::after {
-        content: '';
-        position: absolute;
-        top: 0; right: 0;
-        width: 90px; height: 90px;
-        background: radial-gradient(circle at top right, rgba(124,58,237,.05), transparent 70%);
-        pointer-events: none;
-    }
-    .nav-card.verde::after  { background: radial-gradient(circle at top right, rgba(5,150,105,.05), transparent 70%); }
-    .nav-card.laranja::after { background: radial-gradient(circle at top right, rgba(217,119,6,.05), transparent 70%); }
 
     /* Ícone */
     .nav-card-icone {
-        width: 48px; height: 48px;
-        border-radius: 14px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.4rem;
-        flex-shrink: 0;
-        transition: transform .25s cubic-bezier(.34,1.56,.64,1);
+        width: 48px; height: 48px; border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.35rem; flex-shrink: 0;
+        transition: transform .22s cubic-bezier(.34,1.56,.64,1);
     }
+    .nav-card-icone.roxo   { background: var(--purple-dim); }
+    .nav-card-icone.verde  { background: var(--green-dim); }
+    .nav-card-icone.laranja { background: var(--orange-dim); }
 
-    .nav-card-icone.roxo    { background: var(--roxo-claro); }
-    .nav-card-icone.verde   { background: var(--verde-claro); }
-    .nav-card-icone.laranja { background: var(--laranja-claro); }
-
-    .nav-card:active .nav-card-icone { transform: scale(.88) rotate(-5deg); }
+    .nav-card:active .nav-card-icone { transform: scale(.86) rotate(-4deg); }
 
     .nav-card-texto { flex: 1; min-width: 0; }
 
     .nav-card-titulo {
-        font-size: .9rem;
-        font-weight: 600;
-        color: var(--texto);
-        letter-spacing: -.2px;
+        font-size: .9rem; font-weight: 700;
+        color: var(--text); letter-spacing: -.2px;
         margin-bottom: 2px;
-        transition: color .3s;
     }
-
     .nav-card-desc {
-        font-size: .76rem;
-        color: var(--subtexto);
-        line-height: 1.4;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        transition: color .3s;
+        font-size: .74rem; color: var(--text2); line-height: 1.4;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
 
     .nav-card-seta {
-        width: 26px; height: 26px;
-        border-radius: 8px;
-        background: var(--bg);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--subtexto);
-        font-size: .88rem;
-        flex-shrink: 0;
-        transition: transform .2s, background .3s;
+        width: 26px; height: 26px; border-radius: 8px;
+        background: rgba(124,58,237,.1);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--purple-bright); font-size: .9rem; flex-shrink: 0;
+        transition: transform .2s;
     }
+    .nav-card.verde  .nav-card-seta { background: rgba(16,185,129,.1);  color: var(--green); }
+    .nav-card.laranja .nav-card-seta { background: rgba(245,158,11,.1); color: var(--orange); }
 
     .nav-card:active .nav-card-seta { transform: translateX(3px); }
 
-    /* ── CARD DE RETORNO (professor já logado) ──────────── */
+    /* ── CARD RETORNO RÁPIDO ─────────────── */
     .card-retorno {
-        background: var(--retorno-grad);
-        border-radius: 18px;
-        padding: 16px 15px;
-        margin-bottom: 10px;
-        display: none;
-        align-items: center;
-        gap: 14px;
+        background: linear-gradient(135deg, rgba(124,58,237,.2), rgba(91,33,182,.25));
+        border: 1px solid rgba(124,58,237,.35);
+        border-radius: 18px; padding: 15px 14px; margin-bottom: 10px;
+        display: none; align-items: center; gap: 14px;
         text-decoration: none;
-        box-shadow: 0 4px 22px rgba(109,40,217,.28);
-        opacity: 0;
-        transform: translateY(18px) scale(.97);
+        box-shadow: 0 4px 24px rgba(124,58,237,.2);
+        backdrop-filter: blur(12px);
+        opacity: 0; transform: translateY(16px);
         will-change: transform, opacity;
+        position: relative; overflow: hidden;
     }
-
+    .card-retorno::before {
+        content: '';
+        position: absolute; top: 0; left: 20%; right: 20%; height: 1.5px;
+        border-radius: 0 0 3px 3px;
+        background: linear-gradient(to right, transparent, #a78bfa, transparent);
+    }
     .card-retorno.visivel { display: flex; }
-
     .card-retorno.animado {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        transition:
-            transform .5s cubic-bezier(.34,1.56,.64,1),
-            box-shadow .22s ease,
-            opacity .35s ease;
+        opacity: 1; transform: translateY(0);
+        transition: transform .48s cubic-bezier(.34,1.56,.64,1), opacity .35s ease;
     }
-
-    .card-retorno:active {
-        transform: scale(.97) !important;
-        box-shadow: 0 2px 10px rgba(109,40,217,.2) !important;
-    }
+    .card-retorno:active { transform: scale(.97) !important; }
 
     .retorno-avatar {
-        width: 44px; height: 44px;
-        border-radius: 12px;
-        background: rgba(255,255,255,.16);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.35rem;
-        flex-shrink: 0;
+        width: 44px; height: 44px; border-radius: 13px;
+        background: rgba(124,58,237,.25);
+        display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;
     }
-
     .retorno-texto { flex: 1; min-width: 0; }
-
-    .retorno-titulo {
-        font-size: .76rem;
-        color: rgba(255,255,255,.68);
-        margin-bottom: 2px;
-        font-weight: 500;
-    }
-
+    .retorno-titulo { font-size: .72rem; color: rgba(196,181,253,.7); margin-bottom: 2px; font-weight: 500; }
     .retorno-nome {
-        font-size: .97rem;
-        font-weight: 700;
-        color: #fff;
-        letter-spacing: -.3px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
+        font-size: .94rem; font-weight: 700; color: #e9d5ff;
+        letter-spacing: -.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-
-    .retorno-seta {
-        color: rgba(255,255,255,.55);
-        font-size: 1.3rem;
-        flex-shrink: 0;
-        transition: transform .2s;
-    }
-
+    .retorno-seta { color: rgba(196,181,253,.6); font-size: 1.2rem; flex-shrink: 0; transition: transform .2s; }
     .card-retorno:active .retorno-seta { transform: translateX(3px); }
 
-    /* ── TOAST DE FEEDBACK ──────────────────────────────── */
+    /* ── TOAST ──────────────────────────── */
     #toast {
         position: fixed;
-        bottom: calc(28px + env(safe-area-inset-bottom));
-        left: 50%;
-        transform: translateX(-50%) translateY(20px);
-        background: var(--texto);
-        color: var(--card);
-        font-size: .8rem;
-        font-weight: 500;
-        padding: 10px 20px;
-        border-radius: 30px;
-        white-space: nowrap;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity .25s, transform .3s cubic-bezier(.34,1.56,.64,1);
+        bottom: calc(24px + env(safe-area-inset-bottom));
+        left: 50%; transform: translateX(-50%) translateY(16px);
+        background: rgba(15,9,28,.95);
+        border: 1px solid rgba(124,58,237,.4);
+        color: var(--text); font-size: .79rem; font-weight: 600;
+        padding: 10px 20px; border-radius: 30px;
+        white-space: nowrap; opacity: 0; pointer-events: none;
+        transition: opacity .22s, transform .3s cubic-bezier(.34,1.56,.64,1);
         z-index: 9000;
-        box-shadow: 0 4px 16px rgba(0,0,0,.18);
+        box-shadow: 0 8px 28px rgba(0,0,0,.4), 0 0 0 1px rgba(124,58,237,.2);
+        backdrop-filter: blur(12px);
     }
-    #toast.visivel {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-    }
+    #toast.visivel { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-    /* ── RODAPÉ ─────────────────────────────────────────── */
+    /* ── RODAPÉ ─────────────────────────── */
     .rodape {
-        text-align: center;
-        padding: 14px 0 4px;
-        font-size: .7rem;
-        color: var(--subtexto);
-        opacity: .5;
-        letter-spacing: .01em;
+        text-align: center; padding: 14px 0 4px;
+        font-size: .68rem; color: var(--text3); letter-spacing: .01em;
     }
     </style>
 </head>
@@ -557,17 +412,20 @@
             <img src="./icon-192.png" alt="Locus">
             <span>Locus</span>
         </div>
-        <div class="hero-topo-direita">
+        <div style="display:flex;align-items:center;gap:8px;">
             <div class="hero-badge" id="hero-badge">
-                <div class="hero-badge-avatar">👨‍🏫</div>
+                <div class="hero-badge-dot">👨‍🏫</div>
                 <span id="hero-badge-nome"></span>
             </div>
-            <button class="btn-dark-hero" id="btn-dark" title="Alternar modo escuro" aria-label="Alternar modo escuro">🌙</button>
+            <button class="btn-dark-hero" id="btn-dark" title="Alternar modo" aria-label="Alternar modo">🌙</button>
         </div>
     </div>
     <div class="hero-conteudo">
-        <div class="hero-titulo" id="hero-titulo">Olá! 👋<br>O que deseja fazer?</div>
-        <div class="hero-sub" id="hero-sub">Sistema de agendamento de salas e laboratórios.</div>
+        <div class="hero-eyebrow" id="hero-eyebrow">Sistema escolar</div>
+        <div class="hero-titulo" id="hero-titulo">
+            Olá! 👋<br>O que deseja <span class="destaque">fazer?</span>
+        </div>
+        <div class="hero-sub" id="hero-sub">Reserve salas, laboratórios e espaços da escola.</div>
     </div>
 </div>
 
@@ -577,7 +435,6 @@
 <!-- CONTEÚDO -->
 <main id="app-content">
 
-    <!-- Card de retorno rápido (professor já logado) -->
     <a href="professor.html" class="card-retorno" id="card-retorno">
         <div class="retorno-avatar">📅</div>
         <div class="retorno-texto">
@@ -598,11 +455,11 @@
         <div class="nav-card-seta">›</div>
     </a>
 
-    <a href="cadasto.html" class="nav-card verde" id="card-cadastro">
+    <a href="cadastro.html" class="nav-card verde" id="card-cadastro">
         <div class="nav-card-icone verde">🚀</div>
         <div class="nav-card-texto">
             <div class="nav-card-titulo">Ativar Meu Acesso</div>
-            <div class="nav-card-desc">Primeiro acesso? Crie seu PIN aqui</div>
+            <div class="nav-card-desc">Primeiro acesso? Solicite seu PIN aqui</div>
         </div>
         <div class="nav-card-seta">›</div>
     </a>
@@ -623,9 +480,9 @@
 </main>
 
 <script type="module">
-    import { supabase as sb } from './utils.js'; // reutiliza o cliente único de utils.js
+    import { supabase as sb } from './utils.js';
 
-    // ── DARK MODE ──────────────────────────────────────────
+    // ── DARK MODE ──────────────────────────────────────────────
     const isDark = localStorage.getItem('darkMode') === 'enabled';
     if (isDark) {
         document.body.classList.add('dark-mode');
@@ -639,7 +496,7 @@
         mostrarToast(ativado ? 'Modo escuro ativado' : 'Modo claro ativado');
     });
 
-    // ── TOAST ──────────────────────────────────────────────
+    // ── TOAST ──────────────────────────────────────────────────
     let toastTimer = null;
     function mostrarToast(msg) {
         const toast = document.getElementById('toast');
@@ -649,14 +506,13 @@
         toastTimer = setTimeout(() => toast.classList.remove('visivel'), 2200);
     }
 
-    // ── SAUDAÇÃO ───────────────────────────────────────────
+    // ── SAUDAÇÃO ───────────────────────────────────────────────
     const hora = new Date().getHours();
-    const emoji   = hora < 12 ? '☀️' : hora < 18 ? '🌤️' : '🌙';
     const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+    const emoji   = hora < 12 ? '☀️' : hora < 18 ? '🌤️' : '🌙';
+    document.getElementById('hero-eyebrow').textContent = periodo;
 
-    // ── SESSÃO SUPABASE ────────────────────────────────────
-    // Verifica sessão JWT ativa (não depende mais de prof_pin legado)
-
+    // ── SESSÃO SUPABASE ────────────────────────────────────────
     async function verificarSessao() {
         try {
             const { data: { session } } = await sb.auth.getSession();
@@ -680,46 +536,39 @@
 
     function aplicarSaudacaoGenerica() {
         document.getElementById('hero-titulo').innerHTML =
-            `${emoji} ${periodo}!<br>O que deseja fazer?`;
+            `${emoji} Olá!<br>O que deseja <span class="destaque">fazer?</span>`;
     }
 
     function aplicarSaudacaoPersonalizada(nomeCompleto) {
         const primeiroNome = nomeCompleto.split(' ')[0];
-
         document.getElementById('hero-titulo').innerHTML =
-            `${emoji} ${periodo},<br><span class="nome-destaque">${primeiroNome}!</span>`;
+            `${emoji} ${periodo},<br><span class="destaque">${primeiroNome}!</span>`;
         document.getElementById('hero-sub').textContent =
             'Toque abaixo para agendar ou gerenciar suas reservas.';
 
-        // Badge no hero
         document.getElementById('hero-badge-nome').textContent = primeiroNome;
         document.getElementById('hero-badge').classList.add('visivel');
 
-        // Card de retorno rápido
         document.getElementById('retorno-nome').textContent = nomeCompleto;
         document.getElementById('card-retorno').classList.add('visivel');
         document.getElementById('label-rapido').textContent = 'Suas opções';
 
-        // Esconde o card de ativação (já tem conta)
         const cardCadastro = document.getElementById('card-cadastro');
         if (cardCadastro) cardCadastro.style.display = 'none';
     }
 
-    // ── ANIMAÇÃO DOS CARDS (escalonada após splash) ────────
+    // ── ANIMAÇÃO STAGGER ───────────────────────────────────────
     function animarCards() {
         const cards = document.querySelectorAll('.nav-card, .card-retorno.visivel');
         cards.forEach((card, i) => {
-            setTimeout(() => card.classList.add('animado'), i * 75);
+            setTimeout(() => card.classList.add('animado'), i * 70);
         });
     }
 
-    // ── INICIALIZAÇÃO ──────────────────────────────────────
+    // ── INICIALIZAÇÃO ──────────────────────────────────────────
     const splash = document.getElementById('splash');
-
-    // Busca sessão em paralelo com o splash
     verificarSessao();
 
-    // Splash dura 2s, depois some e anima os cards
     setTimeout(() => {
         splash.classList.add('saindo');
         setTimeout(() => {
@@ -728,7 +577,6 @@
         }, 550);
     }, 2000);
 
-    // ── SERVICE WORKER ─────────────────────────────────────
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('./sw.js').catch(() => {});

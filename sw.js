@@ -5,7 +5,7 @@ const CACHE_NAME = 'locus-cache-v7';
 const ASSETS = [
   './',
   './index.html',
-  './cadasto.html',
+  './cadastro.html',
   './professor.html',
   './coordenacao.html',
   './manifest.json',
@@ -14,7 +14,7 @@ const ASSETS = [
   './push.js',
   './professor.js',
   './coordenacao.js',
-  './cadrasto.js',
+  './cadastro.js',
   './apple-touch-icon.png',
   './icon-96.png',
   './icon-192.png',

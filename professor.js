@@ -791,7 +791,7 @@ supabase
             if (acessoRevogado) {
                 await Swal.fire({ icon: 'info', title: 'Acesso redefinido', text: 'Crie um novo PIN para continuar.', confirmButtonColor: '#7c3aed', allowOutsideClick: false });
                 await supabase.auth.signOut();
-                window.location.href = 'cadasto.html';
+                window.location.href = 'cadastro.html';
                 return;
             }
             professorLogado = { ...professorLogado, ...payload.new };
