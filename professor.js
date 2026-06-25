@@ -1,5 +1,5 @@
 /* professor.js — login em 2 passos: selecionar nome → PIN */
-import { supabase, toggleDarkMode as _toggleDarkMode, carregarPreferenciaModo, registrarServiceWorker, getProfessorLogado, fazerLogoutAuth } from './utils.js'
+import { supabase, registrarServiceWorker, getProfessorLogado, fazerLogoutAuth } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 let professorLogado = null;
@@ -12,8 +12,6 @@ let telaAtual = 'agendar';
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", async () => {
-    carregarPreferenciaModo();
-    atualizarBtnDarkMode();
     registrarServiceWorker();
 
     // Verifica sessão JWT ativa — se professor já está logado, pula login
@@ -28,18 +26,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 });
 
-function atualizarBtnDarkMode() {
-    const isDark = document.body.classList.contains('dark-mode');
-    const btn = document.getElementById('btn-dark-mode');
-    const btnPerfil = document.getElementById('btn-dark-perfil');
-    if (btn) btn.textContent = isDark ? '☀️' : '🌙';
-    if (btnPerfil) btnPerfil.textContent = isDark ? 'Ativado' : 'Desativado';
-}
 
-window.toggleDarkMode = function() {
-    _toggleDarkMode();
-    atualizarBtnDarkMode();
-}
 
 // ============================================================
 //  CARREGA LISTA DE NOMES
