@@ -16,7 +16,49 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="locus.css">
     <style>
-        /* ── RESET — sobrescreve locus.css que conflita com o app shell ── */
+        /* ══════════════════════════════════════════════════════
+           DARK PURPLE PERMANENTE — sem modo claro
+           Sobrescreve locus.css antes de qualquer componente
+           ══════════════════════════════════════════════════════ */
+        :root {
+            --bg-body:            #07030f;
+            --bg-card:            rgba(15,9,28,0.88);
+            --bg-input:           rgba(22,13,44,0.85);
+            --texto-principal:    #f0eeff;
+            --texto-secundario:   rgba(240,238,255,.55);
+            --texto-terciario:    rgba(240,238,255,.35);
+            --borda:              rgba(124,58,237,.2);
+            --borda-foco:         #a78bfa;
+            --cor-primaria:       #7c3aed;
+            --cor-primaria-hover: #6d28d9;
+            --cor-primaria-clara: rgba(124,58,237,.15);
+            --cor-sucesso-clara:  rgba(5,150,105,.12);
+            --cor-sucesso-texto:  #6ee7b7;
+            --cor-sucesso-borda:  rgba(110,231,183,.25);
+            --cor-perigo-clara:   rgba(239,68,68,.10);
+            --cor-perigo-texto:   #fca5a5;
+            --cor-perigo-borda:   rgba(239,68,68,.25);
+            --shadow-md:          0 4px 12px rgba(0,0,0,.35);
+            --shadow-lg:          0 12px 32px rgba(0,0,0,.5);
+        }
+
+        /* Dot grid background — fixo, não se move com scroll */
+        body::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0; pointer-events: none;
+            background-image: radial-gradient(circle, rgba(124,58,237,.16) 1px, transparent 1px);
+            background-size: 28px 28px;
+            mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, black 0%, transparent 100%);
+            -webkit-mask-image: radial-gradient(ellipse 70% 55% at 50% 0%, black 0%, transparent 100%);
+        }
+        /* Purple glow no topo */
+        body::after {
+            content: '';
+            position: fixed; z-index: 0; pointer-events: none;
+            top: -180px; left: 50%; transform: translateX(-50%);
+            width: 520px; height: 520px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(124,58,237,.18) 0%, transparent 68%);
+        }
         html {
             height: 100%;
             overflow: hidden;
@@ -36,8 +78,9 @@
             background: var(--bg-body);
         }
 
-        /* Garante que o container do locus.css não interfira */
-        .container { all: unset; display: contents; }
+        /* ── RESET — sobrescreve locus.css que conflita com o app shell ── */
+        /* Garante que conteúdo fique acima dos pseudo-elementos do body */
+        #app-header, #app-content, #bottom-nav, #tela-login { position: relative; z-index: 1; }
 
         /* ── OVERRIDES locus.css PARA APP NATIVO ──── */
         /* Remove o .container do locus.css que limita a 560px */
@@ -63,15 +106,17 @@
         #app-header {
             display: none;
             flex-shrink: 0;
-            background: linear-gradient(135deg, #7c3aed, #6d28d9);
-            padding: 14px 16px 14px;
-            padding-top: calc(14px + env(safe-area-inset-top));
+            background: rgba(7,3,15,0.82);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(124,58,237,.22);
+            padding: 12px 16px 12px;
+            padding-top: calc(12px + env(safe-area-inset-top));
             align-items: center;
             justify-content: space-between;
             width: 100%;
             box-sizing: border-box;
             z-index: 50;
-            /* Impede que filhos estourem a largura */
             overflow: hidden;
         }
 
@@ -83,7 +128,6 @@
             display: flex;
             align-items: center;
             gap: 10px;
-            /* Permite encolher se necessário */
             min-width: 0;
             flex: 1;
         }
@@ -97,9 +141,9 @@
 
         .header-titulo {
             font-family: 'Poppins', sans-serif;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 700;
-            color: #fff;
+            color: #f0eeff;
             letter-spacing: -.3px;
             white-space: nowrap;
             overflow: hidden;
@@ -115,22 +159,21 @@
         }
 
         .header-btn {
-            background: rgba(255,255,255,.15);
-            border: none;
-            border-radius: 8px;
+            background: rgba(124,58,237,.14);
+            border: 1px solid rgba(124,58,237,.3);
+            border-radius: 10px;
             width: 36px;
             height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            color: #fff;
-            font-size: 1.1rem;
+            color: #c4b5fd;
+            font-size: 1rem;
             transition: background .2s;
             flex-shrink: 0;
         }
-
-        .header-btn:hover { background: rgba(255,255,255,.25); }
+        .header-btn:active { background: rgba(124,58,237,.28); }
 
         /* ── MAIN CONTENT ──────────────────────────── */
         #app-content {
@@ -818,7 +861,7 @@
             transition: all .2s;
         }
         .perfil-sair:active { background: #fee2e2; transform: scale(.98); }
-        body.dark-mode .perfil-sair { border-color: #7f1d1d; color: #fca5a5; }
+        .perfil-sair:active { background: rgba(239,68,68,.06); transform: scale(.98); }
 
         /* ── ANIMAÇÃO DE TRANSIÇÃO DE TELA ─────────── */
         .tela {
@@ -901,76 +944,57 @@
             opacity: .5;
         }
 
-        /* ── BANNER NOTIFICAÇÕES ─────────────── */
+        /* ── BANNER NOTIFICAÇÕES — sempre escuro ────────── */
         #banner-notif {
             display: none;
             align-items: center;
             gap: 12px;
-            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
-            border: 1.5px solid #c4b5fd;
-            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(46,16,101,.85), rgba(59,7,100,.85));
+            border: 1px solid rgba(109,40,217,.45);
+            border-radius: 16px;
             padding: 13px 14px;
             margin-bottom: 14px;
+            backdrop-filter: blur(8px);
             animation: surgir-banner .4s cubic-bezier(.34,1.56,.64,1) both;
-        }
-        body.dark-mode #banner-notif {
-            background: linear-gradient(135deg, #2e1065, #3b0764);
-            border-color: #6d28d9;
         }
         @keyframes surgir-banner {
             from { opacity: 0; transform: translateY(-10px) scale(.97); }
             to   { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .banner-notif-icone { font-size: 1.6rem; flex-shrink: 0; }
+        .banner-notif-icone { font-size: 1.5rem; flex-shrink: 0; }
         .banner-notif-texto { flex: 1; min-width: 0; }
-        .banner-notif-titulo {
-            font-size: .83rem; font-weight: 700; color: #5b21b6; margin-bottom: 2px;
-        }
-        body.dark-mode .banner-notif-titulo { color: #c4b5fd; }
-        .banner-notif-sub {
-            font-size: .73rem; color: #6d28d9; line-height: 1.4;
-        }
-        body.dark-mode .banner-notif-sub { color: #a78bfa; }
-        .banner-notif-acoes { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
+        .banner-notif-titulo { font-size: .83rem; font-weight: 700; color: #c4b5fd; margin-bottom: 2px; }
+        .banner-notif-sub    { font-size: .73rem; color: #a78bfa; line-height: 1.4; }
+        .banner-notif-acoes  { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; }
         #btn-notif-banner {
             background: #7c3aed; color: #fff; border: none; border-radius: 8px;
             padding: 7px 12px; font-size: .78rem; font-weight: 700;
             font-family: 'Poppins', sans-serif; cursor: pointer;
             transition: opacity .2s, transform .15s; white-space: nowrap;
         }
-        #btn-notif-banner:active { transform: scale(.93); opacity: .85; }
-        #btn-notif-banner:disabled { opacity: .6; cursor: not-allowed; }
+        #btn-notif-banner:active  { transform: scale(.93); opacity: .85; }
+        #btn-notif-banner:disabled{ opacity: .5; cursor: not-allowed; }
         .btn-dispensar-notif {
-            background: none; border: none; color: #7c3aed;
+            background: none; border: none; color: #a78bfa;
             font-size: .7rem; font-family: 'Poppins', sans-serif;
-            cursor: pointer; text-align: center; padding: 2px; opacity: .7;
+            cursor: pointer; text-align: center; padding: 2px; opacity: .75;
         }
-        body.dark-mode .btn-dispensar-notif { color: #a78bfa; }
 
-        /* ── BANNER BOAS-VINDAS (primeiro login) ─ */
+        /* ── BANNER BOAS-VINDAS — sempre escuro ─────────── */
         #banner-aprovado {
             display: none;
             flex-direction: column;
             gap: 8px;
-            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-            border: 1.5px solid #6ee7b7;
-            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(6,78,59,.85), rgba(6,95,70,.85));
+            border: 1px solid rgba(5,150,105,.45);
+            border-radius: 16px;
             padding: 16px;
             margin-bottom: 14px;
+            backdrop-filter: blur(8px);
             animation: surgir-banner .5s cubic-bezier(.34,1.56,.64,1) both;
         }
-        body.dark-mode #banner-aprovado {
-            background: linear-gradient(135deg, #064e3b, #065f46);
-            border-color: #059669;
-        }
-        .banner-aprovado-titulo {
-            font-size: .95rem; font-weight: 700; color: #065f46;
-        }
-        body.dark-mode .banner-aprovado-titulo { color: #6ee7b7; }
-        .banner-aprovado-sub {
-            font-size: .8rem; color: #047857; line-height: 1.5;
-        }
-        body.dark-mode .banner-aprovado-sub { color: #34d399; }
+        .banner-aprovado-titulo  { font-size: .93rem; font-weight: 700; color: #6ee7b7; }
+        .banner-aprovado-sub     { font-size: .8rem;  color: #34d399; line-height: 1.5; }
         .btn-aprovado-notif {
             background: #059669; color: #fff; border: none; border-radius: 10px;
             padding: 10px; font-size: .85rem; font-weight: 700;
@@ -979,11 +1003,195 @@
         }
         .btn-aprovado-notif:active { transform: scale(.96); opacity: .85; }
         .btn-fechar-aprovado {
-            background: none; border: none; color: #047857;
+            background: none; border: none; color: #34d399;
             font-size: .75rem; font-family: 'Poppins', sans-serif;
-            cursor: pointer; text-align: center; opacity: .7;
+            cursor: pointer; text-align: center; opacity: .75;
         }
-        body.dark-mode .btn-fechar-aprovado { color: #34d399; }
+        /* ═══════════════════════════════════════════════════════
+           OVERRIDES INTERNOS — dark purple permanente
+           Sobrescreve locus.css que ainda tem cores light
+           ═══════════════════════════════════════════════════════ */
+
+        /* ── FORMULÁRIOS ─────────────────────────────────── */
+        .form-group {
+            margin-bottom: 14px;
+        }
+        .form-group label {
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .09em;
+            text-transform: uppercase;
+            color: var(--texto-secundario);
+            margin-bottom: 7px;
+            display: block;
+        }
+        .form-group input,
+        .form-group select {
+            background: rgba(22,13,44,.85) !important;
+            border: 1.5px solid rgba(124,58,237,.22) !important;
+            border-radius: 13px !important;
+            color: var(--texto-principal) !important;
+            font-size: .9rem;
+            padding: 13px 15px !important;
+            -webkit-appearance: none;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #7c3aed !important;
+            box-shadow: 0 0 0 3px rgba(124,58,237,.15) !important;
+            background: rgba(22,13,44,.95) !important;
+            outline: none;
+        }
+        /* Calendar icon */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) opacity(.4) sepia(1) saturate(5) hue-rotate(240deg);
+            cursor: pointer;
+        }
+        /* Select arrow */
+        .form-group select {
+            padding-right: 36px !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(124,58,237,.7)' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 14px center !important;
+        }
+
+        /* ── GRADE DE AULAS ──────────────────────────────── */
+        .btn-aula {
+            border-radius: 14px !important;
+            font-size: .82rem !important;
+            min-height: 76px !important;
+            transition: transform .15s, box-shadow .15s !important;
+        }
+        .btn-aula:active { transform: scale(.96) !important; }
+        .btn-aula.disponivel {
+            background: rgba(5,150,105,.12) !important;
+            color: #6ee7b7 !important;
+            border-color: rgba(110,231,183,.25) !important;
+        }
+        .btn-aula.disponivel:hover {
+            background: rgba(5,150,105,.2) !important;
+            box-shadow: 0 4px 14px rgba(5,150,105,.2) !important;
+            transform: translateY(-1px) !important;
+        }
+        .btn-aula.ocupada {
+            background: rgba(239,68,68,.08) !important;
+            color: #fca5a5 !important;
+            border-color: rgba(239,68,68,.22) !important;
+            opacity: 1 !important;
+        }
+
+        /* ── SPINNER ─────────────────────────────────────── */
+        .spinner {
+            border-color: rgba(124,58,237,.2) !important;
+            border-top-color: #7c3aed !important;
+        }
+
+        /* ── VISÃO SEMANAL ───────────────────────────────── */
+        .semana-wrapper {
+            background: rgba(15,9,28,.6) !important;
+            border-color: rgba(124,58,237,.2) !important;
+            border-radius: 16px !important;
+            overflow: hidden;
+        }
+        .semana-tabela th {
+            background: rgba(22,13,44,.9) !important;
+            color: rgba(240,238,255,.45) !important;
+            border-bottom-color: rgba(124,58,237,.18) !important;
+            font-size: .65rem !important;
+        }
+        .semana-tabela td {
+            border-bottom-color: rgba(124,58,237,.1) !important;
+        }
+        .semana-tabela td:first-child {
+            color: var(--texto-secundario) !important;
+        }
+        .semana-celula {
+            border-radius: 8px !important;
+            font-size: .85rem !important;
+        }
+        .semana-celula.livre {
+            background: rgba(5,150,105,.12) !important;
+            border-color: rgba(110,231,183,.25) !important;
+            color: #6ee7b7 !important;
+        }
+        .semana-celula.ocupada {
+            background: rgba(239,68,68,.1) !important;
+            border-color: rgba(239,68,68,.22) !important;
+            color: #fca5a5 !important;
+        }
+        .semana-celula.minha {
+            background: rgba(124,58,237,.18) !important;
+            border-color: rgba(124,58,237,.45) !important;
+            color: #c4b5fd !important;
+        }
+        .semana-legenda { color: var(--texto-secundario) !important; }
+        .semana-legenda-cor.livre  { background: rgba(5,150,105,.25) !important; border-color: rgba(110,231,183,.4) !important; }
+        .semana-legenda-cor.ocupada{ background: rgba(239,68,68,.2)  !important; border-color: rgba(239,68,68,.4)    !important; }
+        .semana-legenda-cor.minha  { background: rgba(124,58,237,.3) !important; border-color: rgba(124,58,237,.6)   !important; }
+
+        /* ── MINHAS AULAS ────────────────────────────────── */
+        .minhas-aulas-header {
+            padding: 4px 0 16px;
+            border-bottom: 1px solid rgba(124,58,237,.15);
+            margin-bottom: 16px;
+        }
+        .minhas-aulas-titulo {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--texto-principal);
+            margin-bottom: 2px;
+        }
+        .minhas-aulas-sub {
+            font-size: .78rem;
+            color: var(--texto-secundario);
+        }
+        .historico-item {
+            background: rgba(15,9,28,.7) !important;
+            border-color: rgba(124,58,237,.18) !important;
+            border-left: 3px solid #7c3aed !important;
+            border-radius: 14px !important;
+            padding: 14px 16px !important;
+            transition: transform .15s, box-shadow .15s !important;
+        }
+        .historico-item:hover {
+            transform: translateX(3px) !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,.25) !important;
+        }
+        .historico-info {
+            color: var(--texto-principal) !important;
+            font-size: .88rem !important;
+        }
+        .historico-info span {
+            color: var(--texto-secundario) !important;
+            font-size: .76rem !important;
+        }
+        .btn-cancelar {
+            background: rgba(239,68,68,.1) !important;
+            color: #fca5a5 !important;
+            border-color: rgba(239,68,68,.22) !important;
+            border-radius: 9px !important;
+            font-size: .76rem !important;
+            padding: 7px 12px !important;
+        }
+        .btn-cancelar:active {
+            background: rgba(239,68,68,.2) !important;
+            transform: scale(.95);
+        }
+
+        /* ── PERFIL ──────────────────────────────────────── */
+        .perfil-item {
+            background: rgba(15,9,28,.7) !important;
+            border-color: rgba(124,58,237,.18) !important;
+            border-radius: 14px !important;
+            padding: 13px 16px !important;
+        }
+        .perfil-sair {
+            border-color: rgba(239,68,68,.28) !important;
+            color: #fca5a5 !important;
+            border-radius: 14px !important;
+        }
+        .perfil-sair:active { background: rgba(239,68,68,.08) !important; transform: scale(.98); }
+
     </style>
 </head>
 <body>
@@ -996,7 +1204,6 @@
         <span class="header-titulo" id="header-titulo">Locus</span>
     </div>
     <div class="header-acoes">
-        <button class="header-btn" onclick="toggleDarkMode()" id="btn-dark-mode" title="Alternar modo escuro">🌙</button>
     </div>
 </header>
 
@@ -1005,9 +1212,6 @@
 
     <!-- LOGIN — dark design Figma -->
     <div id="tela-login">
-
-        <!-- Botão dark mode -->
-        <button class="login-btn-dark" id="btn-dark-mode" onclick="toggleDarkMode()">🌙</button>
 
         <!-- Logo -->
         <div class="login-logo-section">
@@ -1170,14 +1374,6 @@
         </div>
 
         <div class="perfil-opcoes" style="display:flex;flex-direction:column;gap:10px;">
-            <div class="perfil-item">
-                <div class="perfil-item-esq">
-                    <div class="perfil-item-icone roxo">🌙</div>
-                    <span>Modo escuro</span>
-                </div>
-                <button class="perfil-toggle" id="btn-dark-perfil" onclick="toggleDarkMode()">Desativado</button>
-            </div>
-
             <div class="perfil-item">
                 <div class="perfil-item-esq">
                     <div class="perfil-item-icone roxo">🔔</div>
