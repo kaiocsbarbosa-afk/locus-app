@@ -1,5 +1,5 @@
 /* coordenacao.js — sem sessionStorage, token validado pelo servidor */
-import { supabase, toggleDarkMode, carregarPreferenciaModo, registrarServiceWorker, dispararAlerta } from './utils.js'
+import { supabase, registrarServiceWorker, dispararAlerta } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 window.addEventListener('error', function(e) {
@@ -29,7 +29,6 @@ function tokenValido() {
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", () => {
-    carregarPreferenciaModo();
     registrarServiceWorker();
 
     const inputSenha = document.getElementById("senha-coord");
@@ -128,6 +127,67 @@ function mostrarDashboard() {
     carregarRelatorioGeral();
     atualizarBadgePendentes();
     verificarStatusNotificacoes(); // Mostra banner se permissão ainda não foi dada
+}
+
+// ============================================================
+//  NOTIFICAÇÕES
+// ============================================================
+
+function verificarStatusNotificacoes() {
+    const bannerPedido = document.getElementById('banner-notif');
+    const bannerOk     = document.getElementById('banner-notif-ok');
+
+    // Navegador sem suporte a Notification API — esconde tudo
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+        if (bannerPedido) bannerPedido.classList.remove('visivel');
+        if (bannerOk)     bannerOk.classList.remove('visivel');
+        return;
+    }
+
+    const perm = Notification.permission;
+
+    if (perm === 'granted') {
+        // Permissão já concedida — mostra confirmação, esconde pedido
+        if (bannerPedido) bannerPedido.classList.remove('visivel');
+        if (bannerOk)     bannerOk.classList.add('visivel');
+    } else if (perm === 'default') {
+        // Ainda não decidido — mostra o banner de pedido
+        if (bannerPedido) bannerPedido.classList.add('visivel');
+        if (bannerOk)     bannerOk.classList.remove('visivel');
+    } else {
+        // 'denied' — esconde os dois, não insistimos
+        if (bannerPedido) bannerPedido.classList.remove('visivel');
+        if (bannerOk)     bannerOk.classList.remove('visivel');
+    }
+}
+
+window.ativarNotifCoord = async function() {
+    const bannerPedido = document.getElementById('banner-notif');
+
+    if (!('Notification' in window)) {
+        dispararAlerta({ icon: 'info', title: 'Sem suporte', text: 'Seu navegador não suporta notificações.', confirmButtonColor: 'var(--cor-primaria)' });
+        return;
+    }
+
+    try {
+        const sucesso = await ativarNotificacoes('coordenacao', null);
+
+        if (sucesso) {
+            if (bannerPedido) bannerPedido.classList.remove('visivel');
+            const bannerOk = document.getElementById('banner-notif-ok');
+            if (bannerOk) bannerOk.classList.add('visivel');
+        } else if (Notification.permission === 'denied') {
+            if (bannerPedido) bannerPedido.classList.remove('visivel');
+            dispararAlerta({
+                icon: 'info',
+                title: 'Notificações bloqueadas',
+                text: 'Para ativar, vá em Configurações do navegador → Notificações → permitir este site.',
+                confirmButtonColor: 'var(--cor-primaria)'
+            });
+        }
+    } catch (err) {
+        console.error('Erro ao ativar notificações:', err);
+    }
 }
 
 async function carregarSalasNoFiltro() {
