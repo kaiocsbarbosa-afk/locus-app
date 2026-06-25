@@ -2,7 +2,8 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Locus — Solicitar Acesso</title>
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -15,7 +16,34 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         *, *::before, *::after {
-            box-sizing: border-box; -webkit-tap-highlight-color: transparent; margin: 0; padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            margin: 0; padding: 0;
+        }
+
+        /* Preserva seleção e callout nos campos de texto */
+        input, textarea, [contenteditable="true"] {
+            -webkit-user-select: text !important;
+            user-select: text !important;
+            -webkit-touch-callout: default !important;
+        }
+
+        /* Toque rápido sem delay em elementos interativos */
+        button, a, label, select, [onclick], [role="button"] {
+            touch-action: manipulation;
+        }
+
+        html {
+            overscroll-behavior: none;        /* bloqueia pull-to-refresh */
+            height: 100%;
+        }
+
+        body {
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: touch;
         }
 
         :root {
@@ -375,6 +403,35 @@
 
 </div>
 
+<script>
+    /* ── APP NATIVO — bloqueia comportamentos de browser ──── */
+
+    // Menu de contexto (segurar o dedo no Android)
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Pinch-zoom via gestos (iOS Safari)
+    document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
+    document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+
+    // Multi-touch (pinch-zoom Android / Chrome)
+    document.addEventListener('touchmove', e => {
+        if (e.touches.length > 1) e.preventDefault();
+    }, { passive: false });
+
+    // Double-tap zoom — bloqueia segundo toque rápido
+    let _ult = 0;
+    document.addEventListener('touchend', e => {
+        const agora = Date.now();
+        if (agora - _ult < 300) e.preventDefault();
+        _ult = agora;
+    }, { passive: false });
+
+    // Seleção de texto via arrastar (fora de inputs)
+    document.addEventListener('selectstart', e => {
+        const tag = e.target?.tagName;
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA') e.preventDefault();
+    });
+</script>
 <script type="module" src="cadastro.js"></script>
 </body>
 </html>
