@@ -93,7 +93,7 @@ async function enviarSolicitacao() {
 
     try {
         const { data: existente } = await supabase
-            .from('professores').select('id').ilike('nome', nome).maybeSingle();
+            .from('solicitacoes_acesso').select('id').ilike('nome', nome).maybeSingle();
 
         if (existente) {
             btnEnviar.disabled = false;
@@ -106,8 +106,8 @@ async function enviarSolicitacao() {
         }
 
         const { error } = await supabase
-            .from('professores')
-            .insert({ nome, disciplina, pin_hash: pin, status: 'pendente' });
+            .from('solicitacoes_acesso')
+            .insert({ nome, disciplina, pin, status: 'pendente' });
 
         if (error) throw error;
 
