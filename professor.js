@@ -702,35 +702,77 @@ window.cancelarAgendamento = async function(id, nomeSala, numeroAula, dataBr) {
 //  VISÃO SEMANAL
 // ============================================================
 
+// ============================================================
+//  VISÃO SEMANAL v2 — cards por dia, swipe, navegação de semana
+// ============================================================
+
+let _semOffset  = 0;   // semanas a partir da atual (0 = esta semana)
+let _semDiaIdx  = -1;  // dia ativo: 0=Seg … 4=Sex; -1 = auto (hoje)
+let _semDados   = null; // cache: { salaId, offset, mapa, dias, hojeStr }
+
 window.carregarVisaoSemanal = async function() {
-    const salaId = document.getElementById('select-sala').value;
+    // Ao entrar na tela pela primeira vez: auto-seleciona hoje
+    _semDados = null;
+    await _fetchESalvar();
+}
+
+window.navegarSemana = async function(dir) {
+    _semOffset += dir;
+    _semDiaIdx  = 0;   // vai para segunda ao mudar de semana
+    _semDados   = null;
+    await _fetchESalvar();
+}
+
+window.trocarDiaSemana = function(idx) {
+    _semDiaIdx = idx;
+    _renderSemana();
+}
+
+async function _fetchESalvar() {
+    const salaId    = document.getElementById('select-sala')?.value;
     const container = document.getElementById('visao-semanal');
-    const info = document.getElementById('semana-sala-info');
+    const infoEl    = document.getElementById('semana-sala-info');
     if (!container) return;
 
     if (!salaId) {
-        container.innerHTML = '<div class="grid-vazio"><div class="icone-vazio">🏫</div><p>Selecione uma sala na aba Agendar para ver a semana.</p></div>';
+        container.innerHTML = `
+          <div class="semana-vazio">
+            <div class="icone">🏫</div>
+            <p>Selecione uma sala na aba<br><strong>Agendar</strong> para ver a semana.</p>
+          </div>`;
+        if (infoEl) infoEl.textContent = 'Selecione uma sala na aba Agendar';
         return;
     }
 
     const nomeSala = document.getElementById('select-sala').selectedOptions[0]?.textContent || 'Sala';
-    if (info) info.textContent = nomeSala;
-    container.innerHTML = '<div class="spinner-container"><div class="spinner"></div><div class="spinner-texto">Montando a semana...</div></div>';
+    if (infoEl) infoEl.textContent = nomeSala;
 
-    const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    const dataInput = document.getElementById('data-agendamento').value;
-    const dataBase = dataInput ? new Date(dataInput + 'T00:00:00') : new Date();
-    const dia = dataBase.getDay();
-    const diff = dia === 0 ? -6 : 1 - dia;
-    const segunda = new Date(dataBase);
-    segunda.setDate(dataBase.getDate() + diff);
+    container.innerHTML = '<div class="spinner-container"><div class="spinner"></div><div class="spinner-texto">Carregando semana...</div></div>';
 
-    const nomes = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
-    const dias = Array.from({length: 5}, (_, i) => {
+    const fmt = d =>
+        `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+    const dataInput = document.getElementById('data-agendamento')?.value;
+    const dataBase  = dataInput ? new Date(dataInput + 'T00:00:00') : new Date();
+    const dow       = dataBase.getDay();
+    const diffSeg   = dow === 0 ? -6 : 1 - dow;
+    const segunda   = new Date(dataBase);
+    segunda.setDate(dataBase.getDate() + diffSeg + _semOffset * 7);
+
+    const NOMES = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
+    const dias  = NOMES.map((nome, i) => {
         const d = new Date(segunda);
         d.setDate(segunda.getDate() + i);
-        return { data: fmt(d), nome: nomes[i], diaNum: d.getDate() };
+        return { nome, data: fmt(d), diaNum: d.getDate(), mes: d.getMonth() + 1 };
     });
+
+    const hojeStr = fmt(new Date());
+
+    // Auto-seleciona hoje se estiver nesta semana
+    if (_semDiaIdx < 0) {
+        const hi = dias.findIndex(d => d.data === hojeStr);
+        _semDiaIdx = hi >= 0 ? hi : 0;
+    }
 
     try {
         const { data, error } = await supabase
@@ -739,44 +781,114 @@ window.carregarVisaoSemanal = async function() {
             .eq('sala_id', salaId)
             .gte('data', dias[0].data)
             .lte('data', dias[4].data);
-
         if (error) throw error;
 
         const mapa = {};
         data.forEach(a => {
             mapa[`${a.data}|${a.aula_numero}`] = {
-                prof: a.professores?.nome || 'Desconhecido',
-                turma: a.turmas?.nome || 'Turma',
+                prof:  a.professores?.nome || '—',
+                turma: a.turmas?.nome     || '—',
                 minha: professorLogado && a.professor_id === professorLogado.id
             };
         });
 
-        let html = '<div class="semana-wrapper"><table class="semana-tabela"><thead><tr><th>Aula</th>';
-        dias.forEach(d => { html += `<th>${d.nome}<br>${d.diaNum}</th>`; });
-        html += '</tr></thead><tbody>';
+        _semDados = { salaId, offset: _semOffset, mapa, dias, hojeStr };
+        _renderSemana();
 
-        for (let aula = 1; aula <= 7; aula++) {
-            html += `<tr><td>${aula}ª</td>`;
-            dias.forEach(d => {
-                const inf = mapa[`${d.data}|${aula}`];
-                if (inf?.minha) html += `<td><div class="semana-celula minha" title="Sua reserva — ${inf.turma}">★</div></td>`;
-                else if (inf) html += `<td><div class="semana-celula ocupada" title="${inf.prof} — ${inf.turma}">●</div></td>`;
-                else html += `<td><div class="semana-celula livre" title="Livre">○</div></td>`;
-            });
-            html += '</tr>';
-        }
-
-        html += '</tbody></table></div>';
-        html += `<div class="semana-legenda">
-            <div class="semana-legenda-item"><div class="semana-legenda-cor" style="background:var(--cor-sucesso-clara);border-color:var(--cor-sucesso-borda);"></div>Livre</div>
-            <div class="semana-legenda-item"><div class="semana-legenda-cor" style="background:var(--cor-perigo-clara);border-color:var(--cor-perigo-borda);"></div>Outro professor</div>
-            <div class="semana-legenda-item"><div class="semana-legenda-cor" style="background:var(--cor-primaria-clara);border-color:var(--cor-primaria);"></div>Minha reserva</div>
-        </div>`;
-
-        container.innerHTML = html;
     } catch (err) {
-        console.error("Erro ao carregar visão semanal:", err);
-        container.innerHTML = '<div class="grid-vazio"><div class="icone-vazio">⚠️</div><p>Não foi possível carregar a semana.</p></div>';
+        console.error('Erro ao carregar visão semanal:', err);
+        container.innerHTML = `
+          <div class="semana-vazio">
+            <div class="icone">⚠️</div>
+            <p>Não foi possível carregar.<br>Verifique a conexão.</p>
+          </div>`;
+    }
+}
+
+function _renderSemana() {
+    const container = document.getElementById('visao-semanal');
+    if (!container || !_semDados) return;
+
+    const { mapa, dias, hojeStr } = _semDados;
+    const diaAtivo = dias[_semDiaIdx];
+
+    /* ── Navegação de semana ── */
+    const nav = `
+      <div class="semana-nav">
+        <button class="semana-seta" onclick="navegarSemana(-1)" aria-label="Semana anterior">‹</button>
+        <span class="semana-periodo">${dias[0].diaNum}/${dias[0].mes} – ${dias[4].diaNum}/${dias[4].mes}</span>
+        <button class="semana-seta" onclick="navegarSemana(1)" aria-label="Próxima semana">›</button>
+      </div>`;
+
+    /* ── Pills de dia ── */
+    const pills = dias.map((d, i) => {
+        const ativo = i === _semDiaIdx ? ' ativo' : '';
+        const hoje  = d.data === hojeStr ? ' hoje' : '';
+        return `<button class="dia-pill${ativo}${hoje}" onclick="trocarDiaSemana(${i})">
+                  <span class="dia-nome">${d.nome}</span>
+                  <span class="dia-num">${d.diaNum}</span>
+                </button>`;
+    }).join('');
+
+    /* ── Cards de aula ── */
+    const TOTAL_AULAS = 7;
+    const ICONS = { livre: '○', ocupada: '●', minha: '★' };
+    const LABELS = { livre: 'Livre', ocupada: 'Ocupado', minha: 'Minha reserva' };
+
+    const cards = Array.from({ length: TOTAL_AULAS }, (_, i) => {
+        const aula = i + 1;
+        const inf  = mapa[`${diaAtivo.data}|${aula}`];
+        const tipo = inf?.minha ? 'minha' : inf ? 'ocupada' : 'livre';
+
+        const detalhe = tipo === 'minha'
+            ? `<div class="slot-detail">${inf.turma}</div>`
+            : tipo === 'ocupada'
+            ? `<div class="slot-detail">${inf.turma}</div><div class="slot-sub">${inf.prof}</div>`
+            : '';
+
+        return `
+          <div class="slot-card ${tipo}">
+            <div class="slot-num">${aula}<small>aula</small></div>
+            <div class="slot-divisor"></div>
+            <div class="slot-content">
+              <div class="slot-badge">${ICONS[tipo]} ${LABELS[tipo]}</div>
+              ${detalhe}
+            </div>
+          </div>`;
+    }).join('');
+
+    /* ── Legenda ── */
+    const legenda = `
+      <div class="semana-legenda">
+        <div class="semana-legenda-item"><div class="semana-legenda-cor livre"></div>Livre</div>
+        <div class="semana-legenda-item"><div class="semana-legenda-cor ocupada"></div>Outro professor</div>
+        <div class="semana-legenda-item"><div class="semana-legenda-cor minha"></div>Minha reserva</div>
+      </div>`;
+
+    container.innerHTML = `
+      <div class="semana-v2">
+        ${nav}
+        <div class="semana-dias-pills">${pills}</div>
+        <div class="semana-slots" id="semana-slots">${cards}</div>
+        ${legenda}
+      </div>`;
+
+    /* ── Swipe para trocar de dia ── */
+    const slotsEl = document.getElementById('semana-slots');
+    if (slotsEl) {
+        let sx = 0, sy = 0;
+        slotsEl.addEventListener('touchstart', e => {
+            sx = e.touches[0].clientX;
+            sy = e.touches[0].clientY;
+        }, { passive: true });
+        slotsEl.addEventListener('touchend', e => {
+            const dx = e.changedTouches[0].clientX - sx;
+            const dy = e.changedTouches[0].clientY - sy;
+            if (Math.abs(dx) > Math.abs(dy) * 1.4 && Math.abs(dx) > 44) {
+                const next = _semDiaIdx + (dx < 0 ? 1 : -1);
+                if (next >= 0 && next < dias.length) window.trocarDiaSemana(next);
+            }
+        }, { passive: true });
     }
 }
 
@@ -790,7 +902,7 @@ supabase
         if (!professorLogado) return;
         buscarAulas();
         carregarHistorico();
-        if (telaAtual === 'semana') carregarVisaoSemanal();
+        if (telaAtual === 'semana') { _semDados = null; _fetchESalvar(); }
     })
     .subscribe();
 
