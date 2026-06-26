@@ -2,18 +2,33 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Locus — Coordenação</title>
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./icon-192.png">
     <link rel="icon" href="./icon-96.png" type="image/png">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="locus.css">
     <style>
-    *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    *, *::before, *::after {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    input, textarea, [contenteditable="true"] {
+        -webkit-user-select: text !important;
+        user-select: text !important;
+        -webkit-touch-callout: default !important;
+    }
+    button, a, label, select, [onclick], [role="button"] { touch-action: manipulation; }
+    html { height: 100%; overscroll-behavior: none; }
 
     /* ══ BASE DARK ══════════════════════════════════════ */
     :root {
@@ -272,20 +287,26 @@
         display: none;
         align-items: center;
         gap: 12px;
-        background: linear-gradient(135deg, rgba(59,127,255,.15), rgba(59,127,255,.08));
-        border: 1px solid rgba(59,127,255,.25);
+        background: linear-gradient(135deg, rgba(46,16,101,.8), rgba(59,7,100,.8));
+        border: 1px solid rgba(109,40,217,.4);
         border-radius: 14px;
         padding: 14px 16px;
         cursor: pointer;
+        backdrop-filter: blur(8px);
         transition: opacity .2s, transform .15s;
+        animation: surgir .4s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    @keyframes surgir {
+        from { opacity: 0; transform: translateY(-8px) scale(.97); }
+        to   { opacity: 1; transform: none; }
     }
     #banner-notif.visivel { display: flex; }
     #banner-notif:active { transform: scale(.98); opacity: .9; }
     .banner-notif-icone { font-size: 1.4rem; flex-shrink: 0; }
     .banner-notif-texto { flex: 1; }
-    .banner-notif-titulo { font-weight: 700; font-size: .85rem; color: #93c5fd; }
-    .banner-notif-sub { font-size: .74rem; color: #6b9fd4; margin-top: 2px; }
-    .banner-notif-seta { color: var(--blue); font-size: 1.1rem; flex-shrink: 0; }
+    .banner-notif-titulo { font-weight: 700; font-size: .85rem; color: #c4b5fd; }
+    .banner-notif-sub { font-size: .74rem; color: #a78bfa; margin-top: 2px; }
+    .banner-notif-seta { color: #c4b5fd; font-size: 1.1rem; flex-shrink: 0; }
 
     #banner-notif-ok {
         display: none;
@@ -462,178 +483,280 @@
     }
     .solicitacoes-vazio-icon { font-size: 1.8rem; display: block; margin-bottom: 8px; opacity: .5; }
 
-    /* Lista professores */
-    .gerenciar-lista-professores { display: flex; flex-direction: column; gap: 8px; }
-    .gerenciar-item-prof {
-        display: flex; align-items: center; gap: 12px;
-        background: var(--surface2);
+    /* ── CARDS DE PROFESSOR ─────────────────────────── */
+    .gerenciar-lista-professores { display: flex; flex-direction: column; gap: 10px; }
+
+    .professor-card {
+        background: rgba(15,9,28,.7);
         border: 1px solid var(--border);
-        border-radius: 13px;
-        padding: 11px 14px;
+        border-radius: 16px;
+        overflow: hidden;
+        transition: border-color .2s;
+        animation: entrar-card .3s cubic-bezier(.34,1.56,.64,1) both;
     }
-    .gerenciar-prof-avatar {
-        width: 36px; height: 36px;
+    .professor-card:nth-child(2) { animation-delay: .05s; }
+    .professor-card:nth-child(3) { animation-delay: .1s; }
+    .professor-card:nth-child(4) { animation-delay: .15s; }
+
+    .professor-card-topo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+    }
+    .professor-card-avatar {
+        width: 42px; height: 42px;
         border-radius: 50%;
         background: linear-gradient(135deg, #7c3aed, #5b21b6);
         display: flex; align-items: center; justify-content: center;
-        font-size: .8rem; font-weight: 700; color: #fff;
+        font-size: .9rem; font-weight: 800; color: #fff;
         flex-shrink: 0;
+        box-shadow: 0 3px 10px rgba(124,58,237,.3);
     }
-    .gerenciar-prof-info { flex: 1; min-width: 0; }
-    .gerenciar-prof-nome { font-weight: 600; font-size: .87rem; color: var(--txt); }
-    .gerenciar-prof-disc { font-size: .74rem; color: var(--txt3); }
-    .gerenciar-vazio { text-align: center; padding: 20px; color: var(--txt3); font-size: .82rem; }
+    .professor-card-info { flex: 1; min-width: 0; }
+    .professor-nome {
+        font-weight: 700; font-size: .92rem; color: var(--txt);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .professor-disciplina {
+        font-size: .74rem; color: var(--txt3); margin-top: 2px;
+    }
+    .status-pin {
+        font-size: .66rem; font-weight: 800;
+        padding: 4px 9px; border-radius: 20px;
+        text-transform: uppercase; letter-spacing: .05em;
+        flex-shrink: 0; white-space: nowrap;
+    }
+    .status-pin.ativo {
+        background: rgba(34,197,94,.12);
+        border: 1px solid rgba(34,197,94,.25);
+        color: #4ade80;
+    }
+    .status-pin.pendente {
+        background: rgba(234,179,8,.1);
+        border: 1px solid rgba(234,179,8,.22);
+        color: #facc15;
+    }
 
-    /* Gerenciar salas/turmas */
-    .gerenciar-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
+    .professor-card-edicao {
+        padding: 0 16px 12px;
+        display: flex; flex-direction: column; gap: 8px;
     }
-    .gerenciar-coluna h4 { font-size: .82rem; font-weight: 700; color: var(--txt2); margin-bottom: 10px; }
-    .gerenciar-form { display: flex; gap: 6px; margin-bottom: 10px; }
-    .gerenciar-form input {
-        flex: 1; padding: 10px 12px;
-        background: var(--surface2);
-        border: 1px solid var(--border2);
-        border-radius: 10px;
-        color: var(--txt); font-size: .82rem;
+    .professor-card-edicao input,
+    .professor-card-edicao select {
+        width: 100%;
+        padding: 11px 13px;
+        background: rgba(22,13,44,.85);
+        border: 1px solid rgba(124,58,237,.22);
+        border-radius: 11px;
+        color: var(--txt);
+        font-size: .84rem;
         font-family: 'Poppins', sans-serif;
         outline: none;
-        transition: border-color .2s;
+        -webkit-appearance: none;
+        transition: border-color .2s, box-shadow .2s;
     }
-    .gerenciar-form input:focus { border-color: var(--blue); }
-    .gerenciar-form button {
-        padding: 10px 12px;
-        background: var(--blue); color: #fff;
-        border: none; border-radius: 10px;
-        font-size: .8rem; font-weight: 700;
+    .professor-card-edicao input:focus,
+    .professor-card-edicao select:focus {
+        border-color: var(--purple);
+        box-shadow: 0 0 0 3px var(--purple-dim);
+    }
+
+    .professor-card-acoes {
+        padding: 10px 16px 14px;
+        display: flex; gap: 7px; flex-wrap: wrap;
+        border-top: 1px solid var(--border);
+    }
+    .btn-salvar-professor {
+        flex: 1; padding: 9px 12px;
+        background: rgba(124,58,237,.15);
+        border: 1px solid rgba(124,58,237,.35);
+        border-radius: 10px; color: #c4b5fd;
+        font-size: .78rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        transition: background .2s, transform .15s;
+    }
+    .btn-salvar-professor:active { background: rgba(124,58,237,.28); transform: scale(.95); }
+
+    .btn-resetar-pin {
+        flex: 1; padding: 9px 12px;
+        background: rgba(234,179,8,.1);
+        border: 1px solid rgba(234,179,8,.25);
+        border-radius: 10px; color: #facc15;
+        font-size: .78rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        transition: background .2s, transform .15s;
+    }
+    .btn-resetar-pin:active { background: rgba(234,179,8,.2); transform: scale(.95); }
+
+    .btn-excluir-professor {
+        padding: 9px 12px;
+        background: var(--red-soft);
+        border: 1px solid rgba(239,68,68,.22);
+        border-radius: 10px; color: #f87171;
+        font-size: .78rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        transition: background .2s, transform .15s;
+    }
+    .btn-excluir-professor:active { background: rgba(239,68,68,.22); transform: scale(.95); }
+
+    .gerenciar-vazio {
+        text-align: center; padding: 28px 16px;
+        color: var(--txt3); font-size: .82rem;
+    }
+
+    /* ── SALAS E TURMAS ──────────────────────────────── */
+    .gerenciar-secoes {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .gerenciar-secao-titulo {
+        display: flex; align-items: center; gap: 8px;
+        font-size: .72rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: .1em;
+        color: var(--txt3);
+        margin-bottom: 10px;
+    }
+    .gerenciar-secao-titulo::after {
+        content: ''; flex: 1; height: 1px;
+        background: var(--border);
+    }
+    .gerenciar-add {
+        display: flex; gap: 8px; margin-bottom: 10px;
+    }
+    .gerenciar-add input {
+        flex: 1; padding: 11px 13px;
+        background: rgba(22,13,44,.85);
+        border: 1px solid rgba(124,58,237,.22);
+        border-radius: 12px;
+        color: var(--txt); font-size: .84rem;
+        font-family: 'Poppins', sans-serif;
+        outline: none;
+        transition: border-color .2s, box-shadow .2s;
+    }
+    .gerenciar-add input:focus {
+        border-color: var(--purple);
+        box-shadow: 0 0 0 3px var(--purple-dim);
+    }
+    .gerenciar-add input::placeholder { color: var(--txt3); }
+    .gerenciar-add-btn {
+        padding: 11px 16px;
+        background: var(--purple);
+        color: #fff; border: none; border-radius: 12px;
+        font-size: .82rem; font-weight: 700;
         font-family: 'Poppins', sans-serif; cursor: pointer;
         white-space: nowrap;
-        transition: opacity .2s;
+        box-shadow: 0 4px 14px rgba(124,58,237,.3);
+        transition: opacity .2s, transform .15s;
     }
-    .gerenciar-form button:active { opacity: .8; }
-    .gerenciar-lista { display: flex; flex-direction: column; gap: 6px; }
-    .gerenciar-item-tag {
-        display: flex; align-items: center; justify-content: space-between;
-        background: var(--surface2);
-        border: 1px solid var(--border);
-        border-radius: 9px;
-        padding: 8px 11px;
-        font-size: .8rem; color: var(--txt2);
-    }
-    .gerenciar-item-tag .del-btn {
-        background: none; border: none;
-        color: #f87171; cursor: pointer; font-size: .85rem;
-        padding: 2px 4px;
-        transition: opacity .2s;
-    }
-    .gerenciar-item-tag .del-btn:active { opacity: .6; }
+    .gerenciar-add-btn:active { opacity: .85; transform: scale(.96); }
 
-    /* Filtros + tabela */
-    .tabela-larga {
-        background: var(--surface);
+    .gerenciar-lista { display: flex; flex-direction: column; gap: 7px; }
+    .gerenciar-item {
+        display: flex; align-items: center; gap: 10px;
+        background: rgba(15,9,28,.7);
         border: 1px solid var(--border);
-        border-radius: 18px;
-        overflow: hidden;
+        border-radius: 12px;
+        padding: 11px 14px;
+        animation: entrar-card .25s cubic-bezier(.34,1.56,.64,1) both;
     }
-    .filtros-container {
-        padding: 16px;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        align-items: flex-end;
+    .gerenciar-item-icone {
+        width: 32px; height: 32px;
+        border-radius: 9px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .9rem; flex-shrink: 0;
     }
-    .filtro-item { display: flex; flex-direction: column; gap: 5px; min-width: 100px; flex: 1; }
-    .filtro-item label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--txt3); }
-    .filtro-item input, .filtro-item select {
-        padding: 10px 12px;
-        background: var(--surface2);
-        border: 1px solid var(--border2);
-        border-radius: 10px;
-        color: var(--txt); font-size: .83rem;
-        font-family: 'Poppins', sans-serif;
-        outline: none; -webkit-appearance: none;
-        transition: border-color .2s;
+    .gerenciar-item-icone.sala  { background: rgba(59,127,255,.12); }
+    .gerenciar-item-icone.turma { background: rgba(124,58,237,.12); }
+    .gerenciar-item-nome {
+        flex: 1; font-size: .88rem; font-weight: 600; color: var(--txt);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .filtro-item input:focus, .filtro-item select:focus { border-color: var(--blue); }
+    .gerenciar-del {
+        background: none; border: none;
+        color: var(--txt3); cursor: pointer;
+        font-size: .85rem; padding: 4px 6px;
+        border-radius: 7px;
+        transition: color .2s, background .2s;
+        flex-shrink: 0;
+    }
+    .gerenciar-del:active { color: #f87171; background: rgba(239,68,68,.1); }
+
+    /* Filtros */
+    .filtro-item input:focus, .filtro-item select:focus { border-color: var(--purple); box-shadow: 0 0 0 2px var(--purple-dim); }
     .btn-exportar {
         padding: 10px 16px;
-        background: rgba(59,127,255,.12);
-        border: 1px solid rgba(59,127,255,.25);
+        background: rgba(124,58,237,.12);
+        border: 1px solid rgba(124,58,237,.25);
         border-radius: 10px;
-        color: #93c5fd; font-size: .82rem; font-weight: 700;
+        color: #c4b5fd; font-size: .82rem; font-weight: 700;
         font-family: 'Poppins', sans-serif; cursor: pointer;
         transition: background .2s, transform .15s;
-        white-space: nowrap;
-        align-self: flex-end;
+        white-space: nowrap; align-self: flex-end;
     }
-    .btn-exportar:active { transform: scale(.96); background: rgba(59,127,255,.2); }
-    .filtros-acoes {
-        padding: 0 16px 14px;
-        display: flex; justify-content: flex-end;
-    }
-    .btn-limpar-filtros {
-        background: none; border: none;
-        color: var(--txt3); font-size: .78rem;
-        font-family: 'Poppins', sans-serif; cursor: pointer;
-        transition: color .2s;
-    }
-    .btn-limpar-filtros:active { color: var(--txt); }
-
-    /* Tabela */
-    .table-responsive { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; }
-    thead th {
-        padding: 12px 16px;
-        font-size: .72rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: .08em;
-        color: var(--txt3);
-        text-align: left;
-        background: var(--surface2);
-        border-bottom: 1px solid var(--border);
-        white-space: nowrap;
-    }
-    tbody tr {
-        border-bottom: 1px solid var(--border);
-        transition: background .15s;
-    }
-    tbody tr:last-child { border-bottom: none; }
-    tbody tr:hover { background: rgba(255,255,255,.02); }
-    tbody td {
-        padding: 13px 16px;
-        font-size: .83rem;
-        color: var(--txt2);
-        vertical-align: middle;
-        white-space: nowrap;
-    }
-    tbody td:first-child { color: var(--txt); font-weight: 600; }
-
-    /* Status badges na tabela */
+    .btn-exportar:active { transform: scale(.96); background: rgba(124,58,237,.22); }
     .badge-sala {
         display: inline-block;
-        background: rgba(59,127,255,.12);
-        border: 1px solid rgba(59,127,255,.2);
-        color: #93c5fd;
-        font-size: .72rem;
-        font-weight: 600;
-        padding: 3px 8px;
-        border-radius: 6px;
+        background: rgba(124,58,237,.12);
+        border: 1px solid rgba(124,58,237,.2);
+        color: #c4b5fd;
+        font-size: .72rem; font-weight: 600;
+        padding: 3px 8px; border-radius: 6px;
     }
-    .btn-cancelar-coord {
-        padding: 5px 12px;
-        background: var(--red-soft);
-        border: 1px solid rgba(239,68,68,.2);
-        border-radius: 7px;
-        color: #f87171;
-        font-size: .75rem; font-weight: 700;
-        font-family: 'Poppins', sans-serif; cursor: pointer;
-        transition: background .2s, transform .15s;
+
+    /* ── SALAS E TURMAS — tab system ────────────────── */
+    .gerenciar-tabs {
+        display: flex;
+        gap: 8px;
+        padding: 14px 0 2px;
     }
-    .btn-cancelar-coord:active { transform: scale(.93); background: rgba(239,68,68,.2); }
+    .gerenciar-tab {
+        flex: 1;
+        padding: 10px 8px;
+        background: rgba(22,13,44,.6);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--txt2);
+        font-size: .82rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer; touch-action: manipulation;
+        transition: background .18s, border-color .18s, color .18s;
+    }
+    .gerenciar-tab.ativa {
+        background: rgba(124,58,237,.18);
+        border-color: var(--purple);
+        color: #c4b5fd;
+        box-shadow: 0 2px 10px rgba(124,58,237,.15);
+    }
+    .gerenciar-painel { padding-top: 14px; }
+    .gerenciar-painel.oculto { display: none; }
+
+    /* ── PROFESSOR CARD — avatar + botão editar ─────── */
+    .professor-card-avatar {
+        width: 42px; height: 42px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #7c3aed, #5b21b6);
+        display: flex; align-items: center; justify-content: center;
+        font-size: .9rem; font-weight: 800; color: #fff;
+        flex-shrink: 0;
+        box-shadow: 0 3px 10px rgba(124,58,237,.3);
+        letter-spacing: -.5px;
+    }
+    .professor-card-btn-editar {
+        width: 34px; height: 34px;
+        background: rgba(124,58,237,.1);
+        border: 1px solid rgba(124,58,237,.25);
+        border-radius: 50%;
+        color: #c4b5fd; font-size: .8rem;
+        cursor: pointer; touch-action: manipulation;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        transition: background .18s, transform .12s;
+    }
+    .professor-card-btn-editar:active { background: rgba(124,58,237,.28); transform: scale(.88); }
+    .professor-card-expansivel { display: none; }
+    .professor-card-expansivel.aberto { display: block; }
     </style>
 </head>
 <body>
@@ -679,7 +802,6 @@
         </div>
         <div class="header-acoes">
             <span class="badge-admin">🏫 Admin</span>
-            <button class="btn-header" onclick="toggleDarkMode()" id="txt-modo">🌙</button>
             <button class="btn-header btn-sair" onclick="sairPainel()">Sair 🚪</button>
         </div>
     </div>
@@ -735,28 +857,37 @@
             </button>
 
             <div id="conteudo-gerenciar" class="card-gerenciar-conteudo hidden">
-                <div class="gerenciar-grid">
-                    <div class="gerenciar-coluna">
-                        <h4>Salas</h4>
-                        <div class="gerenciar-form">
-                            <input type="text" id="nova-sala-nome" placeholder="Nova sala...">
-                            <button onclick="adicionarSala()">➕</button>
-                        </div>
-                        <div class="gerenciar-lista" id="lista-salas">
-                            <div class="gerenciar-vazio">Carregando...</div>
-                        </div>
+
+                <!-- Tabs Salas / Turmas -->
+                <div class="gerenciar-tabs">
+                    <button class="gerenciar-tab ativa" id="tab-salas"   onclick="alternarTabGerenciar('salas')">🏫 Salas</button>
+                    <button class="gerenciar-tab"       id="tab-turmas"  onclick="alternarTabGerenciar('turmas')">👥 Turmas</button>
+                </div>
+
+                <!-- Painel Salas -->
+                <div id="painel-salas" class="gerenciar-painel">
+                    <div class="gerenciar-add">
+                        <input type="text" id="nova-sala-nome" placeholder="Nome da sala..." autocomplete="off"
+                               onkeydown="if(event.key==='Enter') adicionarSala()">
+                        <button class="gerenciar-add-btn" onclick="adicionarSala()">+ Adicionar</button>
                     </div>
-                    <div class="gerenciar-coluna">
-                        <h4>Turmas</h4>
-                        <div class="gerenciar-form">
-                            <input type="text" id="nova-turma-nome" placeholder="Nova turma...">
-                            <button onclick="adicionarTurma()">➕</button>
-                        </div>
-                        <div class="gerenciar-lista" id="lista-turmas">
-                            <div class="gerenciar-vazio">Carregando...</div>
-                        </div>
+                    <div class="gerenciar-lista" id="lista-salas">
+                        <div class="gerenciar-vazio">Carregando...</div>
                     </div>
                 </div>
+
+                <!-- Painel Turmas -->
+                <div id="painel-turmas" class="gerenciar-painel oculto">
+                    <div class="gerenciar-add">
+                        <input type="text" id="nova-turma-nome" placeholder="Nome da turma..." autocomplete="off"
+                               onkeydown="if(event.key==='Enter') adicionarTurma()">
+                        <button class="gerenciar-add-btn" onclick="adicionarTurma()">+ Adicionar</button>
+                    </div>
+                    <div class="gerenciar-lista" id="lista-turmas">
+                        <div class="gerenciar-vazio">Carregando...</div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
