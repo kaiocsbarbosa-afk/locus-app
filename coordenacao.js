@@ -28,8 +28,15 @@ function tokenValido() {
 //  INICIALIZAÇÃO
 // ============================================================
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
     registrarServiceWorker();
+
+    // Limpa qualquer sessão JWT de professor que possa estar salva no navegador.
+    // Sem isso, um token expirado de professor faz as requisições retornarem 403.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+        await supabase.auth.signOut();
+    }
 
     const inputSenha = document.getElementById("senha-coord");
     if (inputSenha) {
