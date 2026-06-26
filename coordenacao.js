@@ -563,12 +563,16 @@ async function carregarListaSalas() {
     container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>';
     const { data: salas, error } = await supabase.from('salas').select('id, nome').order('nome', { ascending: true });
     if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar salas.</div>'; return; }
-    if (!salas || salas.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhuma sala cadastrada.</div>'; return; }
+    if (!salas || salas.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhuma sala cadastrada ainda.</div>'; return; }
     container.innerHTML = '';
-    salas.forEach(sala => {
+    salas.forEach((sala, i) => {
         const div = document.createElement('div');
         div.classList.add('gerenciar-item');
-        div.innerHTML = `<span>${sala.nome}</span><button onclick="excluirSala('${sala.id}', '${sala.nome.replace(/'/g, "\\'")}')">Excluir</button>`;
+        div.style.animationDelay = `${i * 0.04}s`;
+        div.innerHTML = `
+            <div class="gerenciar-item-icone sala">🏫</div>
+            <span class="gerenciar-item-nome">${sala.nome}</span>
+            <button class="gerenciar-del" onclick="excluirSala('${sala.id}', '${sala.nome.replace(/'/g, "\\'")}')" title="Excluir sala">🗑</button>`;
         container.appendChild(div);
     });
 }
@@ -578,12 +582,16 @@ async function carregarListaTurmas() {
     container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>';
     const { data: turmas, error } = await supabase.from('turmas').select('id, nome').order('nome', { ascending: true });
     if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar turmas.</div>'; return; }
-    if (!turmas || turmas.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhuma turma cadastrada.</div>'; return; }
+    if (!turmas || turmas.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhuma turma cadastrada ainda.</div>'; return; }
     container.innerHTML = '';
-    turmas.forEach(turma => {
+    turmas.forEach((turma, i) => {
         const div = document.createElement('div');
         div.classList.add('gerenciar-item');
-        div.innerHTML = `<span>${turma.nome}</span><button onclick="excluirTurma('${turma.id}', '${turma.nome.replace(/'/g, "\\'")}')">Excluir</button>`;
+        div.style.animationDelay = `${i * 0.04}s`;
+        div.innerHTML = `
+            <div class="gerenciar-item-icone turma">👥</div>
+            <span class="gerenciar-item-nome">${turma.nome}</span>
+            <button class="gerenciar-del" onclick="excluirTurma('${turma.id}', '${turma.nome.replace(/'/g, "\\'")}')" title="Excluir turma">🗑</button>`;
         container.appendChild(div);
     });
 }
@@ -683,39 +691,82 @@ async function carregarListaProfessores() {
     if (!professores || professores.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhum professor cadastrado.</div>'; return; }
 
     container.innerHTML = '';
-    professores.forEach(prof => {
+    professores.forEach((prof, i) => {
         const temAcesso = prof.auth_user_id !== null && prof.auth_user_id !== '';
+        const iniciais  = prof.nome.split(' ').slice(0,2).map(p => p[0]).join('').toUpperCase();
         const opcoesDisciplina = disciplinas.map(d =>
             `<option value="${d.nome}" ${d.nome === prof.disciplina ? 'selected' : ''}>${d.nome}</option>`
         ).join('');
 
         const div = document.createElement('div');
         div.classList.add('professor-card');
+        div.style.animationDelay = `${i * 0.05}s`;
         div.innerHTML = `
             <div class="professor-card-topo">
+                <div class="professor-card-avatar">${iniciais}</div>
                 <div class="professor-card-info">
                     <div class="professor-nome">${prof.nome}</div>
                     <div class="professor-disciplina">${prof.disciplina || 'Sem disciplina'}</div>
                 </div>
                 <span class="status-pin ${temAcesso ? 'ativo' : 'pendente'}">
-                    ${temAcesso ? '✓ Acesso ativo' : '⏳ Aguardando ativação'}
+                    ${temAcesso ? '✓ Ativo' : '⏳ Pendente'}
                 </span>
+                <button class="professor-card-btn-editar" id="btn-edit-${prof.id}"
+                    onclick="toggleEditarProfessor('${prof.id}')" title="Editar">✏️</button>
             </div>
-            <div class="professor-card-edicao">
-                <input type="text" value="${prof.nome.replace(/"/g, '&quot;')}" id="edit-nome-${prof.id}" placeholder="Nome completo">
-                <select id="edit-disciplina-${prof.id}">
-                    <option value="">Selecione a disciplina...</option>
-                    ${opcoesDisciplina}
-                </select>
-            </div>
-            <div class="professor-card-acoes">
-                <button class="btn-salvar-professor" onclick="salvarEdicaoProfessor('${prof.id}')">💾 Salvar</button>
-                ${temAcesso ? `<button class="btn-resetar-pin" onclick="resetarAcessoProfessor('${prof.id}', '${prof.nome.replace(/'/g, "\\'")}')">🔑 Resetar acesso</button>` : ''}
-                <button class="btn-excluir-professor" onclick="excluirProfessor('${prof.id}', '${prof.nome.replace(/'/g, "\\'")}')">🗑️ Excluir</button>
-            </div>
-        `;
+            <div class="professor-card-expansivel" id="exp-${prof.id}">
+                <div class="professor-card-edicao">
+                    <input type="text" value="${prof.nome.replace(/"/g, '&quot;')}" id="edit-nome-${prof.id}" placeholder="Nome completo">
+                    <select id="edit-disciplina-${prof.id}">
+                        <option value="">Selecione a disciplina...</option>
+                        ${opcoesDisciplina}
+                    </select>
+                </div>
+                <div class="professor-card-acoes">
+                    <button class="btn-salvar-professor" onclick="salvarEdicaoProfessor('${prof.id}')">💾 Salvar</button>
+                    ${temAcesso ? `<button class="btn-resetar-pin" onclick="resetarAcessoProfessor('${prof.id}', '${prof.nome.replace(/'/g, "\'")}')">🔑 Resetar</button>` : ''}
+                    <button class="btn-excluir-professor" onclick="excluirProfessor('${prof.id}', '${prof.nome.replace(/'/g, "\'")}')">🗑 Excluir</button>
+                </div>
+            </div>`;
         container.appendChild(div);
     });
+}
+
+window.toggleEditarProfessor = function(id) {
+    const exp = document.getElementById(`exp-${id}`);
+    const btn = document.getElementById(`btn-edit-${id}`);
+    const isOpen = exp.classList.contains('aberto');
+    // Fecha todos os outros abertos
+    document.querySelectorAll('.professor-card-expansivel.aberto').forEach(el => {
+        el.classList.remove('aberto');
+        const otherId = el.id.replace('exp-', '');
+        const otherBtn = document.getElementById(`btn-edit-${otherId}`);
+        if (otherBtn) otherBtn.textContent = '✏️';
+    });
+    if (!isOpen) {
+        exp.classList.add('aberto');
+        btn.textContent = '✕';
+        exp.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+window.alternarTabGerenciar = function(aba) {
+    const painelSalas  = document.getElementById('painel-salas');
+    const painelTurmas = document.getElementById('painel-turmas');
+    const tabSalas     = document.getElementById('tab-salas');
+    const tabTurmas    = document.getElementById('tab-turmas');
+
+    if (aba === 'salas') {
+        painelSalas.classList.remove('oculto');
+        painelTurmas.classList.add('oculto');
+        tabSalas.classList.add('ativa');
+        tabTurmas.classList.remove('ativa');
+    } else {
+        painelSalas.classList.add('oculto');
+        painelTurmas.classList.remove('oculto');
+        tabSalas.classList.remove('ativa');
+        tabTurmas.classList.add('ativa');
+    }
 }
 
 window.salvarEdicaoProfessor = async function(id) {
