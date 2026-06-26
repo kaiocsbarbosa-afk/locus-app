@@ -88,6 +88,16 @@ window.entrarPainel = async function() {
         _tokenSessaoCoord = data.token;
         _senhaEmMemoria = senhaDigitada; // guarda para usar no reset
         document.getElementById('senha-coord').value = '';
+
+        // Aplica o token ao cliente Supabase para que operações de banco
+        // (DELETE, INSERT) rodem como usuário autenticado e passem pelo RLS
+        if (data.token && data.refresh_token) {
+            await supabase.auth.setSession({
+                access_token: data.token,
+                refresh_token: data.refresh_token
+            });
+        }
+
         mostrarDashboard();
 
     } catch (err) {
@@ -100,6 +110,7 @@ window.entrarPainel = async function() {
 window.sairPainel = function() {
     _tokenSessaoCoord = null;
     _senhaEmMemoria = null;
+    supabase.auth.signOut();
     window.location.reload();
 }
 
@@ -858,9 +869,19 @@ window.excluirProfessor = async function(id, nome) {
 
     // Reseta o Auth antes de deletar do banco
     if (_senhaEmMemoria) {
-        await supabase.functions.invoke('resetar-acesso-professor', {
+        const { data: resetData, error: resetError } = await supabase.functions.invoke('resetar-acesso-professor', {
             body: { professor_id: id, senha_coord: _senhaEmMemoria }
         });
+        if (resetError || !resetData?.sucesso) {
+            console.warn('Aviso: falha ao resetar acesso Auth do professor antes da exclusão:', resetError || resetData?.erro);
+            // Continua apenas se o professor não tinha acesso ativo (auth_user_id null)
+            // Caso contrário, aborta para evitar usuário órfão no Auth
+            const { data: profAtual } = await supabase.from('professores').select('auth_user_id').eq('id', id).single();
+            if (profAtual?.auth_user_id) {
+                dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível revogar o acesso do professor. Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' });
+                return;
+            }
+        }
     }
 
     const { error } = await supabase.from('professores').delete().eq('id', id);
@@ -899,6 +920,7 @@ supabase
 supabase
     .channel('mudancas-solicitacoes-coord')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitacoes_acesso' }, () => {
+        if (!tokenValido()) return;
         const conteudo = document.getElementById('conteudo-gerenciar-professores');
         if (conteudo && !conteudo.classList.contains('hidden')) {
             carregarSolicitacoes();
