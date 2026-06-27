@@ -1,4 +1,4 @@
-/* coordenacao.js — sem sessionStorage, token validado pelo servidor */
+/* coordenacao.js — autenticação via Supabase Auth */
 import { supabase, registrarServiceWorker, dispararAlerta } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
@@ -16,12 +16,39 @@ window.addEventListener('error', function(e) {
 
 const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbw6fMtP880hmAdtRSj8tgBVCw-U9qGo-JnOqMD7DCb_I5q6Isooady17YNCmmUlKemhzQ/exec"
 
-let dadosAtuaisParaExportar = [];
-let _tokenSessaoCoord = null;
-let _senhaEmMemoria = null; // necessária para passar à Edge Function resetar-acesso-professor
+// E-mail interno do usuário coordenador no Supabase Auth.
+// Deve coincidir com o COORD_EMAIL nas Edge Functions.
+const COORD_EMAIL = 'coordenacao@locus.interno'
 
-function tokenValido() {
-    return _tokenSessaoCoord !== null;
+let dadosAtuaisParaExportar = []
+
+// ============================================================
+//  AUTENTICAÇÃO
+// ============================================================
+
+/** Retorna true se a sessão ativa pertence ao coordenador. */
+async function estaAutenticado() {
+    const { data: { session } } = await supabase.auth.getSession()
+    return session?.user?.email === COORD_EMAIL
+}
+
+/**
+ * Exige sessão de coordenador ativa.
+ * Se não existir, exibe alerta e recarrega a página.
+ * Use com: if (!await exigirAuth()) return
+ */
+async function exigirAuth() {
+    if (!await estaAutenticado()) {
+        dispararAlerta({
+            icon: 'error',
+            title: 'Sessão expirada',
+            text: 'Faça login novamente.',
+            confirmButtonColor: 'var(--cor-perigo)'
+        })
+        window.location.reload()
+        return false
+    }
+    return true
 }
 
 // ============================================================
@@ -29,105 +56,86 @@ function tokenValido() {
 // ============================================================
 
 document.addEventListener("DOMContentLoaded", async () => {
-    registrarServiceWorker();
+    registrarServiceWorker()
 
-    // Limpa qualquer sessão JWT de professor que possa estar salva no navegador.
-    // Sem isso, um token expirado de professor faz as requisições retornarem 403.
-    const { data: { session } } = await supabase.auth.getSession();
+    // Verifica se já existe uma sessão válida do coordenador.
+    // Isso permite recarregar a página sem precisar fazer login novamente.
+    const { data: { session } } = await supabase.auth.getSession()
+
     if (session) {
-        await supabase.auth.signOut();
+        if (session.user?.email === COORD_EMAIL) {
+            // Coordenador já autenticado — vai direto ao dashboard
+            mostrarDashboard()
+            return
+        } else {
+            // Sessão de professor que vazou para esta página — descarta
+            await supabase.auth.signOut()
+        }
     }
 
-    const inputSenha = document.getElementById("senha-coord");
+    // Listener do Enter no campo de senha
+    const inputSenha = document.getElementById("senha-coord")
     if (inputSenha) {
         inputSenha.addEventListener("keydown", function(event) {
             if (event.key === "Enter") {
-                inputSenha.blur();
-                entrarPainel();
+                inputSenha.blur()
+                window.entrarPainel()
             }
-        });
+        })
     }
-
-    carregarSalasNoFiltro();
-    carregarProfessoresNoFiltro();
-    carregarDisciplinasNoPreCadastro();
-
-    const fData = document.getElementById('filtroData');
-    const fSala = document.getElementById('filtroSala');
-    const fProfessor = document.getElementById('filtroProfessor');
-    if (fData) fData.addEventListener('change', () => carregarRelatorioGeral());
-    if (fSala) fSala.addEventListener('change', () => carregarRelatorioGeral());
-    if (fProfessor) fProfessor.addEventListener('change', () => carregarRelatorioGeral());
-});
-
-// ============================================================
-//  AUTENTICAÇÃO
-// ============================================================
+})
 
 window.entrarPainel = async function() {
-    const senhaDigitada = document.getElementById('senha-coord').value;
+    const senhaDigitada = document.getElementById('senha-coord').value
 
     if (!senhaDigitada) {
-        dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Por favor, digite a senha.', confirmButtonColor: 'var(--cor-primaria)' });
-        return;
+        dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Por favor, digite a senha.', confirmButtonColor: 'var(--cor-primaria)' })
+        return
     }
 
-    Swal.fire({ title: 'Autenticando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Autenticando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
 
     try {
+        // Verifica senha e recebe tokens JWT reais do Supabase Auth.
+        // A Edge Function cria o usuário coordenador na primeira execução.
         const { data, error } = await supabase.functions.invoke('verificar-senha-coord', {
             body: { senha: senhaDigitada }
-        });
+        })
 
-        Swal.close();
+        Swal.close()
+        document.getElementById('senha-coord').value = ''
 
         if (error) {
-            dispararAlerta({ icon: 'error', title: 'Erro de conexão', text: 'Não foi possível verificar as credenciais.', confirmButtonColor: 'var(--cor-perigo)' });
-            return;
+            dispararAlerta({ icon: 'error', title: 'Erro de conexão', text: 'Não foi possível verificar as credenciais.', confirmButtonColor: 'var(--cor-perigo)' })
+            return
         }
 
-        if (!data?.autorizado || !data?.token) {
-            dispararAlerta({ icon: 'error', title: 'Acesso Negado', text: 'Senha incorreta.', confirmButtonColor: 'var(--cor-perigo)' });
-            document.getElementById('senha-coord').value = '';
-            return;
+        if (!data?.autorizado) {
+            dispararAlerta({ icon: 'error', title: 'Acesso Negado', text: 'Senha incorreta.', confirmButtonColor: 'var(--cor-perigo)' })
+            return
         }
 
-        _tokenSessaoCoord = data.token;
-        _senhaEmMemoria = senhaDigitada; // guarda para usar no reset
-        document.getElementById('senha-coord').value = '';
+        // Aplica a sessão Supabase Auth do coordenador no cliente.
+        // A partir daqui, todas as chamadas ao banco e Edge Functions
+        // incluem automaticamente o JWT do coordenador — as novas
+        // RLS policies (is_coordenacao()) identificam e autorizam.
+        await supabase.auth.setSession({
+            access_token: data.token,
+            refresh_token: data.refresh_token
+        })
 
-        // Aplica o token ao cliente Supabase para que operações de banco
-        // (DELETE, INSERT) rodem como usuário autenticado e passem pelo RLS
-        if (data.token && data.refresh_token) {
-            await supabase.auth.setSession({
-                access_token: data.token,
-                refresh_token: data.refresh_token
-            });
-        }
-
-        mostrarDashboard();
+        mostrarDashboard()
 
     } catch (err) {
-        Swal.close();
-        console.error("Erro inesperado:", err);
-        dispararAlerta({ icon: 'error', title: 'Erro crítico', text: 'Falha na requisição. Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' });
+        Swal.close()
+        console.error("Erro inesperado:", err)
+        dispararAlerta({ icon: 'error', title: 'Erro crítico', text: 'Falha na requisição. Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' })
     }
 }
 
-window.sairPainel = function() {
-    _tokenSessaoCoord = null;
-    _senhaEmMemoria = null;
-    supabase.auth.signOut();
-    window.location.reload();
-}
-
-function exigirToken() {
-    if (!tokenValido()) {
-        dispararAlerta({ icon: 'error', title: 'Sessão expirada', text: 'Faça login novamente.', confirmButtonColor: 'var(--cor-perigo)' });
-        window.location.reload();
-        return false;
-    }
-    return true;
+window.sairPainel = async function() {
+    await supabase.auth.signOut()
+    window.location.reload()
 }
 
 // ============================================================
@@ -135,16 +143,29 @@ function exigirToken() {
 // ============================================================
 
 function mostrarDashboard() {
-    document.getElementById('secao-login-coord').style.display = 'none';
-    document.getElementById('secao-dashboard').classList.add('visivel');
+    document.getElementById('secao-login-coord').style.display = 'none'
+    document.getElementById('secao-dashboard').classList.add('visivel')
 
-    const hoje = new Date();
-    const inputData = document.getElementById('filtroData');
-    if (inputData) inputData.value = hoje.toISOString().split('T')[0];
+    const hoje = new Date()
+    const inputData = document.getElementById('filtroData')
+    if (inputData) inputData.value = hoje.toISOString().split('T')[0]
 
-    carregarRelatorioGeral();
-    atualizarBadgePendentes();
-    verificarStatusNotificacoes(); // Mostra banner se permissão ainda não foi dada
+    // Carrega dados dos filtros (requerem sessão ativa para professores completos)
+    carregarSalasNoFiltro()
+    carregarProfessoresNoFiltro()
+    carregarDisciplinasNoPreCadastro()
+
+    // Listeners do relatório — registrados aqui para não disparar antes do login
+    const fData     = document.getElementById('filtroData')
+    const fSala     = document.getElementById('filtroSala')
+    const fProfessor = document.getElementById('filtroProfessor')
+    if (fData)      fData.addEventListener('change', () => carregarRelatorioGeral())
+    if (fSala)      fSala.addEventListener('change', () => carregarRelatorioGeral())
+    if (fProfessor) fProfessor.addEventListener('change', () => carregarRelatorioGeral())
+
+    carregarRelatorioGeral()
+    atualizarBadgePendentes()
+    verificarStatusNotificacoes()
 }
 
 // ============================================================
@@ -152,107 +173,96 @@ function mostrarDashboard() {
 // ============================================================
 
 function verificarStatusNotificacoes() {
-    const bannerPedido = document.getElementById('banner-notif');
-    const bannerOk     = document.getElementById('banner-notif-ok');
+    const bannerPedido = document.getElementById('banner-notif')
+    const bannerOk     = document.getElementById('banner-notif-ok')
 
-    // Navegador sem suporte a Notification API — esconde tudo
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
-        if (bannerPedido) bannerPedido.classList.remove('visivel');
-        if (bannerOk)     bannerOk.classList.remove('visivel');
-        return;
+        if (bannerPedido) bannerPedido.classList.remove('visivel')
+        if (bannerOk)     bannerOk.classList.remove('visivel')
+        return
     }
 
-    const perm = Notification.permission;
-
+    const perm = Notification.permission
     if (perm === 'granted') {
-        // Permissão já concedida — mostra confirmação, esconde pedido
-        if (bannerPedido) bannerPedido.classList.remove('visivel');
-        if (bannerOk)     bannerOk.classList.add('visivel');
+        if (bannerPedido) bannerPedido.classList.remove('visivel')
+        if (bannerOk)     bannerOk.classList.add('visivel')
     } else if (perm === 'default') {
-        // Ainda não decidido — mostra o banner de pedido
-        if (bannerPedido) bannerPedido.classList.add('visivel');
-        if (bannerOk)     bannerOk.classList.remove('visivel');
+        if (bannerPedido) bannerPedido.classList.add('visivel')
+        if (bannerOk)     bannerOk.classList.remove('visivel')
     } else {
-        // 'denied' — esconde os dois, não insistimos
-        if (bannerPedido) bannerPedido.classList.remove('visivel');
-        if (bannerOk)     bannerOk.classList.remove('visivel');
+        if (bannerPedido) bannerPedido.classList.remove('visivel')
+        if (bannerOk)     bannerOk.classList.remove('visivel')
     }
 }
 
 window.ativarNotifCoord = async function() {
-    const bannerPedido = document.getElementById('banner-notif');
+    const bannerPedido = document.getElementById('banner-notif')
 
     if (!('Notification' in window)) {
-        dispararAlerta({ icon: 'info', title: 'Sem suporte', text: 'Seu navegador não suporta notificações.', confirmButtonColor: 'var(--cor-primaria)' });
-        return;
+        dispararAlerta({ icon: 'info', title: 'Sem suporte', text: 'Seu navegador não suporta notificações.', confirmButtonColor: 'var(--cor-primaria)' })
+        return
     }
 
     try {
-        const sucesso = await ativarNotificacoes('coordenacao', null);
-
+        const sucesso = await ativarNotificacoes('coordenacao', null)
         if (sucesso) {
-            if (bannerPedido) bannerPedido.classList.remove('visivel');
-            const bannerOk = document.getElementById('banner-notif-ok');
-            if (bannerOk) bannerOk.classList.add('visivel');
+            if (bannerPedido) bannerPedido.classList.remove('visivel')
+            const bannerOk = document.getElementById('banner-notif-ok')
+            if (bannerOk) bannerOk.classList.add('visivel')
         } else if (Notification.permission === 'denied') {
-            if (bannerPedido) bannerPedido.classList.remove('visivel');
-            dispararAlerta({
-                icon: 'info',
-                title: 'Notificações bloqueadas',
-                text: 'Para ativar, vá em Configurações do navegador → Notificações → permitir este site.',
-                confirmButtonColor: 'var(--cor-primaria)'
-            });
+            if (bannerPedido) bannerPedido.classList.remove('visivel')
+            dispararAlerta({ icon: 'info', title: 'Notificações bloqueadas', text: 'Para ativar, vá em Configurações do navegador → Notificações → permitir este site.', confirmButtonColor: 'var(--cor-primaria)' })
         }
     } catch (err) {
-        console.error('Erro ao ativar notificações:', err);
+        console.error('Erro ao ativar notificações:', err)
     }
 }
 
 async function carregarSalasNoFiltro() {
     try {
-        const { data: salas, error } = await supabase.from('salas').select('id, nome').order('nome', { ascending: true });
-        if (error) throw error;
-        const selectSala = document.getElementById('filtroSala');
-        selectSala.innerHTML = '<option value="">Todas as salas</option>';
+        const { data: salas, error } = await supabase.from('salas').select('id, nome').order('nome', { ascending: true })
+        if (error) throw error
+        const selectSala = document.getElementById('filtroSala')
+        selectSala.innerHTML = '<option value="">Todas as salas</option>'
         salas.forEach(sala => {
-            const option = document.createElement('option');
-            option.value = sala.id;
-            option.textContent = sala.nome;
-            selectSala.appendChild(option);
-        });
-    } catch (erro) { console.error("Erro ao carregar salas:", erro); }
+            const option = document.createElement('option')
+            option.value = sala.id
+            option.textContent = sala.nome
+            selectSala.appendChild(option)
+        })
+    } catch (erro) { console.error("Erro ao carregar salas:", erro) }
 }
 
 async function carregarProfessoresNoFiltro() {
     try {
-        const { data: professores, error } = await supabase.from('professores').select('id, nome').order('nome', { ascending: true });
-        if (error) throw error;
-        const selectProfessor = document.getElementById('filtroProfessor');
-        if (!selectProfessor) return;
-        selectProfessor.innerHTML = '<option value="">Todos os professores</option>';
+        const { data: professores, error } = await supabase.from('professores').select('id, nome').order('nome', { ascending: true })
+        if (error) throw error
+        const selectProfessor = document.getElementById('filtroProfessor')
+        if (!selectProfessor) return
+        selectProfessor.innerHTML = '<option value="">Todos os professores</option>'
         professores.forEach(prof => {
-            const option = document.createElement('option');
-            option.value = prof.id;
-            option.textContent = prof.nome;
-            selectProfessor.appendChild(option);
-        });
-    } catch (erro) { console.error("Erro ao carregar professores:", erro); }
+            const option = document.createElement('option')
+            option.value = prof.id
+            option.textContent = prof.nome
+            selectProfessor.appendChild(option)
+        })
+    } catch (erro) { console.error("Erro ao carregar professores:", erro) }
 }
 
 async function carregarDisciplinasNoPreCadastro() {
     try {
-        const { data: disciplinas, error } = await supabase.from('disciplinas').select('id, nome').order('nome', { ascending: true });
-        if (error) throw error;
-        const selectDisciplina = document.getElementById('coord-disciplina-professor');
-        if (!selectDisciplina) return;
-        selectDisciplina.innerHTML = '<option value="">Selecione a disciplina...</option>';
+        const { data: disciplinas, error } = await supabase.from('disciplinas').select('id, nome').order('nome', { ascending: true })
+        if (error) throw error
+        const selectDisciplina = document.getElementById('coord-disciplina-professor')
+        if (!selectDisciplina) return
+        selectDisciplina.innerHTML = '<option value="">Selecione a disciplina...</option>'
         disciplinas.forEach(disc => {
-            const option = document.createElement('option');
-            option.value = disc.nome;
-            option.textContent = disc.nome;
-            selectDisciplina.appendChild(option);
-        });
-    } catch (erro) { console.error("Erro ao carregar disciplinas:", erro); }
+            const option = document.createElement('option')
+            option.value = disc.nome
+            option.textContent = disc.nome
+            selectDisciplina.appendChild(option)
+        })
+    } catch (erro) { console.error("Erro ao carregar disciplinas:", erro) }
 }
 
 // ============================================================
@@ -260,45 +270,44 @@ async function carregarDisciplinasNoPreCadastro() {
 // ============================================================
 
 async function atualizarBadgePendentes() {
-    const badge = document.getElementById('badge-pendentes');
-    if (!badge) return;
+    const badge = document.getElementById('badge-pendentes')
+    if (!badge) return
     try {
         const { count } = await supabase
             .from('solicitacoes_acesso')
             .select('*', { count: 'exact', head: true })
-            .eq('status', 'pendente');
+            .eq('status', 'pendente')
         if (count > 0) {
-            badge.textContent = count;
-            badge.style.display = 'inline';
+            badge.textContent = count
+            badge.style.display = 'inline'
         } else {
-            badge.style.display = 'none';
+            badge.style.display = 'none'
         }
     } catch (e) { /* silencioso */ }
 }
 
 async function carregarSolicitacoes() {
-    const lista = document.getElementById('lista-solicitacoes');
-    const badge = document.getElementById('badge-pendentes');
-    if (!lista) return;
+    const lista = document.getElementById('lista-solicitacoes')
+    const badge = document.getElementById('badge-pendentes')
+    if (!lista) return
 
-    lista.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>';
+    lista.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>'
 
     try {
         const { data, error } = await supabase
             .from('solicitacoes_acesso')
             .select('*')
             .eq('status', 'pendente')
-            .order('criado_em', { ascending: true });
+            .order('criado_em', { ascending: true })
 
-        if (error) throw error;
+        if (error) throw error
 
-        // Badge de contagem
         if (badge) {
             if (data?.length) {
-                badge.textContent = data.length;
-                badge.style.display = 'inline';
+                badge.textContent = data.length
+                badge.style.display = 'inline'
             } else {
-                badge.style.display = 'none';
+                badge.style.display = 'none'
             }
         }
 
@@ -306,33 +315,63 @@ async function carregarSolicitacoes() {
             lista.innerHTML = `<div class="solicitacoes-vazio">
                 <span class="solicitacoes-vazio-icon">✅</span>
                 Nenhuma solicitação pendente
-            </div>`;
-            return;
+            </div>`
+            return
         }
 
-        lista.innerHTML = data.map(s => {
-            const data_fmt = new Date(s.criado_em).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-            return `
-            <div class="solicitacao-card" id="sol-${s.id}">
-                <div class="solicitacao-info">
-                    <div class="solicitacao-nome">${s.nome}</div>
-                    <div class="solicitacao-meta">${s.disciplina} · ${data_fmt}</div>
-                </div>
-                <div class="solicitacao-acoes">
-                    <button class="btn-aprovar" onclick="aprovarSolicitacao('${s.id}', '${s.nome.replace(/'/g,"\'")}', '${s.disciplina}', '${s.pin}')">✓ Aprovar</button>
-                    <button class="btn-rejeitar" onclick="rejeitarSolicitacao('${s.id}', '${s.nome.replace(/'/g,"\'")}')">✕ Rejeitar</button>
-                </div>
-            </div>`;
-        }).join('');
+        lista.innerHTML = ''
+        data.forEach(s => {
+            const dataFmt = new Date(s.criado_em).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })
+
+            const card = document.createElement('div')
+            card.className = 'solicitacao-card'
+            card.id = `sol-${s.id}`
+
+            // Monta o card via DOM (evita XSS com dados do banco)
+            const info = document.createElement('div')
+            info.className = 'solicitacao-info'
+
+            const nome = document.createElement('div')
+            nome.className = 'solicitacao-nome'
+            nome.textContent = s.nome
+
+            const meta = document.createElement('div')
+            meta.className = 'solicitacao-meta'
+            meta.textContent = `${s.disciplina} · ${dataFmt}`
+
+            info.appendChild(nome)
+            info.appendChild(meta)
+
+            const acoes = document.createElement('div')
+            acoes.className = 'solicitacao-acoes'
+
+            const btnAprovar = document.createElement('button')
+            btnAprovar.className = 'btn-aprovar'
+            btnAprovar.textContent = '✓ Aprovar'
+            // PIN armazenado em closure, nunca no DOM como atributo
+            btnAprovar.addEventListener('click', () => aprovarSolicitacao(s.id, s.nome, s.disciplina, s.pin))
+
+            const btnRejeitar = document.createElement('button')
+            btnRejeitar.className = 'btn-rejeitar'
+            btnRejeitar.textContent = '✕ Rejeitar'
+            btnRejeitar.addEventListener('click', () => rejeitarSolicitacao(s.id, s.nome))
+
+            acoes.appendChild(btnAprovar)
+            acoes.appendChild(btnRejeitar)
+
+            card.appendChild(info)
+            card.appendChild(acoes)
+            lista.appendChild(card)
+        })
 
     } catch (err) {
-        console.error('Erro ao carregar solicitações:', err);
-        lista.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar solicitações.</div>';
+        console.error('Erro ao carregar solicitações:', err)
+        lista.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar solicitações.</div>'
     }
 }
 
-window.aprovarSolicitacao = async function(id, nome, disciplina, pin) {
-    if (!exigirToken()) return;
+async function aprovarSolicitacao(id, nome, disciplina, pin) {
+    if (!await exigirAuth()) return
 
     const confirmar = await Swal.fire({
         icon: 'question',
@@ -342,60 +381,57 @@ window.aprovarSolicitacao = async function(id, nome, disciplina, pin) {
         confirmButtonText: 'Sim, aprovar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: 'var(--cor-sucesso)',
-    });
-
-    if (!confirmar.isConfirmed) return;
+    })
+    if (!confirmar.isConfirmed) return
 
     try {
-        // 1. Cria professor na tabela
+        // 1. Cria professor na tabela (RLS: professores_insert_coord)
         const { data: prof, error: errProf } = await supabase
             .from('professores')
             .insert([{ nome, disciplina, auth_user_id: null }])
             .select('id')
-            .single();
+            .single()
 
-        if (errProf) throw errProf;
+        if (errProf) throw errProf
 
-        // 2. Ativa via Edge Function (cria auth user + faz hash do PIN)
+        // 2. Ativa via Edge Function — JWT do coordenador é enviado automaticamente
         const { data: resultado, error: errFn } = await supabase.functions.invoke('ativar-professor', {
             body: { professor_id: prof.id, pin }
-        });
+        })
 
         if (errFn || !resultado?.sucesso) {
-            // Reverte inserção em caso de erro na Edge Function
-            await supabase.from('professores').delete().eq('id', prof.id);
-            throw new Error(resultado?.erro || 'Falha ao ativar acesso');
+            await supabase.from('professores').delete().eq('id', prof.id)
+            throw new Error(resultado?.erro || 'Falha ao ativar acesso')
         }
 
-        // 3. Marca solicitação como aprovada
-        await supabase.from('solicitacoes_acesso').update({ status: 'aprovado', atualizado_em: new Date().toISOString() }).eq('id', id);
+        // 3. Marca solicitação como aprovada (RLS: solicitacoes_update_coord)
+        await supabase
+            .from('solicitacoes_acesso')
+            .update({ status: 'aprovado', atualizado_em: new Date().toISOString() })
+            .eq('id', id)
 
-        // Remove o card da lista
-        document.getElementById(`sol-${id}`)?.remove();
+        document.getElementById(`sol-${id}`)?.remove()
+        carregarSolicitacoes()
+        carregarListaProfessores()
+        carregarProfessoresNoFiltro()
 
-        // Atualiza badge e estado vazio
-        carregarSolicitacoes();
-        carregarListaProfessores();
-        carregarProfessoresNoFiltro();
-
-        // Notifica o professor (se já tiver inscrição push registrada)
         enviarNotificacao(
             '✅ Acesso aprovado!',
             `Olá, ${nome}! Seu acesso ao Locus foi aprovado. Já pode fazer login com seu PIN.`,
             'professor',
             prof.id
-        );
+        )
 
-        dispararAlerta({ icon: 'success', title: 'Aprovado!', text: `${nome} já pode fazer login no Locus.`, confirmButtonColor: 'var(--cor-sucesso)', timer: 2500, showConfirmButton: false });
+        dispararAlerta({ icon: 'success', title: 'Aprovado!', text: `${nome} já pode fazer login no Locus.`, confirmButtonColor: 'var(--cor-sucesso)', timer: 2500, showConfirmButton: false })
 
     } catch (err) {
-        console.error('Erro ao aprovar:', err);
-        dispararAlerta({ icon: 'error', title: 'Erro ao aprovar', text: err.message || 'Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' });
+        console.error('Erro ao aprovar:', err)
+        dispararAlerta({ icon: 'error', title: 'Erro ao aprovar', text: err.message || 'Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' })
     }
 }
 
-window.rejeitarSolicitacao = async function(id, nome) {
-    if (!exigirToken()) return;
+async function rejeitarSolicitacao(id, nome) {
+    if (!await exigirAuth()) return
 
     const confirmar = await Swal.fire({
         icon: 'warning',
@@ -405,156 +441,210 @@ window.rejeitarSolicitacao = async function(id, nome) {
         confirmButtonText: 'Sim, rejeitar',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: 'var(--cor-perigo)',
-    });
-
-    if (!confirmar.isConfirmed) return;
+    })
+    if (!confirmar.isConfirmed) return
 
     try {
-        await supabase.from('solicitacoes_acesso').update({ status: 'rejeitado', atualizado_em: new Date().toISOString() }).eq('id', id);
-        document.getElementById(`sol-${id}`)?.remove();
-        carregarSolicitacoes();
+        // RLS: solicitacoes_update_coord
+        await supabase
+            .from('solicitacoes_acesso')
+            .update({ status: 'rejeitado', atualizado_em: new Date().toISOString() })
+            .eq('id', id)
 
-        // Tenta notificar o professor (pode não ter inscrição push ainda)
+        document.getElementById(`sol-${id}`)?.remove()
+        carregarSolicitacoes()
+
         enviarNotificacao(
             '❌ Solicitação não aprovada',
             `${nome}, sua solicitação de acesso ao Locus não foi aprovada. Entre em contato com a coordenação.`,
-            'coordenacao' // fallback: envia para coordenação (professor ainda não tem conta)
-        );
+            'coordenacao'
+        )
 
-        dispararAlerta({ icon: 'info', title: 'Solicitação rejeitada', text: `${nome} não terá acesso ao sistema.`, confirmButtonColor: 'var(--cor-primaria)', timer: 2200, showConfirmButton: false });
+        dispararAlerta({ icon: 'info', title: 'Solicitação rejeitada', text: `${nome} não terá acesso ao sistema.`, confirmButtonColor: 'var(--cor-primaria)', timer: 2200, showConfirmButton: false })
     } catch (err) {
-        console.error('Erro ao rejeitar:', err);
-        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível rejeitar a solicitação.', confirmButtonColor: 'var(--cor-perigo)' });
+        console.error('Erro ao rejeitar:', err)
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível rejeitar a solicitação.', confirmButtonColor: 'var(--cor-perigo)' })
     }
 }
+
+// Expõe as funções de solicitação no window (chamadas pelo Realtime e por toggle de seção)
+window.carregarSolicitacoes = carregarSolicitacoes
 
 // ============================================================
 //  RELATÓRIO
 // ============================================================
 
 window.carregarRelatorioGeral = async function() {
-    if (!exigirToken()) return;
+    if (!await exigirAuth()) return
 
-    const filtroData = document.getElementById('filtroData');
-    const filtroSala = document.getElementById('filtroSala');
-    const filtroProfessor = document.getElementById('filtroProfessor');
-    const tabela = document.getElementById('listaAgendamentos');
+    const filtroData     = document.getElementById('filtroData')
+    const filtroSala     = document.getElementById('filtroSala')
+    const filtroProfessor = document.getElementById('filtroProfessor')
+    const tabela         = document.getElementById('listaAgendamentos')
 
-    if (!filtroData || !tabela) return;
+    if (!filtroData || !tabela) return
 
-    const dataFiltro = filtroData.value;
-    const salaFiltro = filtroSala?.value || '';
-    const professorFiltro = filtroProfessor?.value || '';
+    const dataFiltro      = filtroData.value
+    const salaFiltro      = filtroSala?.value || ''
+    const professorFiltro = filtroProfessor?.value || ''
 
-    tabela.innerHTML = '';
-    dadosAtuaisParaExportar = [];
+    tabela.innerHTML = ''
+    dadosAtuaisParaExportar = []
 
     if (!dataFiltro && !salaFiltro && !professorFiltro) {
-        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Selecione uma data, sala ou professor para ver os agendamentos.</td></tr>`;
-        return;
+        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Selecione uma data, sala ou professor para ver os agendamentos.</td></tr>`
+        return
     }
 
-    tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Carregando...</td></tr>`;
+    tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Carregando...</td></tr>`
 
-    let query = supabase.from('agendamentos').select('id, data, aula_numero, professor_id, salas(nome), professores(nome), turmas(nome)');
-    if (dataFiltro) query = query.eq('data', dataFiltro);
-    if (salaFiltro) query = query.eq('sala_id', salaFiltro);
-    if (professorFiltro) query = query.eq('professor_id', professorFiltro);
+    let query = supabase
+        .from('agendamentos')
+        .select('id, data, aula_numero, professor_id, salas(nome), professores(nome), turmas(nome)')
+    if (dataFiltro)      query = query.eq('data', dataFiltro)
+    if (salaFiltro)      query = query.eq('sala_id', salaFiltro)
+    if (professorFiltro) query = query.eq('professor_id', professorFiltro)
 
-    const { data: agendamentos, error } = await query.order('data', { ascending: true }).order('aula_numero', { ascending: true });
+    const { data: agendamentos, error } = await query
+        .order('data', { ascending: true })
+        .order('aula_numero', { ascending: true })
 
     if (error) {
-        dispararAlerta({ icon: 'error', title: 'Erro de carregamento', text: 'Não foi possível buscar os agendamentos.', confirmButtonColor: 'var(--cor-perigo)' });
-        return;
+        dispararAlerta({ icon: 'error', title: 'Erro de carregamento', text: 'Não foi possível buscar os agendamentos.', confirmButtonColor: 'var(--cor-perigo)' })
+        return
     }
 
-    const qtdEl = document.getElementById('qtd-total');
-    if (qtdEl) qtdEl.innerText = agendamentos.length;
-    dadosAtuaisParaExportar = agendamentos;
+    const qtdEl = document.getElementById('qtd-total')
+    if (qtdEl) qtdEl.innerText = agendamentos.length
+    dadosAtuaisParaExportar = agendamentos
 
     if (!agendamentos || agendamentos.length === 0) {
-        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Nenhum agendamento encontrado para os filtros selecionados.</td></tr>`;
-        return;
+        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Nenhum agendamento encontrado para os filtros selecionados.</td></tr>`
+        return
     }
 
-    tabela.innerHTML = '';
+    tabela.innerHTML = ''
     agendamentos.forEach(item => {
-        const dataBr = item.data.split('-').reverse().join('/');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><strong>${dataBr}</strong></td>
-            <td><span class="badge-aula">Aula ${item.aula_numero}º</span></td>
-            <td>${item.salas?.nome || 'Não informada'}</td>
-            <td>Prof. ${item.professores?.nome || 'Desconhecido'}</td>
-            <td>${item.turmas?.nome || 'Geral'}</td>
-            <td>
-                <button class="btn-revogar" onclick="revogarAgendamento('${item.id}', '${item.salas?.nome}', '${item.aula_numero}', '${item.professor_id}', '${dataBr}')">
-                    Cancelar
-                </button>
-            </td>
-        `;
-        tabela.appendChild(tr);
-    });
+        const dataBr = item.data.split('-').reverse().join('/')
+        const tr = document.createElement('tr')
+
+        // Monta via DOM para evitar XSS com dados do banco
+        const tdData = document.createElement('td')
+        const strong = document.createElement('strong')
+        strong.textContent = dataBr
+        tdData.appendChild(strong)
+
+        const tdAula = document.createElement('td')
+        const badge = document.createElement('span')
+        badge.className = 'badge-aula'
+        badge.textContent = `Aula ${item.aula_numero}º`
+        tdAula.appendChild(badge)
+
+        const tdSala = document.createElement('td')
+        tdSala.textContent = item.salas?.nome || 'Não informada'
+
+        const tdProf = document.createElement('td')
+        tdProf.textContent = `Prof. ${item.professores?.nome || 'Desconhecido'}`
+
+        const tdTurma = document.createElement('td')
+        tdTurma.textContent = item.turmas?.nome || 'Geral'
+
+        const tdAcao = document.createElement('td')
+        const btnRevogar = document.createElement('button')
+        btnRevogar.className = 'btn-revogar'
+        btnRevogar.textContent = 'Cancelar'
+        const nomeSala   = item.salas?.nome || ''
+        const numAula    = item.aula_numero
+        const profId     = item.professor_id
+        btnRevogar.addEventListener('click', () =>
+            window.revogarAgendamento(item.id, nomeSala, numAula, profId, dataBr)
+        )
+        tdAcao.appendChild(btnRevogar)
+
+        tr.appendChild(tdData)
+        tr.appendChild(tdAula)
+        tr.appendChild(tdSala)
+        tr.appendChild(tdProf)
+        tr.appendChild(tdTurma)
+        tr.appendChild(tdAcao)
+        tabela.appendChild(tr)
+    })
 }
 
 window.limparFiltros = function() {
-    const filtroData = document.getElementById('filtroData');
-    const filtroSala = document.getElementById('filtroSala');
-    const filtroProfessor = document.getElementById('filtroProfessor');
-    if (filtroData) filtroData.value = '';
-    if (filtroSala) filtroSala.value = '';
-    if (filtroProfessor) filtroProfessor.value = '';
-    carregarRelatorioGeral();
+    const filtroData      = document.getElementById('filtroData')
+    const filtroSala      = document.getElementById('filtroSala')
+    const filtroProfessor = document.getElementById('filtroProfessor')
+    if (filtroData)       filtroData.value = ''
+    if (filtroSala)       filtroSala.value = ''
+    if (filtroProfessor)  filtroProfessor.value = ''
+    carregarRelatorioGeral()
 }
 
 window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula, professorId, dataBr) {
-    if (!exigirToken()) return;
+    if (!await exigirAuth()) return
 
     const confirmacao = await Swal.fire({
-        title: 'Tem certeza?', text: `Cancelar reserva de ${nomeSala} — Aula ${numeroAula}?`, icon: 'warning',
-        showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)',
-        confirmButtonText: 'Sim, cancelar!', cancelButtonText: 'Voltar'
-    });
-    if (!confirmacao.isConfirmed) return;
+        title: 'Tem certeza?',
+        text: `Cancelar reserva de ${nomeSala} — Aula ${numeroAula}?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--cor-perigo)',
+        cancelButtonColor: 'var(--texto-secundario)',
+        confirmButtonText: 'Sim, cancelar!',
+        cancelButtonText: 'Voltar'
+    })
+    if (!confirmacao.isConfirmed) return
 
-    const { error } = await supabase.from('agendamentos').delete().eq('id', idAgendamento);
+    // RLS: agendamentos_delete_coord
+    const { error } = await supabase.from('agendamentos').delete().eq('id', idAgendamento)
 
     if (error) {
-        dispararAlerta({ icon: 'error', title: 'Erro!', text: 'Não foi possível excluir o agendamento.', confirmButtonColor: 'var(--cor-primaria)' });
+        dispararAlerta({ icon: 'error', title: 'Erro!', text: 'Não foi possível excluir o agendamento.', confirmButtonColor: 'var(--cor-primaria)' })
     } else {
-        dispararAlerta({ icon: 'success', title: 'Cancelado!', text: 'Reserva removida.', timer: 1500, showConfirmButton: false });
-        carregarRelatorioGeral();
+        dispararAlerta({ icon: 'success', title: 'Cancelado!', text: 'Reserva removida.', timer: 1500, showConfirmButton: false })
+        carregarRelatorioGeral()
         if (professorId && professorId !== 'undefined' && professorId !== 'null') {
-            enviarNotificacao('Reserva cancelada pela coordenação', `Sua reserva de ${nomeSala} (Aula ${numeroAula}) em ${dataBr} foi cancelada pela coordenação.`, 'professor', professorId);
+            enviarNotificacao(
+                'Reserva cancelada pela coordenação',
+                `Sua reserva de ${nomeSala} (Aula ${numeroAula}) em ${dataBr} foi cancelada pela coordenação.`,
+                'professor',
+                professorId
+            )
         }
     }
 }
 
 window.exportarParaPlanilha = async function() {
-    if (!exigirToken()) return;
+    if (!await exigirAuth()) return
 
     if (!dadosAtuaisParaExportar || dadosAtuaisParaExportar.length === 0) {
-        dispararAlerta({ icon: 'warning', title: 'Tabela vazia', text: 'Filtre por uma data com agendamentos antes de exportar.', confirmButtonColor: 'var(--cor-primaria)' });
-        return;
+        dispararAlerta({ icon: 'warning', title: 'Tabela vazia', text: 'Filtre por uma data com agendamentos antes de exportar.', confirmButtonColor: 'var(--cor-primaria)' })
+        return
     }
 
-    Swal.fire({ title: 'Exportando...', text: 'Enviando para o Google Planilhas.', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Exportando...', text: 'Enviando para o Google Planilhas.', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
 
     const dadosFormatados = dadosAtuaisParaExportar.map(item => ({
-        data: item.data.split('-').reverse().join('/'),
-        horario: `Aula ${item.aula_numero}º`,
-        sala: item.salas?.nome || 'Não informada',
+        data:      item.data.split('-').reverse().join('/'),
+        horario:   `Aula ${item.aula_numero}º`,
+        sala:      item.salas?.nome || 'Não informada',
         professor: item.professores?.nome || 'Desconhecido',
-        turma: item.turmas?.nome || 'Geral'
-    }));
+        turma:     item.turmas?.nome || 'Geral'
+    }))
 
     try {
-        await fetch(URL_GOOGLE_SCRIPT, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(dadosFormatados) });
-        Swal.close();
-        dispararAlerta({ icon: 'success', title: 'Concluído!', text: 'Dados enviados para a planilha.', confirmButtonColor: 'var(--cor-sucesso)' });
+        await fetch(URL_GOOGLE_SCRIPT, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify(dadosFormatados)
+        })
+        Swal.close()
+        dispararAlerta({ icon: 'success', title: 'Concluído!', text: 'Dados enviados para a planilha.', confirmButtonColor: 'var(--cor-sucesso)' })
     } catch (erro) {
-        Swal.close();
-        dispararAlerta({ icon: 'error', title: 'Falha no envio', text: 'Não foi possível exportar. Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' });
+        Swal.close()
+        dispararAlerta({ icon: 'error', title: 'Falha no envio', text: 'Não foi possível exportar. Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' })
     }
 }
 
@@ -562,247 +652,308 @@ window.exportarParaPlanilha = async function() {
 //  GERENCIAR SALAS E TURMAS
 // ============================================================
 
-let gerenciamentoCarregado = false;
+let gerenciamentoCarregado = false
 
 window.alternarGerenciamento = function(event) {
-    const conteudo = document.getElementById('conteudo-gerenciar');
-    const toggle = event.currentTarget;
-    conteudo.classList.toggle('hidden');
-    toggle.classList.toggle('aberto');
+    const conteudo = document.getElementById('conteudo-gerenciar')
+    const toggle   = event.currentTarget
+    conteudo.classList.toggle('hidden')
+    toggle.classList.toggle('aberto')
     if (!conteudo.classList.contains('hidden') && !gerenciamentoCarregado) {
-        gerenciamentoCarregado = true;
-        carregarListaSalas();
-        carregarListaTurmas();
+        gerenciamentoCarregado = true
+        carregarListaSalas()
+        carregarListaTurmas()
     }
 }
 
 async function carregarListaSalas() {
-    const container = document.getElementById('lista-salas');
-    container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>';
-    const { data: salas, error } = await supabase.from('salas').select('id, nome').order('nome', { ascending: true });
-    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar salas.</div>'; return; }
-    if (!salas || salas.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhuma sala cadastrada ainda.</div>'; return; }
-    container.innerHTML = '';
+    const container = document.getElementById('lista-salas')
+    container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>'
+    const { data: salas, error } = await supabase.from('salas').select('id, nome').order('nome', { ascending: true })
+    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar salas.</div>'; return }
+    if (!salas || salas.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhuma sala cadastrada ainda.</div>'; return }
+
+    container.innerHTML = ''
     salas.forEach((sala, i) => {
-        const div = document.createElement('div');
-        div.classList.add('gerenciar-item');
-        div.style.animationDelay = `${i * 0.04}s`;
-        div.innerHTML = `
-            <div class="gerenciar-item-icone sala">🏫</div>
-            <span class="gerenciar-item-nome">${sala.nome}</span>
-            <button class="gerenciar-del" onclick="excluirSala('${sala.id}', '${sala.nome.replace(/'/g, "\\'")}')" title="Excluir sala">🗑</button>`;
-        container.appendChild(div);
-    });
+        const div = document.createElement('div')
+        div.classList.add('gerenciar-item')
+        div.style.animationDelay = `${i * 0.04}s`
+
+        const icone = document.createElement('div')
+        icone.className = 'gerenciar-item-icone sala'
+        icone.textContent = '🏫'
+
+        const span = document.createElement('span')
+        span.className = 'gerenciar-item-nome'
+        span.textContent = sala.nome
+
+        const btn = document.createElement('button')
+        btn.className = 'gerenciar-del'
+        btn.title = 'Excluir sala'
+        btn.textContent = '🗑'
+        btn.addEventListener('click', () => window.excluirSala(sala.id, sala.nome))
+
+        div.appendChild(icone)
+        div.appendChild(span)
+        div.appendChild(btn)
+        container.appendChild(div)
+    })
 }
 
 async function carregarListaTurmas() {
-    const container = document.getElementById('lista-turmas');
-    container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>';
-    const { data: turmas, error } = await supabase.from('turmas').select('id, nome').order('nome', { ascending: true });
-    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar turmas.</div>'; return; }
-    if (!turmas || turmas.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhuma turma cadastrada ainda.</div>'; return; }
-    container.innerHTML = '';
+    const container = document.getElementById('lista-turmas')
+    container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>'
+    const { data: turmas, error } = await supabase.from('turmas').select('id, nome').order('nome', { ascending: true })
+    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar turmas.</div>'; return }
+    if (!turmas || turmas.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhuma turma cadastrada ainda.</div>'; return }
+
+    container.innerHTML = ''
     turmas.forEach((turma, i) => {
-        const div = document.createElement('div');
-        div.classList.add('gerenciar-item');
-        div.style.animationDelay = `${i * 0.04}s`;
-        div.innerHTML = `
-            <div class="gerenciar-item-icone turma">👥</div>
-            <span class="gerenciar-item-nome">${turma.nome}</span>
-            <button class="gerenciar-del" onclick="excluirTurma('${turma.id}', '${turma.nome.replace(/'/g, "\\'")}')" title="Excluir turma">🗑</button>`;
-        container.appendChild(div);
-    });
+        const div = document.createElement('div')
+        div.classList.add('gerenciar-item')
+        div.style.animationDelay = `${i * 0.04}s`
+
+        const icone = document.createElement('div')
+        icone.className = 'gerenciar-item-icone turma'
+        icone.textContent = '👥'
+
+        const span = document.createElement('span')
+        span.className = 'gerenciar-item-nome'
+        span.textContent = turma.nome
+
+        const btn = document.createElement('button')
+        btn.className = 'gerenciar-del'
+        btn.title = 'Excluir turma'
+        btn.textContent = '🗑'
+        btn.addEventListener('click', () => window.excluirTurma(turma.id, turma.nome))
+
+        div.appendChild(icone)
+        div.appendChild(span)
+        div.appendChild(btn)
+        container.appendChild(div)
+    })
 }
 
 window.adicionarSala = async function() {
-    if (!exigirToken()) return;
-    const input = document.getElementById('nova-sala-nome');
-    const nome = input.value.trim();
-    if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Digite o nome da sala.', confirmButtonColor: 'var(--cor-primaria)' }); return; }
-    const { error } = await supabase.from('salas').insert([{ nome }]);
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a sala.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
-    input.value = '';
-    carregarListaSalas();
-    carregarSalasNoFiltro();
+    if (!await exigirAuth()) return
+    const input = document.getElementById('nova-sala-nome')
+    const nome  = input.value.trim()
+    if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Digite o nome da sala.', confirmButtonColor: 'var(--cor-primaria)' }); return }
+    // RLS: salas_insert_coord
+    const { error } = await supabase.from('salas').insert([{ nome }])
+    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a sala.', confirmButtonColor: 'var(--cor-perigo)' }); return }
+    input.value = ''
+    carregarListaSalas()
+    carregarSalasNoFiltro()
 }
 
 window.adicionarTurma = async function() {
-    if (!exigirToken()) return;
-    const input = document.getElementById('nova-turma-nome');
-    const nome = input.value.trim();
-    if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Digite o nome da turma.', confirmButtonColor: 'var(--cor-primaria)' }); return; }
-    const { error } = await supabase.from('turmas').insert([{ nome }]);
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a turma.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
-    input.value = '';
-    carregarListaTurmas();
+    if (!await exigirAuth()) return
+    const input = document.getElementById('nova-turma-nome')
+    const nome  = input.value.trim()
+    if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Digite o nome da turma.', confirmButtonColor: 'var(--cor-primaria)' }); return }
+    // RLS: turmas_insert_coord
+    const { error } = await supabase.from('turmas').insert([{ nome }])
+    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a turma.', confirmButtonColor: 'var(--cor-perigo)' }); return }
+    input.value = ''
+    carregarListaTurmas()
 }
 
 window.excluirSala = async function(id, nome) {
-    if (!exigirToken()) return;
-    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('sala_id', id).limit(1);
+    if (!await exigirAuth()) return
+    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('sala_id', id).limit(1)
     if (vinculos && vinculos.length > 0) {
-        dispararAlerta({ icon: 'warning', title: 'Sala em uso', text: `A sala "${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' });
-        return;
+        dispararAlerta({ icon: 'warning', title: 'Sala em uso', text: `A sala "${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' })
+        return
     }
-    const confirmacao = await Swal.fire({ title: 'Excluir sala?', text: `Tem certeza que deseja excluir "${nome}"?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' });
-    if (!confirmacao.isConfirmed) return;
-    const { error } = await supabase.from('salas').delete().eq('id', id);
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a sala.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
-    dispararAlerta({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false });
-    carregarListaSalas();
-    carregarSalasNoFiltro();
+    const confirmacao = await Swal.fire({ title: 'Excluir sala?', text: `Tem certeza que deseja excluir "${nome}"?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' })
+    if (!confirmacao.isConfirmed) return
+    // RLS: salas_delete_coord
+    const { error } = await supabase.from('salas').delete().eq('id', id)
+    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a sala.', confirmButtonColor: 'var(--cor-perigo)' }); return }
+    dispararAlerta({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false })
+    carregarListaSalas()
+    carregarSalasNoFiltro()
 }
 
 window.excluirTurma = async function(id, nome) {
-    if (!exigirToken()) return;
-    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('turma_id', id).limit(1);
+    if (!await exigirAuth()) return
+    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('turma_id', id).limit(1)
     if (vinculos && vinculos.length > 0) {
-        dispararAlerta({ icon: 'warning', title: 'Turma em uso', text: `A turma "${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' });
-        return;
+        dispararAlerta({ icon: 'warning', title: 'Turma em uso', text: `A turma "${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' })
+        return
     }
-    const confirmacao = await Swal.fire({ title: 'Excluir turma?', text: `Tem certeza que deseja excluir "${nome}"?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' });
-    if (!confirmacao.isConfirmed) return;
-    const { error } = await supabase.from('turmas').delete().eq('id', id);
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a turma.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
-    dispararAlerta({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false });
-    carregarListaTurmas();
+    const confirmacao = await Swal.fire({ title: 'Excluir turma?', text: `Tem certeza que deseja excluir "${nome}"?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' })
+    if (!confirmacao.isConfirmed) return
+    // RLS: turmas_delete_coord
+    const { error } = await supabase.from('turmas').delete().eq('id', id)
+    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a turma.', confirmButtonColor: 'var(--cor-perigo)' }); return }
+    dispararAlerta({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false })
+    carregarListaTurmas()
 }
 
 // ============================================================
 //  GERENCIAR PROFESSORES
 // ============================================================
 
-let gerenciamentoProfessoresCarregado = false;
-let disciplinasCache = [];
+let gerenciamentoProfessoresCarregado = false
+let disciplinasCache = []
 
 window.alternarGerenciamentoProfessores = function(event) {
-    const conteudo = document.getElementById('conteudo-gerenciar-professores');
-    const toggle = event.currentTarget;
-    conteudo.classList.toggle('hidden');
-    toggle.classList.toggle('aberto');
+    const conteudo = document.getElementById('conteudo-gerenciar-professores')
+    const toggle   = event.currentTarget
+    conteudo.classList.toggle('hidden')
+    toggle.classList.toggle('aberto')
     if (!conteudo.classList.contains('hidden')) {
-        carregarSolicitacoes();
+        carregarSolicitacoes()
         if (!gerenciamentoProfessoresCarregado) {
-            gerenciamentoProfessoresCarregado = true;
-            carregarListaProfessores();
+            gerenciamentoProfessoresCarregado = true
+            carregarListaProfessores()
         }
     }
 }
 
 async function obterDisciplinasCache() {
-    if (disciplinasCache.length > 0) return disciplinasCache;
-    const { data, error } = await supabase.from('disciplinas').select('id, nome').order('nome', { ascending: true });
-    if (!error && data) disciplinasCache = data;
-    return disciplinasCache;
+    if (disciplinasCache.length > 0) return disciplinasCache
+    const { data, error } = await supabase.from('disciplinas').select('id, nome').order('nome', { ascending: true })
+    if (!error && data) disciplinasCache = data
+    return disciplinasCache
 }
 
 async function carregarListaProfessores() {
-    const container = document.getElementById('lista-professores');
-    container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>';
+    const container = document.getElementById('lista-professores')
+    container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>'
 
     const [{ data: professores, error }, disciplinas] = await Promise.all([
         supabase.from('professores').select('id, nome, disciplina, auth_user_id').order('nome', { ascending: true }),
         obterDisciplinasCache()
-    ]);
+    ])
 
-    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar professores.</div>'; return; }
-    if (!professores || professores.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhum professor cadastrado.</div>'; return; }
+    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar professores.</div>'; return }
+    if (!professores || professores.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhum professor cadastrado.</div>'; return }
 
-    container.innerHTML = '';
+    container.innerHTML = ''
     professores.forEach((prof, i) => {
-        const temAcesso = prof.auth_user_id !== null && prof.auth_user_id !== '';
-        const iniciais  = prof.nome.split(' ').slice(0,2).map(p => p[0]).join('').toUpperCase();
-        const opcoesDisciplina = disciplinas.map(d =>
-            `<option value="${d.nome}" ${d.nome === prof.disciplina ? 'selected' : ''}>${d.nome}</option>`
-        ).join('');
+        const temAcesso = prof.auth_user_id !== null && prof.auth_user_id !== ''
+        const iniciais  = prof.nome.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase()
 
-        const div = document.createElement('div');
-        div.classList.add('professor-card');
-        div.style.animationDelay = `${i * 0.05}s`;
+        const div = document.createElement('div')
+        div.classList.add('professor-card')
+        div.style.animationDelay = `${i * 0.05}s`
+
+        // Monta seletor de disciplinas via DOM
+        const selectOpts = disciplinas.map(d => {
+            const opt = document.createElement('option')
+            opt.value = d.nome
+            opt.textContent = d.nome
+            if (d.nome === prof.disciplina) opt.selected = true
+            return opt
+        })
+
         div.innerHTML = `
             <div class="professor-card-topo">
                 <div class="professor-card-avatar">${iniciais}</div>
                 <div class="professor-card-info">
-                    <div class="professor-nome">${prof.nome}</div>
-                    <div class="professor-disciplina">${prof.disciplina || 'Sem disciplina'}</div>
+                    <div class="professor-nome"></div>
+                    <div class="professor-disciplina"></div>
                 </div>
                 <span class="status-pin ${temAcesso ? 'ativo' : 'pendente'}">
                     ${temAcesso ? '✓ Ativo' : '⏳ Pendente'}
                 </span>
-                <button class="professor-card-btn-editar" id="btn-edit-${prof.id}"
-                    onclick="toggleEditarProfessor('${prof.id}')" title="Editar">✏️</button>
+                <button class="professor-card-btn-editar" id="btn-edit-${prof.id}" title="Editar">✏️</button>
             </div>
             <div class="professor-card-expansivel" id="exp-${prof.id}">
                 <div class="professor-card-edicao">
-                    <input type="text" value="${prof.nome.replace(/"/g, '&quot;')}" id="edit-nome-${prof.id}" placeholder="Nome completo">
+                    <input type="text" id="edit-nome-${prof.id}" placeholder="Nome completo">
                     <select id="edit-disciplina-${prof.id}">
                         <option value="">Selecione a disciplina...</option>
-                        ${opcoesDisciplina}
                     </select>
                 </div>
                 <div class="professor-card-acoes">
-                    <button class="btn-salvar-professor" onclick="salvarEdicaoProfessor('${prof.id}')">💾 Salvar</button>
-                    ${temAcesso ? `<button class="btn-resetar-pin" onclick="resetarAcessoProfessor('${prof.id}', '${prof.nome.replace(/'/g, "\'")}')">🔑 Resetar</button>` : ''}
-                    <button class="btn-excluir-professor" onclick="excluirProfessor('${prof.id}', '${prof.nome.replace(/'/g, "\'")}')">🗑 Excluir</button>
+                    <button class="btn-salvar-professor" data-id="${prof.id}">💾 Salvar</button>
+                    ${temAcesso ? `<button class="btn-resetar-pin" data-id="${prof.id}" data-nome="">🔑 Resetar</button>` : ''}
+                    <button class="btn-excluir-professor" data-id="${prof.id}" data-nome="">🗑 Excluir</button>
                 </div>
-            </div>`;
-        container.appendChild(div);
-    });
+            </div>`
+
+        // Preenche via textContent para evitar XSS
+        div.querySelector('.professor-nome').textContent = prof.nome
+        div.querySelector('.professor-disciplina').textContent = prof.disciplina || 'Sem disciplina'
+        div.querySelector(`#edit-nome-${prof.id}`).value = prof.nome
+
+        const select = div.querySelector(`#edit-disciplina-${prof.id}`)
+        selectOpts.forEach(opt => select.appendChild(opt.cloneNode(true)))
+
+        // Event listeners (sem onclick no HTML)
+        div.querySelector(`#btn-edit-${prof.id}`)
+            .addEventListener('click', () => window.toggleEditarProfessor(prof.id))
+
+        div.querySelector('.btn-salvar-professor')
+            .addEventListener('click', () => window.salvarEdicaoProfessor(prof.id))
+
+        if (temAcesso) {
+            const btnReset = div.querySelector('.btn-resetar-pin')
+            if (btnReset) btnReset.addEventListener('click', () => window.resetarAcessoProfessor(prof.id, prof.nome))
+        }
+
+        div.querySelector('.btn-excluir-professor')
+            .addEventListener('click', () => window.excluirProfessor(prof.id, prof.nome))
+
+        container.appendChild(div)
+    })
 }
 
 window.toggleEditarProfessor = function(id) {
-    const exp = document.getElementById(`exp-${id}`);
-    const btn = document.getElementById(`btn-edit-${id}`);
-    const isOpen = exp.classList.contains('aberto');
-    // Fecha todos os outros abertos
+    const exp = document.getElementById(`exp-${id}`)
+    const btn = document.getElementById(`btn-edit-${id}`)
+    const isOpen = exp.classList.contains('aberto')
     document.querySelectorAll('.professor-card-expansivel.aberto').forEach(el => {
-        el.classList.remove('aberto');
-        const otherId = el.id.replace('exp-', '');
-        const otherBtn = document.getElementById(`btn-edit-${otherId}`);
-        if (otherBtn) otherBtn.textContent = '✏️';
-    });
+        el.classList.remove('aberto')
+        const otherId = el.id.replace('exp-', '')
+        const otherBtn = document.getElementById(`btn-edit-${otherId}`)
+        if (otherBtn) otherBtn.textContent = '✏️'
+    })
     if (!isOpen) {
-        exp.classList.add('aberto');
-        btn.textContent = '✕';
-        exp.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        exp.classList.add('aberto')
+        btn.textContent = '✕'
+        exp.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
 }
 
 window.alternarTabGerenciar = function(aba) {
-    const painelSalas  = document.getElementById('painel-salas');
-    const painelTurmas = document.getElementById('painel-turmas');
-    const tabSalas     = document.getElementById('tab-salas');
-    const tabTurmas    = document.getElementById('tab-turmas');
+    const painelSalas  = document.getElementById('painel-salas')
+    const painelTurmas = document.getElementById('painel-turmas')
+    const tabSalas     = document.getElementById('tab-salas')
+    const tabTurmas    = document.getElementById('tab-turmas')
 
     if (aba === 'salas') {
-        painelSalas.classList.remove('oculto');
-        painelTurmas.classList.add('oculto');
-        tabSalas.classList.add('ativa');
-        tabTurmas.classList.remove('ativa');
+        painelSalas.classList.remove('oculto')
+        painelTurmas.classList.add('oculto')
+        tabSalas.classList.add('ativa')
+        tabTurmas.classList.remove('ativa')
     } else {
-        painelSalas.classList.add('oculto');
-        painelTurmas.classList.remove('oculto');
-        tabSalas.classList.remove('ativa');
-        tabTurmas.classList.add('ativa');
+        painelSalas.classList.add('oculto')
+        painelTurmas.classList.remove('oculto')
+        tabSalas.classList.remove('ativa')
+        tabTurmas.classList.add('ativa')
     }
 }
 
 window.salvarEdicaoProfessor = async function(id) {
-    if (!exigirToken()) return;
-    const nome = document.getElementById(`edit-nome-${id}`).value.trim();
-    const disciplina = document.getElementById(`edit-disciplina-${id}`).value;
-    if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'O nome não pode ficar vazio.', confirmButtonColor: 'var(--cor-primaria)' }); return; }
-    const { error } = await supabase.from('professores').update({ nome, disciplina }).eq('id', id);
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível salvar as alterações.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
-    dispararAlerta({ icon: 'success', title: 'Salvo!', timer: 1200, showConfirmButton: false });
-    carregarListaProfessores();
-    carregarProfessoresNoFiltro();
+    if (!await exigirAuth()) return
+    const nome       = document.getElementById(`edit-nome-${id}`).value.trim()
+    const disciplina = document.getElementById(`edit-disciplina-${id}`).value
+    if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'O nome não pode ficar vazio.', confirmButtonColor: 'var(--cor-primaria)' }); return }
+    // RLS: professores_update_coord
+    const { error } = await supabase.from('professores').update({ nome, disciplina }).eq('id', id)
+    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível salvar as alterações.', confirmButtonColor: 'var(--cor-perigo)' }); return }
+    dispararAlerta({ icon: 'success', title: 'Salvo!', timer: 1200, showConfirmButton: false })
+    carregarListaProfessores()
+    carregarProfessoresNoFiltro()
 }
 
-// MUDANÇA PRINCIPAL: agora chama a Edge Function que deleta o usuário do Auth
-// em vez de apenas limpar a coluna pin no banco
 window.resetarAcessoProfessor = async function(id, nome) {
-    if (!exigirToken()) return;
+    if (!await exigirAuth()) return
 
     const confirmacao = await Swal.fire({
         title: 'Resetar acesso?',
@@ -813,30 +964,18 @@ window.resetarAcessoProfessor = async function(id, nome) {
         cancelButtonColor: 'var(--texto-secundario)',
         confirmButtonText: 'Sim, resetar',
         cancelButtonText: 'Cancelar'
-    });
-    if (!confirmacao.isConfirmed) return;
+    })
+    if (!confirmacao.isConfirmed) return
 
-    if (!_senhaEmMemoria) {
-        dispararAlerta({ icon: 'error', title: 'Sessão expirada', text: 'Faça login novamente para executar esta ação.', confirmButtonColor: 'var(--cor-perigo)' });
-        sairPainel();
-        return;
-    }
-
-    Swal.fire({ title: 'Resetando acesso...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'Resetando acesso...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
 
     try {
-        // Chama Edge Function que:
-        // 1. Deleta o usuário do Supabase Auth (invalida o JWT imediatamente)
-        // 2. Limpa o auth_user_id na tabela professores
-        // 3. O Realtime no professor.js detecta e força o logout na tela dele
+        // JWT do coordenador é enviado automaticamente — Edge Function valida via auth.getUser()
         const { data, error } = await supabase.functions.invoke('resetar-acesso-professor', {
-            body: {
-                professor_id: id,
-                senha_coord: _senhaEmMemoria
-            }
-        });
+            body: { professor_id: id }
+        })
 
-        Swal.close();
+        Swal.close()
 
         if (error || !data?.sucesso) {
             dispararAlerta({
@@ -844,58 +983,61 @@ window.resetarAcessoProfessor = async function(id, nome) {
                 title: 'Erro',
                 text: data?.erro || 'Não foi possível resetar o acesso.',
                 confirmButtonColor: 'var(--cor-perigo)'
-            });
-            return;
+            })
+            return
         }
 
-        dispararAlerta({
-            icon: 'success',
-            title: 'Acesso resetado!',
-            text: `${nome} foi desconectado e precisará ativar um novo PIN.`,
-            timer: 2500,
-            showConfirmButton: false
-        });
-        carregarListaProfessores();
+        dispararAlerta({ icon: 'success', title: 'Acesso resetado!', text: `${nome} foi desconectado e precisará ativar um novo PIN.`, timer: 2500, showConfirmButton: false })
+        carregarListaProfessores()
 
     } catch (err) {
-        Swal.close();
-        console.error('Erro ao resetar acesso:', err);
-        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Falha na requisição.', confirmButtonColor: 'var(--cor-perigo)' });
+        Swal.close()
+        console.error('Erro ao resetar acesso:', err)
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Falha na requisição.', confirmButtonColor: 'var(--cor-perigo)' })
     }
 }
 
 window.excluirProfessor = async function(id, nome) {
-    if (!exigirToken()) return;
-    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('professor_id', id).limit(1);
-    if (vinculos && vinculos.length > 0) {
-        dispararAlerta({ icon: 'warning', title: 'Professor com reservas ativas', text: `"${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' });
-        return;
-    }
-    const confirmacao = await Swal.fire({ title: 'Excluir professor?', text: `Tem certeza que deseja excluir "${nome}"? Esta ação não pode ser desfeita.`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' });
-    if (!confirmacao.isConfirmed) return;
+    if (!await exigirAuth()) return
 
-    // Reseta o Auth antes de deletar do banco
-    if (_senhaEmMemoria) {
-        const { data: resetData, error: resetError } = await supabase.functions.invoke('resetar-acesso-professor', {
-            body: { professor_id: id, senha_coord: _senhaEmMemoria }
-        });
-        if (resetError || !resetData?.sucesso) {
-            console.warn('Aviso: falha ao resetar acesso Auth do professor antes da exclusão:', resetError || resetData?.erro);
-            // Continua apenas se o professor não tinha acesso ativo (auth_user_id null)
-            // Caso contrário, aborta para evitar usuário órfão no Auth
-            const { data: profAtual } = await supabase.from('professores').select('auth_user_id').eq('id', id).single();
-            if (profAtual?.auth_user_id) {
-                dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível revogar o acesso do professor. Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' });
-                return;
-            }
+    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('professor_id', id).limit(1)
+    if (vinculos && vinculos.length > 0) {
+        dispararAlerta({ icon: 'warning', title: 'Professor com reservas ativas', text: `"${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' })
+        return
+    }
+
+    const confirmacao = await Swal.fire({
+        title: 'Excluir professor?',
+        text: `Tem certeza que deseja excluir "${nome}"? Esta ação não pode ser desfeita.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--cor-perigo)',
+        cancelButtonColor: 'var(--texto-secundario)',
+        confirmButtonText: 'Sim, excluir!',
+        cancelButtonText: 'Cancelar'
+    })
+    if (!confirmacao.isConfirmed) return
+
+    // Revoga acesso Auth do professor antes de deletar do banco
+    const { data: resetData, error: resetError } = await supabase.functions.invoke('resetar-acesso-professor', {
+        body: { professor_id: id }
+    })
+
+    if (resetError || !resetData?.sucesso) {
+        // Se a Edge Function falhou, verifica se o professor ainda tem acesso ativo
+        const { data: profAtual } = await supabase.from('professores').select('auth_user_id').eq('id', id).single()
+        if (profAtual?.auth_user_id) {
+            dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível revogar o acesso do professor. Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' })
+            return
         }
     }
 
-    const { error } = await supabase.from('professores').delete().eq('id', id);
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir o professor.', confirmButtonColor: 'var(--cor-perigo)' }); return; }
-    dispararAlerta({ icon: 'success', title: 'Excluído!', timer: 1200, showConfirmButton: false });
-    carregarListaProfessores();
-    carregarProfessoresNoFiltro();
+    // RLS: professores_delete_coord
+    const { error } = await supabase.from('professores').delete().eq('id', id)
+    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir o professor.', confirmButtonColor: 'var(--cor-perigo)' }); return }
+    dispararAlerta({ icon: 'success', title: 'Excluído!', timer: 1200, showConfirmButton: false })
+    carregarListaProfessores()
+    carregarProfessoresNoFiltro()
 }
 
 // ============================================================
@@ -904,35 +1046,32 @@ window.excluirProfessor = async function(id, nome) {
 
 supabase
     .channel('mudancas-agendamentos-coord')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, () => {
-        if (tokenValido()) carregarRelatorioGeral();
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'agendamentos' }, async () => {
+        if (await estaAutenticado()) carregarRelatorioGeral()
     })
-    .subscribe();
+    .subscribe()
 
 supabase
     .channel('mudancas-professores-coord')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'professores' }, () => {
-        if (tokenValido()) {
-            const conteudo = document.getElementById('conteudo-gerenciar-professores');
-            if (conteudo && !conteudo.classList.contains('hidden')) {
-                carregarSolicitacoes();
-                carregarListaProfessores();
-            }
-            carregarProfessoresNoFiltro();
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'professores' }, async () => {
+        if (!await estaAutenticado()) return
+        const conteudo = document.getElementById('conteudo-gerenciar-professores')
+        if (conteudo && !conteudo.classList.contains('hidden')) {
+            carregarSolicitacoes()
+            carregarListaProfessores()
         }
+        carregarProfessoresNoFiltro()
     })
-    .subscribe();
+    .subscribe()
 
-// Realtime para solicitações de acesso — atualiza badge e lista em tempo real
 supabase
     .channel('mudancas-solicitacoes-coord')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitacoes_acesso' }, () => {
-        if (!tokenValido()) return;
-        const conteudo = document.getElementById('conteudo-gerenciar-professores');
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitacoes_acesso' }, async () => {
+        if (!await estaAutenticado()) return
+        const conteudo = document.getElementById('conteudo-gerenciar-professores')
         if (conteudo && !conteudo.classList.contains('hidden')) {
-            carregarSolicitacoes();
+            carregarSolicitacoes()
         }
-        // Atualiza badge mesmo com a seção fechada
-        atualizarBadgePendentes();
+        atualizarBadgePendentes()
     })
-    .subscribe();
+    .subscribe()
