@@ -51,8 +51,12 @@ function salvarContextoPush(tipo, professorId) {
 // Chamado tanto pelo fluxo normal quanto pelo listener abaixo.
 // ------------------------------------------------------------
 async function salvarSubscriptionNoBanco(subJson, tipo, professorId, deviceId) {
-    // Remove inscrição antiga deste dispositivo
-    await supabase.from('inscricoes_push').delete().eq('device_id', deviceId);
+    // Remove inscrição antiga deste dispositivo para este tipo específico.
+    // Filtra por tipo para não apagar a subscription do outro perfil
+    // caso professor e coordenador usem o mesmo browser/dispositivo.
+    await supabase.from('inscricoes_push').delete()
+        .eq('device_id', deviceId)
+        .eq('tipo', tipo);
 
     const { error } = await supabase.from('inscricoes_push').insert({
         professor_id: professorId ?? null,
