@@ -850,16 +850,18 @@ async function carregarListaProfessores() {
             return opt
         })
 
+        // prof.id é UUID (sem caracteres HTML), temAcesso é boolean — seguros para interpolação.
+        // iniciais, nome e disciplina vêm do banco → preenchidos via textContent abaixo.
+        const statusClasse = temAcesso ? 'ativo' : 'pendente'
+        const statusTexto  = temAcesso ? '✓ Ativo' : '⏳ Pendente'
         div.innerHTML = `
             <div class="professor-card-topo">
-                <div class="professor-card-avatar">${iniciais}</div>
+                <div class="professor-card-avatar"></div>
                 <div class="professor-card-info">
                     <div class="professor-nome"></div>
                     <div class="professor-disciplina"></div>
                 </div>
-                <span class="status-pin ${temAcesso ? 'ativo' : 'pendente'}">
-                    ${temAcesso ? '✓ Ativo' : '⏳ Pendente'}
-                </span>
+                <span class="status-pin ${statusClasse}"></span>
                 <button class="professor-card-btn-editar" id="btn-edit-${prof.id}" title="Editar">✏️</button>
             </div>
             <div class="professor-card-expansivel" id="exp-${prof.id}">
@@ -871,14 +873,16 @@ async function carregarListaProfessores() {
                 </div>
                 <div class="professor-card-acoes">
                     <button class="btn-salvar-professor" data-id="${prof.id}">💾 Salvar</button>
-                    ${temAcesso ? `<button class="btn-resetar-pin" data-id="${prof.id}" data-nome="">🔑 Resetar</button>` : ''}
-                    <button class="btn-excluir-professor" data-id="${prof.id}" data-nome="">🗑 Excluir</button>
+                    ${temAcesso ? `<button class="btn-resetar-pin" data-id="${prof.id}">🔑 Resetar</button>` : ''}
+                    <button class="btn-excluir-professor" data-id="${prof.id}">🗑 Excluir</button>
                 </div>
             </div>`
 
-        // Preenche via textContent para evitar XSS
+        // Dados do banco sempre via textContent — nunca interpolados no innerHTML
+        div.querySelector('.professor-card-avatar').textContent = iniciais
         div.querySelector('.professor-nome').textContent = prof.nome
         div.querySelector('.professor-disciplina').textContent = prof.disciplina || 'Sem disciplina'
+        div.querySelector(`.status-pin`).textContent = statusTexto
         div.querySelector(`#edit-nome-${prof.id}`).value = prof.nome
 
         const select = div.querySelector(`#edit-disciplina-${prof.id}`)
