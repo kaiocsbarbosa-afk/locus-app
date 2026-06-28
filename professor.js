@@ -37,10 +37,12 @@ async function carregarListaNomesLogin() {
     if (!select) return;
 
     try {
+        // RLS policy 'professores_select_anon' já filtra automaticamente
+        // só professores com auth_user_id IS NOT NULL — anon não precisa
+        // referenciar essa coluna diretamente (não tem permissão nela).
         const { data, error } = await supabase
             .from('professores')
             .select('id, nome')
-            .not('auth_user_id', 'is', null)
             .order('nome');
 
         if (error) throw error;
