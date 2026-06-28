@@ -32,14 +32,36 @@ document.addEventListener("DOMContentLoaded", async () => {
 //  CARREGA LISTA DE NOMES
 // ============================================================
 
+// ── Paleta de cores determinística para os avatares ──────────
+const _PROF_CORES = [
+    ['#7c3aed','#5b21b6'], ['#4f46e5','#3730a3'], ['#0891b2','#0e7490'],
+    ['#059669','#047857'], ['#d97706','#b45309'], ['#dc2626','#b91c1c'],
+    ['#db2777','#be185d'], ['#9333ea','#7e22ce'], ['#2563eb','#1d4ed8'],
+    ['#16a34a','#15803d'],
+]
+function _corAvatar(nome) {
+    let h = 0;
+    for (const c of nome) h = (Math.imul(31, h) + c.charCodeAt(0)) | 0;
+    const [c1, c2] = _PROF_CORES[Math.abs(h) % _PROF_CORES.length];
+    return `linear-gradient(135deg,${c1},${c2})`;
+}
+function _iniciais(nome) {
+    const p = nome.trim().split(/\s+/).filter(Boolean);
+    return (p.length >= 2 ? p[0][0] + p[p.length-1][0] : p[0]?.slice(0,2) || '?').toUpperCase();
+}
+
+// Estado da seleção atual
+let _profId   = null;
+let _profNome = null;
+
+// Carrega professores e monta o grid de cards
 async function carregarListaNomesLogin() {
-    const select = document.getElementById('select-nome-login');
-    if (!select) return;
+    const grid = document.getElementById('prof-grid');
+    if (!grid) return;
 
     try {
-        // RLS policy 'professores_select_anon' já filtra automaticamente
-        // só professores com auth_user_id IS NOT NULL — anon não precisa
-        // referenciar essa coluna diretamente (não tem permissão nela).
+        // RLS policy 'professores_select_anon' filtra automaticamente
+        // só professores com auth_user_id IS NOT NULL.
         const { data, error } = await supabase
             .from('professores')
             .select('id, nome')
@@ -47,72 +69,119 @@ async function carregarListaNomesLogin() {
 
         if (error) throw error;
 
-        select.innerHTML = '<option value="">Escolha seu perfil...</option>';
+        // Guarda lista completa para o filtro de busca
+        window._todosProfs = data || [];
+        _renderizarCards(window._todosProfs);
 
-        (data || []).forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.id;
-            opt.textContent = p.nome;
-            select.appendChild(opt);
-        });
+        // Filtro em tempo real
+        const busca = document.getElementById('prof-search');
+        if (busca) {
+            busca.addEventListener('input', () => {
+                const q = busca.value.trim().toLowerCase();
+                const filtrados = q
+                    ? window._todosProfs.filter(p => p.nome.toLowerCase().includes(q))
+                    : window._todosProfs;
+                _renderizarCards(filtrados, q);
+            });
+        }
 
     } catch (err) {
         console.error('Erro ao carregar professores:', err);
-        if (select) select.innerHTML = '<option value="">Erro ao carregar</option>';
+        if (grid) grid.innerHTML = '<div class="prof-grid-vazio">Erro ao carregar professores.</div>';
     }
 }
 
-// Ativação dinâmica do botão Continuar ao selecionar nome
-window.onSelectNome = function(select) {
-    const btn = document.getElementById('btn-continuar');
-    if (btn) {
-        const temValor = !!select.value;
-        btn.disabled = !temValor;
-        btn.classList.toggle('ativo', temValor);
+function _renderizarCards(lista, busca = '') {
+    const grid = document.getElementById('prof-grid');
+    if (!grid) return;
+
+    if (!lista.length) {
+        grid.innerHTML = `<div class="prof-grid-vazio">${busca ? '😕 Nenhum professor encontrado.' : 'Nenhum professor disponível.'}</div>`;
+        return;
     }
+
+    grid.innerHTML = '';
+
+    lista.forEach((prof, i) => {
+        const card = document.createElement('div');
+        card.className = 'prof-card' + (prof.id === _profId ? ' selecionado' : '');
+        card.style.animationDelay = `${Math.min(i, 5) * 0.04}s`;
+
+        // Avatar
+        const wrap = document.createElement('div');
+        wrap.className = 'prof-avatar-wrap';
+
+        const avatar = document.createElement('div');
+        avatar.className = 'prof-avatar';
+        avatar.style.background = _corAvatar(prof.nome);
+        avatar.textContent = _iniciais(prof.nome);  // textContent — sem XSS
+
+        const check = document.createElement('div');
+        check.className = 'prof-check';
+        check.textContent = '✓';
+
+        wrap.appendChild(avatar);
+        wrap.appendChild(check);
+
+        // Nome
+        const nomeEl = document.createElement('div');
+        nomeEl.className = 'prof-card-nome';
+        nomeEl.textContent = prof.nome;  // textContent — sem XSS
+
+        card.appendChild(wrap);
+        card.appendChild(nomeEl);
+        card.addEventListener('click', () => _selecionarCard(card, prof.id, prof.nome));
+        grid.appendChild(card);
+    });
+}
+
+function _selecionarCard(card, id, nome) {
+    // Desmarca o anterior
+    document.querySelectorAll('.prof-card.selecionado').forEach(c => c.classList.remove('selecionado'));
+    // Marca o novo
+    card.classList.add('selecionado');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    _profId   = id;
+    _profNome = nome;
+
+    const btn = document.getElementById('btn-continuar');
+    if (btn) { btn.disabled = false; btn.classList.add('ativo'); }
 }
 
 // Navega para o passo 2 (PIN)
 window.irParaPin = function() {
-    const select = document.getElementById('select-nome-login');
-    if (!select?.value) return;
-
-    const nome = select.options[select.selectedIndex]?.text || '';
-
-    // Avatar com iniciais
-    const partes = nome.trim().split(' ').filter(Boolean);
-    const iniciais = partes.length >= 2
-        ? partes[0][0] + partes[partes.length-1][0]
-        : partes[0]?.slice(0,2) || '?';
+    if (!_profId || !_profNome) return;
 
     const elIniciais = document.getElementById('pin-avatar-iniciais');
-    const elNome = document.getElementById('pin-usuario-nome');
-    if (elIniciais) elIniciais.textContent = iniciais.toUpperCase();
-    if (elNome) elNome.textContent = nome;
+    const elNome     = document.getElementById('pin-usuario-nome');
+    if (elIniciais) elIniciais.textContent = _iniciais(_profNome);
+    if (elNome)     elNome.textContent     = _profNome;
 
     // Limpa PIN
     const inputReal = document.getElementById('pin-input-real');
     if (inputReal) inputReal.value = '';
     [0,1,2,3].forEach(i => {
-        const d = document.getElementById('pd'+i);
-        const ch = document.getElementById('pc'+i);
-        if (d) { d.classList.remove('ativo','preenchido'); if(i===0) d.classList.add('ativo'); }
+        const d  = document.getElementById('pd' + i);
+        const ch = document.getElementById('pc' + i);
+        if (d)  { d.classList.remove('ativo', 'preenchido'); if (i === 0) d.classList.add('ativo'); }
         if (ch) ch.textContent = '';
     });
 
-    // Troca step
     document.getElementById('login-step1').style.display = 'none';
     document.getElementById('login-step2').style.display = 'flex';
-
     setTimeout(() => document.getElementById('pin-input-real')?.focus(), 150);
 }
 
-// Volta ao passo 1
+// Volta ao passo 1 sem perder a seleção
 window.voltarStep1 = function() {
     document.getElementById('login-step2').style.display = 'none';
     document.getElementById('login-step1').style.display = 'flex';
-    const btn = document.getElementById('btn-login');
-    if (btn) { btn.disabled = true; btn.classList.remove('ativo'); btn.textContent = 'Entrar'; }
+    const btnLogin = document.getElementById('btn-login');
+    if (btnLogin) { btnLogin.disabled = true; btnLogin.classList.remove('ativo'); btnLogin.textContent = 'Entrar'; }
+    // Foca a busca se houver texto
+    const busca = document.getElementById('prof-search');
+    if (busca?.value) busca.focus();
 }
 
 // ============================================================
@@ -215,8 +284,7 @@ function erroPin(mensagem, isRateLimit = false) {
 }
 
 window.fazerLogin = async function() {
-    const select = document.getElementById('select-nome-login');
-    const profId = select?.value;
+    const profId = _profId;   // definido em _selecionarCard()
     const pin = (document.getElementById('pin-input-real')?.value || '').replace(/\D/g, '').slice(0, 4);
 
     if (!profId) {
