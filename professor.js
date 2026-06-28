@@ -366,6 +366,15 @@ function mostrarAppLogado() {
 
     // Mostra banner de notificações se ainda não foi permitido/negado
     setTimeout(() => verificarBannerNotificacoes(), 1200);
+
+    // Renova silenciosamente a subscription push se a permissão já foi concedida.
+    // Essencial para o PWA instalado: o contexto standalone é isolado do browser —
+    // a subscription feita no Safari/Chrome não vale aqui. Ao reabrir o app instalado,
+    // ativarNotificacoes detecta o endpoint desatualizado e recria automaticamente.
+    if (Notification.permission === 'granted' && professorLogado?.id) {
+        ativarNotificacoes('professor', professorLogado.id)
+            .catch(() => {}); // silencioso — não interrompe o fluxo
+    }
 }
 
 function verificarBannerNotificacoes() {
