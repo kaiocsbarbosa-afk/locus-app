@@ -1381,6 +1381,188 @@
         }
         .perfil-sair:active { background: rgba(239,68,68,.08) !important; transform: scale(.98); }
 
+
+        /* ══════════════════════════════════════════
+           SELEÇÃO DE PROFESSOR — CARDS COM BUSCA
+           ══════════════════════════════════════════ */
+
+        /* Caixa de busca */
+        .prof-search-wrap {
+            position: relative;
+            margin-bottom: 10px;
+        }
+        .prof-search-wrap input {
+            width: 100%;
+            padding: 11px 14px 11px 36px;
+            background: var(--login-surface2);
+            border: 1px solid var(--login-border);
+            border-radius: 12px;
+            color: var(--login-text);
+            font-size: .88rem;
+            font-family: 'Poppins', sans-serif;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color .2s, box-shadow .2s;
+            -webkit-user-select: text !important;
+            user-select: text !important;
+        }
+        .prof-search-wrap input::placeholder {
+            color: var(--login-text3);
+        }
+        .prof-search-wrap input:focus {
+            border-color: var(--purple);
+            box-shadow: 0 0 0 3px var(--purple-dim);
+        }
+        .prof-search-icon {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: .85rem;
+            pointer-events: none;
+            opacity: .45;
+        }
+
+        /* Grid de cards */
+        .prof-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            max-height: 210px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            margin-bottom: 14px;
+            padding-right: 2px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(124,58,237,.25) transparent;
+        }
+        .prof-grid::-webkit-scrollbar      { width: 3px; }
+        .prof-grid::-webkit-scrollbar-track  { background: transparent; }
+        .prof-grid::-webkit-scrollbar-thumb  { background: rgba(124,58,237,.3); border-radius: 4px; }
+
+        /* Card individual */
+        .prof-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 7px;
+            padding: 14px 8px 12px;
+            background: var(--login-surface2);
+            border: 1.5px solid var(--login-border);
+            border-radius: 16px;
+            cursor: pointer;
+            transition: border-color .15s, background .15s, box-shadow .15s, transform .1s;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            animation: cardIn .2s ease both;
+        }
+        @keyframes cardIn {
+            from { opacity: 0; transform: scale(.94) translateY(4px); }
+            to   { opacity: 1; transform: scale(1)   translateY(0); }
+        }
+        .prof-card:nth-child(2) { animation-delay: .03s; }
+        .prof-card:nth-child(3) { animation-delay: .05s; }
+        .prof-card:nth-child(4) { animation-delay: .07s; }
+        .prof-card:nth-child(5) { animation-delay: .09s; }
+        .prof-card:nth-child(n+6) { animation-delay: .11s; }
+
+        .prof-card:active { transform: scale(.93); }
+
+        .prof-card.selecionado {
+            border-color: var(--purple);
+            background: rgba(124,58,237,.14);
+            box-shadow: 0 0 0 3px rgba(124,58,237,.18), inset 0 0 0 1px rgba(124,58,237,.25);
+        }
+
+        /* Avatar */
+        .prof-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .88rem;
+            font-weight: 800;
+            color: #fff;
+            flex-shrink: 0;
+            letter-spacing: -.5px;
+            box-shadow: 0 3px 10px rgba(0,0,0,.25);
+            transition: transform .15s;
+        }
+        .prof-card.selecionado .prof-avatar {
+            transform: scale(1.08);
+            box-shadow: 0 4px 14px rgba(124,58,237,.35);
+        }
+
+        /* Checkmark de selecionado */
+        .prof-avatar-wrap {
+            position: relative;
+        }
+        .prof-check {
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 16px;
+            height: 16px;
+            background: #7c3aed;
+            border: 2px solid var(--login-bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .55rem;
+            color: #fff;
+            opacity: 0;
+            transform: scale(.4);
+            transition: opacity .15s, transform .15s;
+        }
+        .prof-card.selecionado .prof-check {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Nome */
+        .prof-card-nome {
+            font-size: .72rem;
+            font-weight: 600;
+            color: var(--login-text2);
+            text-align: center;
+            line-height: 1.3;
+            word-break: break-word;
+            transition: color .15s;
+        }
+        .prof-card.selecionado .prof-card-nome {
+            color: #e9d5ff;
+        }
+
+        /* Loading e estado vazio */
+        .prof-grid-loading {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            padding: 28px 0;
+            font-size: .8rem;
+            color: var(--login-text3);
+        }
+        .prof-grid-spinner {
+            width: 22px; height: 22px;
+            border: 2px solid rgba(124,58,237,.2);
+            border-top-color: #7c3aed;
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .prof-grid-vazio {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 24px 0;
+            font-size: .8rem;
+            color: var(--login-text3);
+        }
     </style>
 </head>
 <body>
@@ -1415,12 +1597,23 @@
             <!-- PASSO 1: selecionar perfil -->
             <div id="login-step1">
                 <div class="login-card-titulo">Bem-vindo</div>
-                <div class="login-card-sub">Selecione seu perfil para acessar</div>
+                <div class="login-card-sub">Toque no seu nome para continuar</div>
 
-                <div class="login-select-wrap">
-                    <select id="select-nome-login" onchange="onSelectNome(this)">
-                        <option value="">Escolha seu perfil...</option>
-                    </select>
+                <!-- Busca por texto -->
+                <div class="prof-search-wrap">
+                    <span class="prof-search-icon">🔍</span>
+                    <input type="text" id="prof-search"
+                           placeholder="Buscar pelo nome..."
+                           autocomplete="off" autocorrect="off"
+                           autocapitalize="off" spellcheck="false">
+                </div>
+
+                <!-- Grid de cards de professores -->
+                <div id="prof-grid" class="prof-grid">
+                    <div class="prof-grid-loading">
+                        <div class="prof-grid-spinner"></div>
+                        Carregando...
+                    </div>
                 </div>
 
                 <button class="btn-continuar" id="btn-continuar" onclick="irParaPin()" disabled>
