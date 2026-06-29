@@ -77,8 +77,11 @@ async function enviarSolicitacao() {
     const disciplina = document.getElementById('input-disciplina').value;
     const pin        = document.getElementById('pin-input-cad').value.replace(/\D/g,'').slice(0,4);
 
-    if (!nome) {
-        return Swal.fire({ icon:'warning', title:'Nome obrigatório', text:'Digite seu nome completo.', confirmButtonColor:'#7c3aed' });
+    if (!nome || nome.length < 3) {
+        return Swal.fire({ icon:'warning', title:'Nome obrigatório', text:'Digite seu nome completo (mínimo 3 caracteres).', confirmButtonColor:'#7c3aed' });
+    }
+    if (nome.length > 100) {
+        return Swal.fire({ icon:'warning', title:'Nome muito longo', text:'O nome deve ter no máximo 100 caracteres.', confirmButtonColor:'#7c3aed' });
     }
     if (!disciplina) {
         return Swal.fire({ icon:'warning', title:'Selecione a disciplina', text:'Escolha sua disciplina na lista.', confirmButtonColor:'#7c3aed' });
@@ -92,15 +95,35 @@ async function enviarSolicitacao() {
     btnEnviar.classList.add('carregando');
 
     try {
-        const { data: existente } = await supabase
-            .from('solicitacoes_acesso').select('id').ilike('nome', nome).maybeSingle();
+        // Verifica duplicata em solicitações pendentes
+        const { data: solExistente } = await supabase
+            .from('solicitacoes_acesso')
+            .select('id, status')
+            .ilike('nome', nome)
+            .maybeSingle();
 
-        if (existente) {
+        if (solExistente) {
+            btnEnviar.disabled = false;
+            btnEnviar.classList.remove('carregando');
+            const msg = solExistente.status === 'pendente'
+                ? 'Já existe uma solicitação pendente com este nome. Aguarde a aprovação da coordenação.'
+                : 'Já existe um perfil com este nome. Faça login ou fale com a coordenação.';
+            return Swal.fire({ icon: 'info', title: 'Solicitação já existe', text: msg, confirmButtonColor: '#7c3aed' });
+        }
+
+        // Verifica se professor já foi aprovado (está na tabela professores)
+        const { data: profExistente } = await supabase
+            .from('professores')
+            .select('id')
+            .ilike('nome', nome)
+            .maybeSingle();
+
+        if (profExistente) {
             btnEnviar.disabled = false;
             btnEnviar.classList.remove('carregando');
             return Swal.fire({
-                icon: 'info', title: 'Solicitação já existe',
-                text: 'Já existe um perfil com este nome. Faça login ou fale com a coordenação.',
+                icon: 'info', title: 'Perfil já ativo',
+                text: 'Este nome já tem acesso ao Locus. Faça login na tela do professor.',
                 confirmButtonColor: '#7c3aed'
             });
         }
