@@ -337,6 +337,13 @@ window.fazerLogin = async function() {
 }
 
 window.fazerLogout = async function() {
+    // Zera todo o estado local para não vazar para a próxima sessão no mesmo dispositivo
+    _profId     = null;
+    _profNome   = null;
+    _semOffset  = 0;
+    _semDiaIdx  = -1;
+    _semDados   = null;
+    professorLogado = null;
     await fazerLogoutAuth();
 }
 
@@ -651,12 +658,27 @@ window.buscarAulas = async function() {
             btn.classList.add('btn-aula');
             if (mapaOcupacao[i]) {
                 btn.classList.add('ocupada');
-                btn.innerHTML = `Aula ${i}<br><span style="font-size:.7rem;font-weight:400;">🔒 ${mapaOcupacao[i].turma}<br>(${mapaOcupacao[i].prof})</span>`;
                 btn.disabled = true;
+                // textContent em cada nó — dados do banco nunca vão para innerHTML
+                const lblAula = document.createElement('span');
+                lblAula.style.cssText = 'display:block;font-weight:600;';
+                lblAula.textContent = `Aula ${i}`;
+                const lblDetalhe = document.createElement('span');
+                lblDetalhe.style.cssText = 'font-size:.7rem;font-weight:400;display:block;margin-top:2px;';
+                lblDetalhe.textContent = `🔒 ${mapaOcupacao[i].turma} (${mapaOcupacao[i].prof})`;
+                btn.appendChild(lblAula);
+                btn.appendChild(lblDetalhe);
             } else {
                 btn.classList.add('disponivel');
-                btn.innerHTML = `Aula ${i}<br><span style="font-size:.7rem;font-weight:400;">✨ Livre</span>`;
-                btn.onclick = () => agendarAula(i);
+                const lblLivre = document.createElement('span');
+                lblLivre.style.cssText = 'display:block;font-weight:600;';
+                lblLivre.textContent = `Aula ${i}`;
+                const lblStatus = document.createElement('span');
+                lblStatus.style.cssText = 'font-size:.7rem;font-weight:400;display:block;margin-top:2px;';
+                lblStatus.textContent = '✨ Livre';
+                btn.appendChild(lblLivre);
+                btn.appendChild(lblStatus);
+                btn.addEventListener('click', () => agendarAula(i));
             }
             grid.appendChild(btn);
         }
@@ -670,9 +692,11 @@ window.buscarAulas = async function() {
 
 window.agendarAula = async function(numeroAula) {
     if (!professorLogado) return;
-    const salaId = document.getElementById('select-sala').value;
-    const turmaId = document.getElementById('select-turma').value;
+    const salaId       = document.getElementById('select-sala').value;
+    const turmaId      = document.getElementById('select-turma').value;
     const dataEscolhida = document.getElementById('data-agendamento').value;
+
+    if (!salaId || !dataEscolhida) return; // slots só aparecem após sala+data serem escolhidos
 
     if (!turmaId) {
         Swal.fire({ icon: 'warning', title: 'Atenção!', text: 'Selecione a TURMA antes de escolher o horário!', confirmButtonColor: '#7c3aed' })
@@ -680,42 +704,49 @@ window.agendarAula = async function(numeroAula) {
         return;
     }
 
-    const { data: choqueProf } = await supabase
-        .from('agendamentos')
-        .select('id, salas(nome)')
-        .eq('professor_id', professorLogado.id)
-        .eq('data', dataEscolhida)
-        .eq('aula_numero', numeroAula);
+    try {
+        // Verifica conflito: professor já tem este horário em outra sala
+        const { data: choqueProf, error: errChoque } = await supabase
+            .from('agendamentos')
+            .select('id, salas(nome)')
+            .eq('professor_id', professorLogado.id)
+            .eq('data', dataEscolhida)
+            .eq('aula_numero', numeroAula);
 
-    if (choqueProf && choqueProf.length > 0) {
-        Swal.fire({ icon: 'error', title: 'Conflito!', text: `Você já reservou "${choqueProf[0].salas.nome}" neste horário.`, confirmButtonColor: '#7c3aed' });
-        return;
-    }
+        if (errChoque) throw errChoque;
 
-    const dataBr = dataEscolhida.split('-').reverse().join('/');
-    const confirmacao = await Swal.fire({
-        title: 'Confirmar reserva?', text: `Aula ${numeroAula} no dia ${dataBr}?`, icon: 'question',
-        showCancelButton: true, confirmButtonColor: '#7c3aed', cancelButtonColor: '#9ca3af',
-        confirmButtonText: 'Sim, agendar!', cancelButtonText: 'Cancelar'
-    });
-    if (!confirmacao.isConfirmed) return;
+        if (choqueProf && choqueProf.length > 0) {
+            const nomeSalaChoque = choqueProf[0].salas?.nome || 'outra sala';
+            Swal.fire({ icon: 'error', title: 'Conflito!', text: `Você já reservou "${nomeSalaChoque}" neste horário.`, confirmButtonColor: '#7c3aed' });
+            return;
+        }
 
-    const { error } = await supabase.from('agendamentos').insert([{
-        professor_id: professorLogado.id, sala_id: salaId, turma_id: turmaId,
-        data: dataEscolhida, aula_numero: numeroAula
-    }]);
+        const dataBr = dataEscolhida.split('-').reverse().join('/');
+        const confirmacao = await Swal.fire({
+            title: 'Confirmar reserva?', text: `Aula ${numeroAula} no dia ${dataBr}?`, icon: 'question',
+            showCancelButton: true, confirmButtonColor: '#7c3aed', cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'Sim, agendar!', cancelButtonText: 'Cancelar'
+        });
+        if (!confirmacao.isConfirmed) return;
 
-    if (error) {
-        Swal.fire({ icon: 'error', title: 'Vaga indisponível', text: 'Pode ter sido preenchida agora mesmo.', confirmButtonColor: '#7c3aed' });
-    } else {
-        const nomeSala = document.getElementById('select-sala').selectedOptions[0]?.textContent || 'uma sala';
-        Swal.fire({ icon: 'success', title: 'Agendado!', text: 'Sua reserva foi confirmada. 🎉', confirmButtonColor: '#059669', timer: 2000, showConfirmButton: false });
-        buscarAulas();
-        carregarHistorico();
-        // Notifica coordenação
-        enviarNotificacao('📅 Novo agendamento', `${professorLogado.nome} reservou ${nomeSala} — Aula ${numeroAula} em ${dataBr}.`, 'coordenacao');
-        // Notifica o próprio professor como confirmação no dispositivo
-        enviarNotificacao('✅ Reserva confirmada!', `${nomeSala} — Aula ${numeroAula} em ${dataBr} está reservada para você.`, 'professor', professorLogado.id);
+        const { error } = await supabase.from('agendamentos').insert([{
+            professor_id: professorLogado.id, sala_id: salaId, turma_id: turmaId,
+            data: dataEscolhida, aula_numero: numeroAula
+        }]);
+
+        if (error) {
+            Swal.fire({ icon: 'error', title: 'Vaga indisponível', text: 'Pode ter sido preenchida agora mesmo.', confirmButtonColor: '#7c3aed' });
+        } else {
+            const nomeSala = document.getElementById('select-sala').selectedOptions[0]?.textContent || 'uma sala';
+            Swal.fire({ icon: 'success', title: 'Agendado!', text: 'Sua reserva foi confirmada. 🎉', confirmButtonColor: '#059669', timer: 2000, showConfirmButton: false });
+            buscarAulas();
+            carregarHistorico();
+            enviarNotificacao('📅 Novo agendamento', `${professorLogado.nome} reservou ${nomeSala} — Aula ${numeroAula} em ${dataBr}.`, 'coordenacao');
+            enviarNotificacao('✅ Reserva confirmada!', `${nomeSala} — Aula ${numeroAula} em ${dataBr} está reservada para você.`, 'professor', professorLogado.id);
+        }
+    } catch (err) {
+        console.error('Erro ao agendar aula:', err);
+        Swal.fire({ icon: 'error', title: 'Erro de conexão', text: 'Não foi possível completar o agendamento. Tente novamente.', confirmButtonColor: '#7c3aed' });
     }
 }
 
@@ -744,36 +775,59 @@ window.carregarHistorico = async function() {
 
     listaHtml.innerHTML = '';
     data.forEach(item => {
-        const dataBr = item.data.split('-').reverse().join('/');
+        const dataBr    = item.data.split('-').reverse().join('/');
+        const nomeSala  = item.salas?.nome  || 'Sala removida';
+        const nomeTurma = item.turmas?.nome || 'Turma removida';
+
         const div = document.createElement('div');
         div.classList.add('historico-item');
-        div.innerHTML = `
-            <div class="historico-info">
-                <strong>${item.salas.nome} — Aula ${item.aula_numero}ª</strong>
-                <span>${dataBr} · Turma ${item.turmas.nome}</span>
-            </div>
-            <button class="btn-cancelar" onclick="cancelarAgendamento('${item.id}', '${item.salas.nome}', ${item.aula_numero}, '${dataBr}')">Excluir</button>
-        `;
+
+        const info = document.createElement('div');
+        info.className = 'historico-info';
+
+        const titulo = document.createElement('strong');
+        titulo.textContent = `${nomeSala} — Aula ${item.aula_numero}ª`;  // textContent: sem XSS
+
+        const meta = document.createElement('span');
+        meta.textContent = `${dataBr} · Turma ${nomeTurma}`;
+
+        info.appendChild(titulo);
+        info.appendChild(meta);
+
+        const btn = document.createElement('button');
+        btn.className = 'btn-cancelar';
+        btn.textContent = 'Cancelar';
+        // Closure: dados nunca vão para atributo HTML
+        btn.addEventListener('click', () =>
+            cancelarAgendamento(item.id, nomeSala, item.aula_numero, dataBr)
+        );
+
+        div.appendChild(info);
+        div.appendChild(btn);
         listaHtml.appendChild(div);
     });
 }
 
-window.cancelarAgendamento = async function(id, nomeSala, numeroAula, dataBr) {
+// Chamado via addEventListener em carregarHistorico — não precisa ser window.*
+async function cancelarAgendamento(id, nomeSala, numeroAula, dataBr) {
     const confirmacao = await Swal.fire({
-        title: 'Cancelar reserva?', text: "Tem certeza que deseja cancelar esta reserva?", icon: 'warning',
+        title: 'Cancelar reserva?', text: 'Tem certeza que deseja cancelar esta reserva?', icon: 'warning',
         showCancelButton: true, confirmButtonColor: '#dc2626', cancelButtonColor: '#9ca3af',
         confirmButtonText: 'Sim, cancelar!', cancelButtonText: 'Manter'
     });
     if (!confirmacao.isConfirmed) return;
 
-    const { error } = await supabase.from('agendamentos').delete().eq('id', id);
-    if (error) {
-        Swal.fire({ icon: 'error', title: 'Erro!', text: 'Não foi possível cancelar.', confirmButtonColor: '#7c3aed' });
-    } else {
+    try {
+        const { error } = await supabase.from('agendamentos').delete().eq('id', id);
+        if (error) throw error;
+
         Swal.fire({ icon: 'success', title: 'Cancelada!', confirmButtonColor: '#059669', timer: 1500, showConfirmButton: false });
         enviarNotificacao('🗑️ Reserva cancelada', `${professorLogado.nome} cancelou ${nomeSala} — Aula ${numeroAula} em ${dataBr}.`, 'coordenacao');
         buscarAulas();
         carregarHistorico();
+    } catch (err) {
+        console.error('Erro ao cancelar agendamento:', err);
+        Swal.fire({ icon: 'error', title: 'Erro!', text: 'Não foi possível cancelar. Tente novamente.', confirmButtonColor: '#7c3aed' });
     }
 }
 
@@ -919,19 +973,18 @@ function _renderSemana() {
         const inf  = mapa[`${diaAtivo.data}|${aula}`];
         const tipo = inf?.minha ? 'minha' : inf ? 'ocupada' : 'livre';
 
-        const detalhe = tipo === 'minha'
-            ? `<div class="slot-detail">${inf.turma}</div>`
-            : tipo === 'ocupada'
-            ? `<div class="slot-detail">${inf.turma}</div><div class="slot-sub">${inf.prof}</div>`
-            : '';
+        // Placeholder vazio — preenchido via textContent depois do innerHTML
+        const temDetalhe = tipo === 'minha' || tipo === 'ocupada';
+        const temSub     = tipo === 'ocupada';
 
         return `
-          <div class="slot-card ${tipo}">
+          <div class="slot-card ${tipo}" data-aula="${aula}">
             <div class="slot-num">${aula}<small>aula</small></div>
             <div class="slot-divisor"></div>
             <div class="slot-content">
               <div class="slot-badge">${ICONS[tipo]} ${LABELS[tipo]}</div>
-              ${detalhe}
+              ${temDetalhe ? '<div class="slot-detail"></div>' : ''}
+              ${temSub     ? '<div class="slot-sub"></div>'    : ''}
             </div>
           </div>`;
     }).join('');
@@ -951,6 +1004,19 @@ function _renderSemana() {
         <div class="semana-slots" id="semana-slots">${cards}</div>
         ${legenda}
       </div>`;
+
+    // Preenche dados do banco via textContent (sem XSS) nos placeholders
+    Array.from({ length: TOTAL_AULAS }, (_, i) => {
+        const aula = i + 1;
+        const inf  = mapa[`${diaAtivo.data}|${aula}`];
+        if (!inf) return;
+        const card   = container.querySelector(`.slot-card[data-aula="${aula}"]`);
+        if (!card) return;
+        const detail = card.querySelector('.slot-detail');
+        const sub    = card.querySelector('.slot-sub');
+        if (detail) detail.textContent = inf.turma;
+        if (sub)    sub.textContent    = inf.prof;
+    });
 
     /* ── Swipe para trocar de dia ── */
     const slotsEl = document.getElementById('semana-slots');
