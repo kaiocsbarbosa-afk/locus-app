@@ -200,9 +200,11 @@ self.addEventListener('pushsubscriptionchange', e => {
         );
         console.log('[SW] Subscription renovada — clientes notificados.');
       } else {
-        // App fechado: armazena no cache para processar quando reabrir
-        const cache = await caches.open(CACHE_NAME);
-        await cache.put(
+        // App fechado: armazena em cache dedicado e estável para processar
+        // quando o app reabrir. Usa nome fixo separado do cache de assets
+        // para não ser deletado junto com caches antigos na ativação do SW.
+        const pendingCache = await caches.open('locus-push-pending');
+        await pendingCache.put(
           '/__push_subscription_pending',
           new Response(JSON.stringify(novaSub.toJSON()))
         );
