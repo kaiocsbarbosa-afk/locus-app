@@ -6,6 +6,10 @@ import { supabase, dispararAlerta } from './utils.js'
 
 const VAPID_PUBLIC_KEY = 'BHweJ-6fq5qkclX2bcySbRjfkqAItvHfxrano1xatzoZJW7eyR621fcQ8xLstojUOdjJafsX5SSzVzr0hs7VlU0';
 
+// Cache dedicado para subscriptions pendentes — nome estável, nunca apagado
+// junto com o cache de assets (que muda de versão a cada deploy).
+const PUSH_PENDING_CACHE = 'locus-push-pending';
+
 // ------------------------------------------------------------
 // Converte a chave VAPID (base64url) para Uint8Array
 // ------------------------------------------------------------
@@ -92,12 +96,16 @@ if ('serviceWorker' in navigator) {
         if (!tipo || !sub) return;
 
         const ok = await salvarSubscriptionNoBanco(sub, tipo, professorId, deviceId);
+        if (ok) {
+            // Atualiza cache local para evitar re-save desnecessário na próxima abertura
+            localStorage.setItem(`locus_push_endpoint_${tipo}`, sub.endpoint);
+        }
         console.log('[Push] Subscription renovada automaticamente:', ok ? 'OK' : 'ERRO');
     });
 
     // Verifica se há subscription pendente salva pelo SW enquanto o app estava fechado
     navigator.serviceWorker.ready.then(async reg => {
-        const cache = await caches.open('locus-cache-v8');
+        const cache = await caches.open(PUSH_PENDING_CACHE);
         const resp  = await cache.match('/__push_subscription_pending').catch(() => null);
         if (!resp) return;
 
@@ -107,9 +115,12 @@ if ('serviceWorker' in navigator) {
         const professorId = localStorage.getItem('locus_push_professor_id') || null;
 
         if (sub && tipo) {
-            await salvarSubscriptionNoBanco(sub, tipo, professorId, deviceId);
-            await cache.delete('/__push_subscription_pending');
-            console.log('[Push] Subscription pendente processada ao reabrir o app.');
+            const ok = await salvarSubscriptionNoBanco(sub, tipo, professorId, deviceId);
+            if (ok) {
+                localStorage.setItem(`locus_push_endpoint_${tipo}`, sub.endpoint);
+                await cache.delete('/__push_subscription_pending');
+                console.log('[Push] Subscription pendente processada ao reabrir o app.');
+            }
         }
     }).catch(() => {});
 }
@@ -132,42 +143,49 @@ export async function ativarNotificacoes(tipo, professorId = null) {
         }
 
         const registration = await navigator.serviceWorker.ready;
+        const deviceId     = obterDeviceId();
 
-        // Sempre cria/renova a subscription para garantir que o endpoint
-        // está atualizado — especialmente importante no contexto do PWA
-        // instalado, que tem contexto separado do browser.
+        // Obtém a subscription existente ou cria uma nova se não houver.
+        // NUNCA chama unsubscribe() em uma subscription existente — isso
+        // destrói o canal de push e pode deixar o dispositivo sem notificações
+        // caso o subscribe() seguinte falhe (race condition, permissão revogada
+        // momentaneamente, contexto do PWA etc.).
         let subscription = await registration.pushManager.getSubscription();
 
-        // Verifica se o endpoint ainda é válido comparando com o banco
-        const deviceId     = obterDeviceId();
-        const { data: row } = await supabase
-            .from('inscricoes_push')
-            .select('endpoint')
-            .eq('device_id', deviceId)
-            .eq('tipo', tipo)
-            .maybeSingle();
-
-        const endpointDesatualizado = !row || row.endpoint !== subscription?.endpoint;
-
-        if (!subscription || endpointDesatualizado) {
-            // Cria subscription nova (ou recria se o endpoint mudou)
-            if (subscription) await subscription.unsubscribe();
+        if (!subscription) {
             subscription = await registration.pushManager.subscribe({
                 userVisibleOnly:      true,
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
             });
         }
 
-        // Salva contexto para renovação automática futura
-        salvarContextoPush(tipo, professorId);
+        // Usa localStorage como cache do endpoint para evitar chamadas
+        // desnecessárias ao banco. Não depende de SELECT no banco porque
+        // não há policy SELECT para inscricoes_push — o cache local é
+        // suficiente: o device_id + endpoint identifica unicamente este aparelho.
+        const cacheKey      = `locus_push_endpoint_${tipo}`;
+        const endpointSalvo = localStorage.getItem(cacheKey);
 
+        if (endpointSalvo === subscription.endpoint) {
+            // Endpoint não mudou desde a última ativação — não precisa tocar no banco.
+            // Atualiza contexto (professorId pode ter mudado) e retorna.
+            salvarContextoPush(tipo, professorId);
+            console.log('[Push] Subscription atual, sem alterações necessárias.');
+            return true;
+        }
+
+        // Endpoint novo ou mudou (reinstalação, limpeza de cache) — salva no banco.
         const ok = await salvarSubscriptionNoBanco(
             subscription.toJSON(), tipo, professorId, deviceId
         );
 
         if (!ok) return false;
 
-        console.log('[Push] Notificações ativadas:', tipo);
+        // Persiste o endpoint no cache local após confirmação do banco
+        localStorage.setItem(cacheKey, subscription.endpoint);
+        salvarContextoPush(tipo, professorId);
+
+        console.log('[Push] Subscription registrada:', tipo);
         return true;
 
     } catch (err) {
