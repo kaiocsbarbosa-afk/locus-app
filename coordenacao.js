@@ -150,10 +150,11 @@ function mostrarDashboard() {
     const inputData = document.getElementById('filtroData')
     if (inputData) inputData.value = hoje.toISOString().split('T')[0]
 
-    // Carrega dados dos filtros (requerem sessão ativa para professores completos)
+    // Carrega dados dos filtros (requerem sessão ativa)
     carregarSalasNoFiltro()
     carregarProfessoresNoFiltro()
-    carregarDisciplinasNoPreCadastro()
+    // Nota: carregarDisciplinasNoPreCadastro() removido — elemento #coord-disciplina-professor
+    // não existe mais no HTML
 
     // Listeners do relatório — registrados aqui para não disparar antes do login
     const fData     = document.getElementById('filtroData')
@@ -247,22 +248,6 @@ async function carregarProfessoresNoFiltro() {
             selectProfessor.appendChild(option)
         })
     } catch (erro) { console.error("Erro ao carregar professores:", erro) }
-}
-
-async function carregarDisciplinasNoPreCadastro() {
-    try {
-        const { data: disciplinas, error } = await supabase.from('disciplinas').select('id, nome').order('nome', { ascending: true })
-        if (error) throw error
-        const selectDisciplina = document.getElementById('coord-disciplina-professor')
-        if (!selectDisciplina) return
-        selectDisciplina.innerHTML = '<option value="">Selecione a disciplina...</option>'
-        disciplinas.forEach(disc => {
-            const option = document.createElement('option')
-            option.value = disc.nome
-            option.textContent = disc.nome
-            selectDisciplina.appendChild(option)
-        })
-    } catch (erro) { console.error("Erro ao carregar disciplinas:", erro) }
 }
 
 // ============================================================
@@ -454,12 +439,8 @@ async function rejeitarSolicitacao(id, nome) {
         document.getElementById(`sol-${id}`)?.remove()
         carregarSolicitacoes()
 
-        enviarNotificacao(
-            '❌ Solicitação não aprovada',
-            `${nome}, sua solicitação de acesso ao Locus não foi aprovada. Entre em contato com a coordenação.`,
-            'coordenacao'
-        )
-
+        // Nota: não enviamos push ao professor rejeitado porque ele ainda não tem
+        // subscription push (só registra após ser aprovado e fazer o primeiro login)
         dispararAlerta({ icon: 'info', title: 'Solicitação rejeitada', text: `${nome} não terá acesso ao sistema.`, confirmButtonColor: 'var(--cor-primaria)', timer: 2200, showConfirmButton: false })
     } catch (err) {
         console.error('Erro ao rejeitar:', err)
@@ -492,11 +473,11 @@ window.carregarRelatorioGeral = async function() {
     dadosAtuaisParaExportar = []
 
     if (!dataFiltro && !salaFiltro && !professorFiltro) {
-        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Selecione uma data, sala ou professor para ver os agendamentos.</td></tr>`
+        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--txt3)">Selecione uma data, sala ou professor para ver os agendamentos.</td></tr>`
         return
     }
 
-    tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Carregando...</td></tr>`
+    tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--txt3)">Carregando...</td></tr>`
 
     let query = supabase
         .from('agendamentos')
@@ -519,7 +500,7 @@ window.carregarRelatorioGeral = async function() {
     dadosAtuaisParaExportar = agendamentos
 
     if (!agendamentos || agendamentos.length === 0) {
-        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Nenhum agendamento encontrado para os filtros selecionados.</td></tr>`
+        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--txt3)">Nenhum agendamento encontrado para os filtros selecionados.</td></tr>`
         return
     }
 
@@ -590,18 +571,15 @@ window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula, 
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'var(--cor-perigo)',
-        cancelButtonColor: 'var(--texto-secundario)',
+        cancelButtonColor: 'var(--txt3)',
         confirmButtonText: 'Sim, cancelar!',
         cancelButtonText: 'Voltar'
     })
     if (!confirmacao.isConfirmed) return
 
-    // RLS: agendamentos_delete_coord
-    const { error } = await supabase.from('agendamentos').delete().eq('id', idAgendamento)
-
-    if (error) {
-        dispararAlerta({ icon: 'error', title: 'Erro!', text: 'Não foi possível excluir o agendamento.', confirmButtonColor: 'var(--cor-primaria)' })
-    } else {
+    try {
+        const { error } = await supabase.from('agendamentos').delete().eq('id', idAgendamento)
+        if (error) throw error
         dispararAlerta({ icon: 'success', title: 'Cancelado!', text: 'Reserva removida.', timer: 1500, showConfirmButton: false })
         carregarRelatorioGeral()
         if (professorId && professorId !== 'undefined' && professorId !== 'null') {
@@ -612,6 +590,9 @@ window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula, 
                 professorId
             )
         }
+    } catch (err) {
+        console.error('Erro ao revogar agendamento:', err)
+        dispararAlerta({ icon: 'error', title: 'Erro!', text: 'Não foi possível cancelar o agendamento.', confirmButtonColor: 'var(--cor-perigo)' })
     }
 }
 
@@ -669,8 +650,16 @@ window.alternarGerenciamento = function(event) {
 async function carregarListaSalas() {
     const container = document.getElementById('lista-salas')
     container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>'
-    const { data: salas, error } = await supabase.from('salas').select('id, nome').order('nome', { ascending: true })
-    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar salas.</div>'; return }
+    let salas
+    try {
+        const { data, error } = await supabase.from('salas').select('id, nome').order('nome', { ascending: true })
+        if (error) throw error
+        salas = data
+    } catch (err) {
+        console.error('Erro ao carregar salas:', err)
+        container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar salas. Tente recarregar.</div>'
+        return
+    }
     if (!salas || salas.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhuma sala cadastrada ainda.</div>'; return }
 
     container.innerHTML = ''
@@ -703,8 +692,16 @@ async function carregarListaSalas() {
 async function carregarListaTurmas() {
     const container = document.getElementById('lista-turmas')
     container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>'
-    const { data: turmas, error } = await supabase.from('turmas').select('id, nome').order('nome', { ascending: true })
-    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar turmas.</div>'; return }
+    let turmas
+    try {
+        const { data, error } = await supabase.from('turmas').select('id, nome').order('nome', { ascending: true })
+        if (error) throw error
+        turmas = data
+    } catch (err) {
+        console.error('Erro ao carregar turmas:', err)
+        container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar turmas. Tente recarregar.</div>'
+        return
+    }
     if (!turmas || turmas.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhuma turma cadastrada ainda.</div>'; return }
 
     container.innerHTML = ''
@@ -739,12 +736,17 @@ window.adicionarSala = async function() {
     const input = document.getElementById('nova-sala-nome')
     const nome  = input.value.trim()
     if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Digite o nome da sala.', confirmButtonColor: 'var(--cor-primaria)' }); return }
-    // RLS: salas_insert_coord
-    const { error } = await supabase.from('salas').insert([{ nome }])
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a sala.', confirmButtonColor: 'var(--cor-perigo)' }); return }
-    input.value = ''
-    carregarListaSalas()
-    carregarSalasNoFiltro()
+    if (nome.length > 80) { dispararAlerta({ icon: 'warning', title: 'Nome muito longo', text: 'O nome da sala deve ter no máximo 80 caracteres.', confirmButtonColor: 'var(--cor-primaria)' }); return }
+    try {
+        const { error } = await supabase.from('salas').insert([{ nome }])
+        if (error) throw error
+        input.value = ''
+        carregarListaSalas()
+        carregarSalasNoFiltro()
+    } catch (err) {
+        console.error('Erro ao adicionar sala:', err)
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a sala.', confirmButtonColor: 'var(--cor-perigo)' })
+    }
 }
 
 window.adicionarTurma = async function() {
@@ -752,44 +754,67 @@ window.adicionarTurma = async function() {
     const input = document.getElementById('nova-turma-nome')
     const nome  = input.value.trim()
     if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Digite o nome da turma.', confirmButtonColor: 'var(--cor-primaria)' }); return }
-    // RLS: turmas_insert_coord
-    const { error } = await supabase.from('turmas').insert([{ nome }])
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a turma.', confirmButtonColor: 'var(--cor-perigo)' }); return }
-    input.value = ''
-    carregarListaTurmas()
+    if (nome.length > 80) { dispararAlerta({ icon: 'warning', title: 'Nome muito longo', text: 'O nome da turma deve ter no máximo 80 caracteres.', confirmButtonColor: 'var(--cor-primaria)' }); return }
+    try {
+        const { error } = await supabase.from('turmas').insert([{ nome }])
+        if (error) throw error
+        input.value = ''
+        carregarListaTurmas()
+    } catch (err) {
+        console.error('Erro ao adicionar turma:', err)
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a turma.', confirmButtonColor: 'var(--cor-perigo)' })
+    }
 }
 
 window.excluirSala = async function(id, nome) {
     if (!await exigirAuth()) return
-    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('sala_id', id).limit(1)
-    if (vinculos && vinculos.length > 0) {
-        dispararAlerta({ icon: 'warning', title: 'Sala em uso', text: `A sala "${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' })
+    try {
+        const { data: vinculos, error: errVinc } = await supabase.from('agendamentos').select('id').eq('sala_id', id).limit(1)
+        if (errVinc) throw errVinc
+        if (vinculos && vinculos.length > 0) {
+            dispararAlerta({ icon: 'warning', title: 'Sala em uso', text: `A sala "${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' })
+            return
+        }
+    } catch (err) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível verificar os agendamentos da sala.', confirmButtonColor: 'var(--cor-perigo)' })
         return
     }
-    const confirmacao = await Swal.fire({ title: 'Excluir sala?', text: `Tem certeza que deseja excluir "${nome}"?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' })
+    const confirmacao = await Swal.fire({ title: 'Excluir sala?', text: `Tem certeza que deseja excluir "${nome}"?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--txt3)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' })
     if (!confirmacao.isConfirmed) return
-    // RLS: salas_delete_coord
-    const { error } = await supabase.from('salas').delete().eq('id', id)
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a sala.', confirmButtonColor: 'var(--cor-perigo)' }); return }
-    dispararAlerta({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false })
-    carregarListaSalas()
-    carregarSalasNoFiltro()
+    try {
+        const { error } = await supabase.from('salas').delete().eq('id', id)
+        if (error) throw error
+        dispararAlerta({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false })
+        carregarListaSalas()
+        carregarSalasNoFiltro()
+    } catch (err) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a sala.', confirmButtonColor: 'var(--cor-perigo)' })
+    }
 }
 
 window.excluirTurma = async function(id, nome) {
     if (!await exigirAuth()) return
-    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('turma_id', id).limit(1)
-    if (vinculos && vinculos.length > 0) {
-        dispararAlerta({ icon: 'warning', title: 'Turma em uso', text: `A turma "${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' })
+    try {
+        const { data: vinculos, error: errVinc } = await supabase.from('agendamentos').select('id').eq('turma_id', id).limit(1)
+        if (errVinc) throw errVinc
+        if (vinculos && vinculos.length > 0) {
+            dispararAlerta({ icon: 'warning', title: 'Turma em uso', text: `A turma "${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' })
+            return
+        }
+    } catch (err) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível verificar os agendamentos da turma.', confirmButtonColor: 'var(--cor-perigo)' })
         return
     }
-    const confirmacao = await Swal.fire({ title: 'Excluir turma?', text: `Tem certeza que deseja excluir "${nome}"?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' })
+    const confirmacao = await Swal.fire({ title: 'Excluir turma?', text: `Tem certeza que deseja excluir "${nome}"?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--txt3)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' })
     if (!confirmacao.isConfirmed) return
-    // RLS: turmas_delete_coord
-    const { error } = await supabase.from('turmas').delete().eq('id', id)
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a turma.', confirmButtonColor: 'var(--cor-perigo)' }); return }
-    dispararAlerta({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false })
-    carregarListaTurmas()
+    try {
+        const { error } = await supabase.from('turmas').delete().eq('id', id)
+        if (error) throw error
+        dispararAlerta({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false })
+        carregarListaTurmas()
+    } catch (err) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a turma.', confirmButtonColor: 'var(--cor-perigo)' })
+    }
 }
 
 // ============================================================
@@ -815,8 +840,14 @@ window.alternarGerenciamentoProfessores = function(event) {
 
 async function obterDisciplinasCache() {
     if (disciplinasCache.length > 0) return disciplinasCache
-    const { data, error } = await supabase.from('disciplinas').select('id, nome').order('nome', { ascending: true })
-    if (!error && data) disciplinasCache = data
+    try {
+        const { data, error } = await supabase.from('disciplinas').select('id, nome').order('nome', { ascending: true })
+        if (error) throw error
+        if (data) disciplinasCache = data
+    } catch (err) {
+        console.error('Erro ao carregar disciplinas:', err)
+        // Retorna cache vazio — quem chama trata a lista vazia normalmente
+    }
     return disciplinasCache
 }
 
@@ -824,12 +855,21 @@ async function carregarListaProfessores() {
     const container = document.getElementById('lista-professores')
     container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>'
 
-    const [{ data: professores, error }, disciplinas] = await Promise.all([
-        supabase.from('professores').select('id, nome, disciplina, auth_user_id').order('nome', { ascending: true }),
-        obterDisciplinasCache()
-    ])
+    let professores, disciplinas
+    try {
+        const [profResult, disc] = await Promise.all([
+            supabase.from('professores').select('id, nome, disciplina, auth_user_id').order('nome', { ascending: true }),
+            obterDisciplinasCache()
+        ])
+        if (profResult.error) throw profResult.error
+        professores = profResult.data
+        disciplinas = disc
+    } catch (err) {
+        console.error('Erro ao carregar professores:', err)
+        container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar professores. Tente recarregar.</div>'
+        return
+    }
 
-    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar professores.</div>'; return }
     if (!professores || professores.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhum professor cadastrado.</div>'; return }
 
     container.innerHTML = ''
@@ -948,12 +988,16 @@ window.salvarEdicaoProfessor = async function(id) {
     const nome       = document.getElementById(`edit-nome-${id}`).value.trim()
     const disciplina = document.getElementById(`edit-disciplina-${id}`).value
     if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'O nome não pode ficar vazio.', confirmButtonColor: 'var(--cor-primaria)' }); return }
-    // RLS: professores_update_coord
-    const { error } = await supabase.from('professores').update({ nome, disciplina }).eq('id', id)
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível salvar as alterações.', confirmButtonColor: 'var(--cor-perigo)' }); return }
-    dispararAlerta({ icon: 'success', title: 'Salvo!', timer: 1200, showConfirmButton: false })
-    carregarListaProfessores()
-    carregarProfessoresNoFiltro()
+    try {
+        const { error } = await supabase.from('professores').update({ nome, disciplina }).eq('id', id)
+        if (error) throw error
+        dispararAlerta({ icon: 'success', title: 'Salvo!', timer: 1200, showConfirmButton: false })
+        carregarListaProfessores()
+        carregarProfessoresNoFiltro()
+    } catch (err) {
+        console.error('Erro ao salvar professor:', err)
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível salvar as alterações.', confirmButtonColor: 'var(--cor-perigo)' })
+    }
 }
 
 window.resetarAcessoProfessor = async function(id, nome) {
@@ -965,7 +1009,7 @@ window.resetarAcessoProfessor = async function(id, nome) {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'var(--cor-aviso)',
-        cancelButtonColor: 'var(--texto-secundario)',
+        cancelButtonColor: 'var(--txt3)',
         confirmButtonText: 'Sim, resetar',
         cancelButtonText: 'Cancelar'
     })
@@ -1004,9 +1048,15 @@ window.resetarAcessoProfessor = async function(id, nome) {
 window.excluirProfessor = async function(id, nome) {
     if (!await exigirAuth()) return
 
-    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('professor_id', id).limit(1)
-    if (vinculos && vinculos.length > 0) {
-        dispararAlerta({ icon: 'warning', title: 'Professor com reservas ativas', text: `"${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' })
+    try {
+        const { data: vinculos, error: errVinc } = await supabase.from('agendamentos').select('id').eq('professor_id', id).limit(1)
+        if (errVinc) throw errVinc
+        if (vinculos && vinculos.length > 0) {
+            dispararAlerta({ icon: 'warning', title: 'Professor com reservas ativas', text: `"${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' })
+            return
+        }
+    } catch (err) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível verificar os agendamentos do professor.', confirmButtonColor: 'var(--cor-perigo)' })
         return
     }
 
@@ -1016,32 +1066,37 @@ window.excluirProfessor = async function(id, nome) {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'var(--cor-perigo)',
-        cancelButtonColor: 'var(--texto-secundario)',
+        cancelButtonColor: 'var(--txt3)',
         confirmButtonText: 'Sim, excluir!',
         cancelButtonText: 'Cancelar'
     })
     if (!confirmacao.isConfirmed) return
 
-    // Revoga acesso Auth do professor antes de deletar do banco
-    const { data: resetData, error: resetError } = await supabase.functions.invoke('resetar-acesso-professor', {
-        body: { professor_id: id }
-    })
+    try {
+        // Revoga acesso Auth do professor antes de deletar do banco
+        const { data: resetData, error: resetError } = await supabase.functions.invoke('resetar-acesso-professor', {
+            body: { professor_id: id }
+        })
 
-    if (resetError || !resetData?.sucesso) {
-        // Se a Edge Function falhou, verifica se o professor ainda tem acesso ativo
-        const { data: profAtual } = await supabase.from('professores').select('auth_user_id').eq('id', id).single()
-        if (profAtual?.auth_user_id) {
-            dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível revogar o acesso do professor. Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' })
-            return
+        if (resetError || !resetData?.sucesso) {
+            // Se a Edge Function falhou, verifica se o professor ainda tem acesso ativo
+            const { data: profAtual } = await supabase.from('professores').select('auth_user_id').eq('id', id).single()
+            if (profAtual?.auth_user_id) {
+                dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível revogar o acesso do professor. Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' })
+                return
+            }
         }
-    }
 
-    // RLS: professores_delete_coord
-    const { error } = await supabase.from('professores').delete().eq('id', id)
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir o professor.', confirmButtonColor: 'var(--cor-perigo)' }); return }
-    dispararAlerta({ icon: 'success', title: 'Excluído!', timer: 1200, showConfirmButton: false })
-    carregarListaProfessores()
-    carregarProfessoresNoFiltro()
+        const { error } = await supabase.from('professores').delete().eq('id', id)
+        if (error) throw error
+
+        dispararAlerta({ icon: 'success', title: 'Excluído!', timer: 1200, showConfirmButton: false })
+        carregarListaProfessores()
+        carregarProfessoresNoFiltro()
+    } catch (err) {
+        console.error('Erro ao excluir professor:', err)
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir o professor.', confirmButtonColor: 'var(--cor-perigo)' })
+    }
 }
 
 // ============================================================
