@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Locus</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+    <link rel="icon" href="./icon-96.png" type="image/png">
+    <meta name="theme-color" content="#07030f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Locus">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+    *, *::before, *::after {
+        box-sizing: border-box; margin: 0; padding: 0;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+
+    :root {
+        /* ── Tema claro (padrão) ── */
+        --purple:        #dc3c3c;
+        --purple-bright: #dc3c3c;
+        --purple-dim:    rgba(220,60,60,0.12);
+        --purple-border: rgba(220,60,60,0.28);
+        --green:         #10b981;
+        --green-dim:     rgba(16,185,129,0.12);
+        --green-border:  rgba(16,185,129,0.3);
+        --orange:        #f59e0b;
+        --orange-dim:    rgba(245,158,11,0.1);
+        --orange-border: rgba(245,158,11,0.25);
+        --bg:            #f5f3ff;
+        --surface:       rgba(255,255,255,0.9);
+        --text:          #1e1b4b;
+        --text2:         rgba(30,27,75,0.6);
+        --text3:         rgba(30,27,75,0.4);
+        --card-shadow:        0 2px 20px rgba(30,27,75,.1);
+        --card-shadow-active: 0 1px 8px rgba(30,27,75,.14);
+    }
+
+    /* ── Tema escuro ── */
+    body.dark-mode {
+        --purple-bright: #e9524b;
+        --purple-dim:    rgba(220,60,60,0.18);
+        --purple-border: rgba(220,60,60,0.35);
+        --green-dim:     rgba(16,185,129,0.15);
+        --green-border:  rgba(16,185,129,0.35);
+        --orange-dim:    rgba(245,158,11,0.12);
+        --orange-border: rgba(245,158,11,0.3);
+        --bg:            #07030f;
+        --surface:       rgba(15,9,28,0.85);
+        --text:          #f0eeff;
+        --text2:         rgba(240,238,255,0.55);
+        --text3:         rgba(240,238,255,0.35);
+        --card-shadow:        0 2px 20px rgba(0,0,0,.35);
+        --card-shadow-active: 0 1px 8px rgba(0,0,0,.4);
+    }
+
+    html { height: 100%; overflow: hidden; }
+
+    body {
+        font-family: 'Poppins', sans-serif;
+        height: 100dvh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        color: var(--text);
+        transition: background-color .3s ease, color .3s ease;
+    }
+
+    /* ── SPLASH ─────────────────────────── */
+    #splash {
+        position: fixed;
+        inset: 0;
+        background: var(--bg);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity .55s cubic-bezier(.4,0,.2,1), transform .55s cubic-bezier(.4,0,.2,1);
+    }
+    #splash.saindo { opacity: 0; transform: scale(1.04); pointer-events: none; }
+
+    .splash-icon {
+        width: 88px; height: 88px;
+        border-radius: 26px;
+        background: var(--purple-dim);
+        border: 1px solid var(--purple-border);
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 20px;
+        animation: pulsar 2.2s ease-in-out infinite;
+        box-shadow: 0 0 60px rgba(220,60,60,0.25);
+    }
+    .splash-icon img { width: 60px; height: 60px; border-radius: 16px; }
+
+    .splash-nome {
+        font-size: 2.4rem; font-weight: 800; color: var(--text);
+        letter-spacing: -2px;
+        animation: surgir .6s cubic-bezier(.34,1.56,.64,1) both .12s;
+    }
+    .splash-sub {
+        font-size: .8rem; color: var(--text2);
+        margin-top: 5px; letter-spacing: .04em;
+        animation: surgir .6s cubic-bezier(.34,1.56,.64,1) both .22s;
+    }
+    .splash-loader {
+        margin-top: 56px; width: 44px; height: 2px;
+        background: rgba(220,60,60,.2); border-radius: 2px; overflow: hidden;
+        animation: surgir .4s ease both .38s;
+    }
+    .splash-loader-barra {
+        height: 100%; background: var(--purple-bright); border-radius: 2px;
+        animation: carregar 2s cubic-bezier(.4,0,.2,1) forwards;
+    }
+
+    @keyframes pulsar {
+        0%,100% { box-shadow: 0 0 40px rgba(220,60,60,.2); }
+        50%      { box-shadow: 0 0 70px rgba(220,60,60,.4); }
+    }
+    @keyframes surgir {
+        from { opacity: 0; transform: translateY(12px) scale(.97); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes carregar {
+        from { width: 0; } to { width: 100%; }
+    }
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(18px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── HERO ───────────────────────────── */
+    .hero {
+        flex-shrink: 0;
+        position: relative;
+        overflow: hidden;
+        padding: calc(22px + env(safe-area-inset-top)) 22px 52px;
+        background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(220,60,60,.35) 0%, transparent 70%),
+                    var(--bg);
+    }
+
+    /* Dot grid — the signature element */
+    .hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image: radial-gradient(circle, rgba(220,60,60,.22) 1px, transparent 1px);
+        background-size: 26px 26px;
+        mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black 30%, transparent 100%);
+        -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black 30%, transparent 100%);
+        pointer-events: none;
+    }
+
+    /* Bottom fade into content */
+    .hero::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 0; right: 0; height: 56px;
+        background: linear-gradient(to bottom, transparent, var(--bg));
+        pointer-events: none;
+    }
+
+    .hero-topo {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 28px;
+        position: relative; z-index: 1;
+    }
+
+    .hero-logo {
+        display: flex; align-items: center; gap: 9px;
+    }
+    .hero-logo img {
+        width: 28px; height: 28px; border-radius: 8px;
+    }
+    .hero-logo span {
+        font-size: 1.1rem; font-weight: 800; color: var(--text);
+        letter-spacing: -.4px;
+    }
+
+    .btn-dark-hero {
+        width: 34px; height: 34px; border-radius: 50%;
+        border: 1px solid rgba(220,60,60,.4);
+        background: rgba(220,60,60,.12);
+        display: flex; align-items: center; justify-content: center;
+        font-size: .95rem; cursor: pointer;
+        transition: background .2s, transform .15s;
+    }
+    .btn-dark-hero:active { transform: scale(.88); }
+
+    .hero-conteudo { position: relative; z-index: 1; }
+
+    .hero-titulo {
+        font-size: 1.75rem; font-weight: 800;
+        color: var(--text); letter-spacing: -.6px; line-height: 1.18;
+        margin-bottom: 8px;
+        animation: fadeUp .5s ease both .1s;
+    }
+    .hero-titulo .destaque {
+        color: transparent;
+        background: linear-gradient(135deg, #ef6b64, #dc3c3c);
+        -webkit-background-clip: text; background-clip: text;
+    }
+
+    .hero-sub {
+        font-size: .82rem; color: var(--text2); line-height: 1.55;
+        animation: fadeUp .5s ease both .16s;
+    }
+    .hero-sub:empty { display: none; }
+
+    /* Badge de professor logado — também funciona como botão de sair */
+    .hero-badge {
+        display: none; align-items: center; gap: 7px;
+        background: rgba(220,60,60,.15);
+        border: 1px solid rgba(220,60,60,.3);
+        border-radius: 20px; padding: 5px 12px 5px 7px;
+        font-size: .74rem; color: #ffb4b0; font-weight: 600;
+        font-family: inherit; cursor: pointer;
+        -webkit-appearance: none; appearance: none;
+        backdrop-filter: blur(8px); animation: surgir .4s ease both;
+        transition: background .2s, transform .15s;
+    }
+    .hero-badge.visivel { display: flex; }
+    .hero-badge:active { transform: scale(.95); background: rgba(220,60,60,.25); }
+    .hero-badge-dot {
+        width: 20px; height: 20px; border-radius: 50%;
+        background: rgba(220,60,60,.25);
+        display: flex; align-items: center; justify-content: center; font-size: .65rem;
+    }
+    .hero-badge-sair {
+        font-size: .62rem; color: rgba(255,180,175,.65); font-weight: 600;
+        margin-left: 2px; padding-left: 7px; border-left: 1px solid rgba(255,180,175,.3);
+    }
+
+    /* ── CONTEÚDO ───────────────────────── */
+    #app-content {
+        flex: 1; overflow-y: auto; overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+        padding: 14px 18px calc(24px + env(safe-area-inset-bottom));
+        min-height: 0;
+    }
+
+    /* ── LABEL DE SEÇÃO ─────────────────── */
+    .secao-label {
+        font-size: .64rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .14em;
+        color: var(--text3); margin: 20px 2px 10px;
+        display: flex; align-items: center; gap: 8px;
+    }
+    .secao-label::after {
+        content: ''; flex: 1; height: 1px;
+        background: rgba(220,60,60,.15);
+    }
+
+    /* ── NAV CARDS ──────────────────────── */
+    .nav-card {
+        display: flex; align-items: center; gap: 14px;
+        background: var(--surface);
+        border: 1px solid rgba(220,60,60,.15);
+        border-radius: 18px; padding: 15px 14px;
+        text-decoration: none; margin-bottom: 10px;
+        position: relative; overflow: hidden;
+        backdrop-filter: blur(12px);
+        box-shadow: var(--card-shadow);
+        opacity: 0; transform: translateY(16px);
+        transition: border-color .25s, box-shadow .25s, opacity .35s, transform .45s;
+        will-change: transform, opacity;
+    }
+
+    .nav-card.verde  { border-color: rgba(16,185,129,.2); }
+    .nav-card.laranja { border-color: rgba(245,158,11,.18); }
+
+    /* Accent line at top of card */
+    .nav-card::before {
+        content: '';
+        position: absolute; top: 0; left: 20%; right: 20%; height: 1.5px;
+        border-radius: 0 0 3px 3px;
+        background: linear-gradient(to right, transparent, var(--purple), transparent);
+        opacity: 0; transition: opacity .3s;
+    }
+    .nav-card.verde::before {
+        background: linear-gradient(to right, transparent, var(--green), transparent);
+    }
+    .nav-card.laranja::before {
+        background: linear-gradient(to right, transparent, var(--orange), transparent);
+    }
+
+    .nav-card.animado {
+        opacity: 1; transform: translateY(0);
+        transition:
+            transform .48s cubic-bezier(.34,1.56,.64,1),
+            opacity .35s ease,
+            border-color .25s, box-shadow .25s;
+    }
+    .nav-card.animado::before { opacity: 1; }
+
+    .nav-card:active {
+        transform: scale(.97) !important;
+        box-shadow: var(--card-shadow-active) !important;
+    }
+
+    .nav-card-texto { flex: 1; min-width: 0; }
+
+    .nav-card-titulo {
+        font-size: .9rem; font-weight: 700;
+        color: var(--text); letter-spacing: -.2px;
+        margin-bottom: 2px;
+    }
+    .nav-card-desc {
+        font-size: .74rem; color: var(--text2); line-height: 1.4;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .nav-card-seta {
+        width: 26px; height: 26px; border-radius: 8px;
+        background: rgba(220,60,60,.1);
+        display: flex; align-items: center; justify-content: center;
+        color: var(--purple-bright); font-size: .9rem; flex-shrink: 0;
+        transition: transform .2s;
+    }
+    .nav-card.verde  .nav-card-seta { background: rgba(16,185,129,.1);  color: var(--green); }
+    .nav-card.laranja .nav-card-seta { background: rgba(245,158,11,.1); color: var(--orange); }
+
+    .nav-card:active .nav-card-seta { transform: translateX(3px); }
+
+    /* ── CARD RETORNO RÁPIDO ─────────────── */
+    .card-retorno {
+        background: linear-gradient(135deg, rgba(220,60,60,.2), rgba(160,35,35,.25));
+        border: 1px solid rgba(220,60,60,.35);
+        border-radius: 18px; padding: 15px 14px; margin-bottom: 10px;
+        display: none; align-items: center; gap: 14px;
+        text-decoration: none;
+        box-shadow: 0 4px 24px rgba(220,60,60,.2);
+        backdrop-filter: blur(12px);
+        opacity: 0; transform: translateY(16px);
+        will-change: transform, opacity;
+        position: relative; overflow: hidden;
+    }
+    .card-retorno::before {
+        content: '';
+        position: absolute; top: 0; left: 20%; right: 20%; height: 1.5px;
+        border-radius: 0 0 3px 3px;
+        background: linear-gradient(to right, transparent, #ef6b64, transparent);
+    }
+    .card-retorno.visivel { display: flex; }
+    .card-retorno.animado {
+        opacity: 1; transform: translateY(0);
+        transition: transform .48s cubic-bezier(.34,1.56,.64,1), opacity .35s ease;
+    }
+    .card-retorno:active { transform: scale(.97) !important; }
+
+    .retorno-avatar {
+        width: 44px; height: 44px; border-radius: 13px;
+        background: rgba(220,60,60,.25);
+        display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;
+    }
+    .retorno-texto { flex: 1; min-width: 0; }
+    .retorno-titulo { font-size: .72rem; color: rgba(255,180,175,.7); margin-bottom: 2px; font-weight: 500; }
+    .retorno-nome {
+        font-size: .94rem; font-weight: 700; color: #e9d5ff;
+        letter-spacing: -.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .retorno-seta { color: rgba(255,180,175,.6); font-size: 1.2rem; flex-shrink: 0; transition: transform .2s; }
+    .card-retorno:active .retorno-seta { transform: translateX(3px); }
+
+    /* ── TOAST ──────────────────────────── */
+    #toast {
+        position: fixed;
+        bottom: calc(24px + env(safe-area-inset-bottom));
+        left: 50%; transform: translateX(-50%) translateY(16px);
+        background: rgba(15,9,28,.95);
+        border: 1px solid rgba(220,60,60,.4);
+        color: #f0eeff; font-size: .79rem; font-weight: 600;
+        padding: 10px 20px; border-radius: 30px;
+        white-space: nowrap; opacity: 0; pointer-events: none;
+        transition: opacity .22s, transform .3s cubic-bezier(.34,1.56,.64,1);
+        z-index: 9000;
+        box-shadow: 0 8px 28px rgba(0,0,0,.4), 0 0 0 1px rgba(220,60,60,.2);
+        backdrop-filter: blur(12px);
+    }
+    #toast.visivel { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── RODAPÉ ─────────────────────────── */
+    .rodape {
+        text-align: center; padding: 14px 0 4px;
+        font-size: .68rem; color: var(--text3); letter-spacing: .01em;
+    }
+    </style>
+    <link rel="stylesheet" href="./cal-inspired.css">
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+    <div class="splash-icon">
+        <img src="./logo-icon.png" alt="Locus">
+    </div>
+    <div class="splash-nome">Locus</div>
+    <div class="splash-sub">Agendamento de salas</div>
+    <div class="splash-loader">
+        <div class="splash-loader-barra"></div>
+    </div>
+</div>
+
+<!-- HERO -->
+<div class="hero">
+    <div class="hero-topo">
+        <div class="hero-logo">
+            <img src="./logo-icon.png" alt="Locus">
+            <span>Locus</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <button class="hero-badge" id="hero-badge" type="button" title="Toque para sair da sua conta" aria-label="Sair da conta">
+                <div class="hero-badge-dot">👨‍🏫</div>
+                <span id="hero-badge-nome"></span>
+                <span class="hero-badge-sair">Sair</span>
+            </button>
+            <button class="btn-dark-hero" id="btn-dark" title="Alternar modo" aria-label="Alternar modo">🌙</button>
+        </div>
+    </div>
+    <div class="hero-conteudo">
+        <div class="hero-titulo" id="hero-titulo">
+            Olá!<br>Vamos reservar a sua <span class="destaque">aula?</span>
+        </div>
+        <div class="hero-sub" id="hero-sub"></div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- CONTEÚDO -->
+<main id="app-content">
+
+    <a href="professor.html" class="card-retorno" id="card-retorno">
+        <div class="retorno-avatar">📅</div>
+        <div class="retorno-texto">
+            <div class="retorno-titulo">Continuar como</div>
+            <div class="retorno-nome" id="retorno-nome">—</div>
+        </div>
+        <span class="retorno-seta">›</span>
+    </a>
+
+    <div class="secao-label" id="label-rapido">Acesso rápido</div>
+
+    <a href="professor.html" class="nav-card" id="card-professor">
+        <div class="nav-card-icone">👤</div>
+        <div class="nav-card-texto">
+            <div class="nav-card-titulo">Área do Professor</div>
+            <div class="nav-card-desc">Reserve salas, pátios e laboratórios</div>
+        </div>
+        <span class="nav-card-cta">Acessar</span>
+    </a>
+
+    <a href="cadastro.html" class="nav-card verde" id="card-cadastro">
+        <div class="nav-card-icone">🔑</div>
+        <div class="nav-card-texto">
+            <div class="nav-card-titulo">Ativar Meu Acesso</div>
+            <div class="nav-card-desc">Primeiro acesso? Solicite seu PIN aqui</div>
+        </div>
+        <span class="nav-card-cta">Solicitar PIN</span>
+    </a>
+
+    <div class="secao-label">Administração</div>
+
+    <a href="coordenacao.html" class="nav-card laranja" id="card-coord">
+        <div class="nav-card-icone">💼</div>
+        <div class="nav-card-texto">
+            <div class="nav-card-titulo">Painel da Coordenação</div>
+            <div class="nav-card-desc">Gerencie professores, salas e reservas</div>
+        </div>
+        <span class="nav-card-cta">Gerenciar</span>
+    </a>
+
+    <div class="rodape">Locus v2.0 · Sistema de agendamento escolar</div>
+
+</main>
+
+<script type="module">
+    import { supabase as sb } from './utils.js';
+
+    // ── DARK MODE ──────────────────────────────────────────────
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    function atualizarThemeColor(ativado) {
+        if (metaThemeColor) metaThemeColor.setAttribute('content', ativado ? '#07030f' : '#f5f3ff');
+    }
+
+    const isDark = localStorage.getItem('darkMode') === 'enabled';
+    if (isDark) {
+        document.body.classList.add('dark-mode');
+        document.getElementById('btn-dark').textContent = '☀️';
+    }
+    atualizarThemeColor(isDark);
+
+    document.getElementById('btn-dark').addEventListener('click', () => {
+        const ativado = document.body.classList.toggle('dark-mode');
+        localStorage.setItem('darkMode', ativado ? 'enabled' : 'disabled');
+        document.getElementById('btn-dark').textContent = ativado ? '☀️' : '🌙';
+        atualizarThemeColor(ativado);
+        mostrarToast(ativado ? 'Modo escuro ativado' : 'Modo claro ativado');
+    });
+
+    // ── TOAST ──────────────────────────────────────────────────
+    let toastTimer = null;
+    function mostrarToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('visivel');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('visivel'), 2200);
+    }
+
+    // ── SAUDAÇÃO ───────────────────────────────────────────────
+    const hora = new Date().getHours();
+    const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+    const periodoMinusculo = periodo.toLowerCase();
+    const emoji   = hora < 12 ? '☀️' : hora < 18 ? '🌤️' : '🌙';
+
+    // ── SAIR PELO BADGE (topo direito) ──────────────────────────
+    // Ao voltar da área do professor para a home, o badge com o nome
+    // do professor logado funciona como atalho para encerrar a sessão
+    // sem precisar entrar novamente na área do professor.
+    document.getElementById('hero-badge').addEventListener('click', async () => {
+        const badge = document.getElementById('hero-badge');
+        badge.disabled = true;
+        try {
+            await sb.auth.signOut();
+        } catch (err) {
+            console.error('Erro ao sair:', err);
+        } finally {
+            window.location.reload();
+        }
+    });
+
+    // ── SESSÃO SUPABASE ────────────────────────────────────────
+    async function verificarSessao() {
+        try {
+            const { data: { session } } = await sb.auth.getSession();
+            if (!session) return aplicarSaudacaoGenerica();
+
+            const { data: prof } = await sb
+                .from('professores')
+                .select('nome')
+                .eq('auth_user_id', session.user.id)
+                .single();
+
+            if (prof?.nome) {
+                aplicarSaudacaoPersonalizada(prof.nome);
+            } else {
+                aplicarSaudacaoGenerica();
+            }
+        } catch {
+            aplicarSaudacaoGenerica();
+        }
+    }
+
+    function aplicarSaudacaoGenerica() {
+        document.getElementById('hero-titulo').innerHTML =
+            `${emoji} Olá, ${periodoMinusculo},<br>vamos reservar a sua <span class="destaque">aula?</span>`;
+    }
+
+    function aplicarSaudacaoPersonalizada(nomeCompleto) {
+        const primeiroNome = nomeCompleto.split(' ')[0];
+        document.getElementById('hero-titulo').innerHTML =
+            `${emoji} ${periodo},<br><span class="destaque">${primeiroNome}!</span>`;
+        document.getElementById('hero-sub').textContent =
+            'Toque abaixo para agendar ou gerenciar suas reservas.';
+
+        document.getElementById('hero-badge-nome').textContent = primeiroNome;
+        document.getElementById('hero-badge').classList.add('visivel');
+
+        document.getElementById('retorno-nome').textContent = nomeCompleto;
+        document.getElementById('card-retorno').classList.add('visivel');
+        document.getElementById('label-rapido').textContent = 'Suas opções';
+
+        const cardCadastro = document.getElementById('card-cadastro');
+        if (cardCadastro) cardCadastro.style.display = 'none';
+    }
+
+    // ── ANIMAÇÃO STAGGER ───────────────────────────────────────
+    function animarCards() {
+        const cards = document.querySelectorAll('.nav-card, .card-retorno.visivel');
+        cards.forEach((card, i) => {
+            setTimeout(() => card.classList.add('animado'), i * 70);
+        });
+    }
+
+    // ── INICIALIZAÇÃO ──────────────────────────────────────────
+    const splash = document.getElementById('splash');
+    verificarSessao();
+
+    setTimeout(() => {
+        splash.classList.add('saindo');
+        setTimeout(() => {
+            splash.style.display = 'none';
+            animarCards();
+        }, 550);
+    }, 2000);
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch(() => {});
+        });
+    }
+</script>
+</body>
+</html>

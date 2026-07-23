@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Locus — Coordenação</title>
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+    <link rel="icon" href="./icon-96.png" type="image/png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="locus.css">
+    <style>
+    *, *::before, *::after {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    input, textarea, [contenteditable="true"] {
+        -webkit-user-select: text !important;
+        user-select: text !important;
+        -webkit-touch-callout: default !important;
+    }
+    button, a, label, select, [onclick], [role="button"] { touch-action: manipulation; }
+    html { height: 100%; overscroll-behavior: none; }
+
+    /* ══ BASE DARK ══════════════════════════════════════ */
+    :root {
+        /* Purple theme — igual ao cadastro.html */
+        --purple:        #dc3c3c;
+        --purple-bright: #e9524b;
+        --purple-dim:    rgba(220,60,60,0.15);
+        --purple-border: rgba(220,60,60,0.32);
+        --purple-glow:   rgba(220,60,60,0.22);
+        /* Restante (dashboard) */
+        --bg:         #07030f;
+        --surface:    #0f0920;
+        --surface2:   #160d2c;
+        --border:     rgba(220,60,60,.18);
+        --border2:    rgba(220,60,60,.3);
+        --txt:        #f0eeff;
+        --txt2:       rgba(240,238,255,.55);
+        --txt3:       rgba(240,238,255,.35);
+        --blue:       #3b7fff;
+        --blue-glow:  rgba(59,127,255,.25);
+        --green:      #22c55e;
+        --red:        #ef4444;
+        --red-soft:   rgba(239,68,68,.12);
+    }
+
+    html { height: 100%; }
+    body {
+        font-family: 'Poppins', sans-serif;
+        background: var(--bg);
+        color: var(--txt);
+        min-height: 100dvh;
+        margin: 0; padding: 0;
+        overflow-x: hidden;
+    }
+
+    /* Dot grid + purple glow — mesma assinatura do cadastro.html */
+    body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        background-image: radial-gradient(circle, rgba(220,60,60,.18) 1px, transparent 1px);
+        background-size: 28px 28px;
+        mask-image: radial-gradient(ellipse 70% 50% at 50% 0%, black 0%, transparent 100%);
+        -webkit-mask-image: radial-gradient(ellipse 70% 50% at 50% 0%, black 0%, transparent 100%);
+        pointer-events: none; z-index: 0;
+    }
+    body::after {
+        content: '';
+        position: fixed;
+        top: -140px; left: 50%;
+        transform: translateX(-50%);
+        width: 480px; height: 480px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(220,60,60,.22) 0%, transparent 70%);
+        pointer-events: none; z-index: 0;
+    }
+
+    /* ══ LOGIN ══════════════════════════════════════════ */
+    #secao-login-coord {
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: calc(22px + env(safe-area-inset-top)) 20px calc(36px + env(safe-area-inset-bottom));
+        position: relative;
+        z-index: 1;
+    }
+
+    .login-logo-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 22px;
+        animation: fadeUp .5s ease both;
+    }
+    .login-logo-icon {
+        width: 40px; height: 40px;
+        object-fit: contain;
+        margin-bottom: 12px;
+    }
+    .login-logo-nome {
+        font-size: 1.7rem;
+        font-weight: 800;
+        color: var(--txt);
+        letter-spacing: -.4px;
+    }
+    .login-logo-sub {
+        font-size: .75rem;
+        color: var(--txt2);
+        margin-top: 2px;
+        letter-spacing: .04em;
+    }
+
+    .login-card {
+        width: 100%;
+        max-width: 380px;
+        background: rgba(15,9,28,0.9);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 26px 22px 22px;
+        box-shadow: 0 24px 64px rgba(0,0,0,.5), 0 0 0 1px rgba(220,60,60,.08);
+        backdrop-filter: blur(16px);
+        animation: fadeUp .5s ease both .08s;
+        position: relative; overflow: hidden;
+    }
+    /* Accent line topo do card */
+    .login-card::before {
+        content: '';
+        position: absolute; top: 0; left: 20%; right: 20%; height: 1.5px;
+        border-radius: 0 0 3px 3px;
+        background: linear-gradient(to right, transparent, var(--purple), transparent);
+    }
+    .login-card-titulo { font-size: 1.2rem; font-weight: 700; color: var(--txt); margin-bottom: 3px; text-align: center; }
+    .login-card-sub { font-size: .8rem; color: var(--txt2); text-align: center; margin-bottom: 22px; line-height: 1.5; }
+
+    .login-input-wrap { position: relative; margin-bottom: 14px; }
+    .login-input-wrap input {
+        width: 100%;
+        padding: 13px 15px;
+        background: rgba(22,13,44,0.8);
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        color: var(--txt);
+        font-size: .9rem;
+        font-family: 'Poppins', sans-serif;
+        outline: none;
+        transition: border-color .2s, box-shadow .2s;
+    }
+    .login-input-wrap input::placeholder { color: var(--txt3); }
+    .login-input-wrap input:focus {
+        border-color: var(--purple);
+        box-shadow: 0 0 0 3px var(--purple-dim);
+    }
+    .login-input-wrap .toggle-senha {
+        position: absolute; right: 14px; top: 50%;
+        transform: translateY(-50%);
+        background: none; border: none;
+        color: var(--txt3); cursor: pointer; font-size: .9rem;
+        padding: 4px;
+    }
+
+    .btn-acessar {
+        width: 100%; padding: 14px;
+        background: var(--purple);
+        color: #fff; border: none; border-radius: 14px;
+        font-size: .93rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        box-shadow: 0 6px 24px var(--purple-glow);
+        transition: opacity .2s, transform .15s;
+    }
+    .btn-acessar:active { transform: scale(.97); opacity: .88; }
+    .btn-acessar:disabled { opacity: .35; cursor: not-allowed; transform: none; background: rgba(220,60,60,.3); box-shadow: none; }
+
+    .login-footer-link {
+        text-align: center;
+        margin-top: 18px;
+        font-size: .78rem;
+        color: var(--txt3);
+    }
+    .login-footer-link a { color: var(--purple-bright); text-decoration: none; font-weight: 600; }
+
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(14px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ══ DASHBOARD ══════════════════════════════════════ */
+    #secao-dashboard {
+        display: none;
+        flex-direction: column;
+        min-height: 100dvh;
+        position: relative;
+        z-index: 1;
+    }
+    #secao-dashboard.visivel { display: flex; }
+
+    /* Header */
+    .header-painel {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 14px 18px;
+        padding-top: calc(14px + env(safe-area-inset-top));
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(12px);
+    }
+    .header-logo {
+        display: flex; align-items: center; gap: 10px;
+    }
+    .header-logo-icon {
+        width: 28px; height: 28px;
+        object-fit: contain;
+        flex-shrink: 0;
+    }
+    .header-logo-info .titulo { font-size: .95rem; font-weight: 700; color: var(--txt); }
+    .header-logo-info .sub { font-size: .68rem; color: var(--txt3); }
+    .header-acoes { display: flex; align-items: center; gap: 8px; }
+    .btn-header {
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        border-radius: 8px;
+        padding: 7px 12px;
+        color: var(--txt2);
+        font-size: .78rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: background .2s, color .2s;
+        white-space: nowrap;
+    }
+    .btn-header:active { background: #374151; }
+    .btn-sair {
+        background: var(--red-soft);
+        border: 1px solid rgba(239,68,68,.2);
+        color: #f87171;
+    }
+    .btn-sair:active { background: rgba(239,68,68,.2); }
+
+    /* Conteúdo scroll */
+    .dashboard-content {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 16px 16px calc(32px + env(safe-area-inset-bottom));
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    /* Banner notificações */
+    #banner-notif {
+        display: none;
+        align-items: center;
+        gap: 12px;
+        background: linear-gradient(135deg, rgba(46,16,101,.8), rgba(59,7,100,.8));
+        border: 1px solid rgba(181,45,45,.4);
+        border-radius: 14px;
+        padding: 14px 16px;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        transition: opacity .2s, transform .15s;
+        animation: surgir .4s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    @keyframes surgir {
+        from { opacity: 0; transform: translateY(-8px) scale(.97); }
+        to   { opacity: 1; transform: none; }
+    }
+    #banner-notif.visivel { display: flex; }
+    #banner-notif:active { transform: scale(.98); opacity: .9; }
+    .banner-notif-icone { font-size: 1.4rem; flex-shrink: 0; }
+    .banner-notif-texto { flex: 1; }
+    .banner-notif-titulo { font-weight: 700; font-size: .85rem; color: #ffb4b0; }
+    .banner-notif-sub { font-size: .74rem; color: #ef6b64; margin-top: 2px; }
+    .banner-notif-seta { color: #ffb4b0; font-size: 1.1rem; flex-shrink: 0; }
+
+    #banner-notif-ok {
+        display: none;
+        align-items: center; gap: 10px;
+        background: rgba(34,197,94,.08);
+        border: 1px solid rgba(34,197,94,.2);
+        border-radius: 14px;
+        padding: 12px 16px;
+        font-size: .82rem; font-weight: 600; color: #86efac;
+    }
+    #banner-notif-ok.visivel { display: flex; }
+
+    /* Cards de resumo */
+    .resumo-cards {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .card-mini {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    .card-mini::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--blue), #6366f1);
+        border-radius: 16px 16px 0 0;
+    }
+    .card-mini span {
+        display: block;
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: var(--txt);
+        letter-spacing: -2px;
+        line-height: 1;
+        margin-bottom: 6px;
+    }
+    .card-mini label {
+        font-size: .78rem;
+        color: var(--txt3);
+        font-weight: 500;
+    }
+
+    /* Cards colapsáveis */
+    .card-gerenciar {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        overflow: hidden;
+        transition: border-color .2s;
+    }
+    .card-gerenciar:has(.card-gerenciar-conteudo:not(.hidden)) {
+        border-color: rgba(59,127,255,.2);
+    }
+    .card-gerenciar-toggle {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 18px;
+        background: none;
+        border: none;
+        color: var(--txt);
+        font-size: .93rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: background .2s;
+        text-align: left;
+    }
+    .card-gerenciar-toggle:active { background: rgba(255,255,255,.03); }
+    .card-gerenciar-toggle .toggle-icon {
+        color: var(--txt3);
+        font-size: .85rem;
+        transition: transform .2s;
+    }
+    .card-gerenciar-toggle.aberto .toggle-icon { transform: rotate(180deg); }
+
+    .card-gerenciar-conteudo {
+        padding: 0 18px 18px;
+        border-top: 1px solid var(--border);
+    }
+    .card-gerenciar-conteudo.hidden { display: none; }
+
+    .separador-gerenciar {
+        display: flex; align-items: center; gap: 10px;
+        margin: 16px 0 12px;
+        font-size: .68rem; font-weight: 700;
+        text-transform: uppercase; letter-spacing: .1em;
+        color: var(--txt3);
+    }
+    .separador-gerenciar::before, .separador-gerenciar::after {
+        content: ''; flex: 1; height: 1px;
+        background: var(--border);
+    }
+
+    /* Badge pendentes */
+    #badge-pendentes {
+        display: none;
+        background: var(--red);
+        color: #fff;
+        border-radius: 10px;
+        padding: 1px 7px;
+        font-size: .68rem;
+        margin-left: 7px;
+        font-weight: 700;
+        animation: pulse-badge 1.8s infinite;
+        vertical-align: middle;
+    }
+    @keyframes pulse-badge {
+        0%   { box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
+        70%  { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
+        100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+    }
+
+    /* Solicitações */
+    .solicitacao-card {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 13px 14px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        margin-bottom: 9px;
+        animation: entrar-card .3s cubic-bezier(.34,1.56,.64,1) both;
+        transition: border-color .2s;
+    }
+    .solicitacao-card:hover { border-color: rgba(59,127,255,.3); }
+    @keyframes entrar-card {
+        from { opacity: 0; transform: translateY(12px) scale(.97); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .solicitacao-card:nth-child(2) { animation-delay: .06s; }
+    .solicitacao-card:nth-child(3) { animation-delay: .12s; }
+    .solicitacao-card:nth-child(4) { animation-delay: .18s; }
+    .solicitacao-info { flex: 1; min-width: 0; }
+    .solicitacao-nome {
+        font-weight: 700; font-size: .88rem; color: var(--txt);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .solicitacao-meta { font-size: .74rem; color: var(--txt3); margin-top: 2px; }
+    .solicitacao-acoes { display: flex; gap: 7px; flex-shrink: 0; }
+    .btn-aprovar {
+        padding: 7px 13px; border-radius: 8px; border: none;
+        background: rgba(34,197,94,.15); color: #4ade80;
+        font-size: .78rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        transition: background .2s, transform .15s;
+        border: 1px solid rgba(34,197,94,.25);
+    }
+    .btn-aprovar:active { transform: scale(.94); background: rgba(34,197,94,.25); }
+    .btn-rejeitar {
+        padding: 7px 13px; border-radius: 8px; border: none;
+        background: var(--red-soft); color: #f87171;
+        font-size: .78rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        transition: background .2s, transform .15s;
+        border: 1px solid rgba(239,68,68,.2);
+    }
+    .btn-rejeitar:active { transform: scale(.94); background: rgba(239,68,68,.2); }
+
+    .solicitacoes-vazio {
+        text-align: center; padding: 24px 16px;
+        color: var(--txt3); font-size: .83rem;
+    }
+    .solicitacoes-vazio-icon { font-size: 1.8rem; display: block; margin-bottom: 8px; opacity: .5; }
+
+    /* ── CARDS DE PROFESSOR ─────────────────────────── */
+    .gerenciar-lista-professores { display: flex; flex-direction: column; gap: 10px; }
+
+    .professor-card {
+        background: rgba(15,9,28,.7);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        transition: border-color .2s;
+        animation: entrar-card .3s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    .professor-card:nth-child(2) { animation-delay: .05s; }
+    .professor-card:nth-child(3) { animation-delay: .1s; }
+    .professor-card:nth-child(4) { animation-delay: .15s; }
+
+    .professor-card-topo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 16px;
+    }
+    .professor-card-avatar {
+        width: 42px; height: 42px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #dc3c3c, #96272a);
+        display: flex; align-items: center; justify-content: center;
+        font-size: .9rem; font-weight: 800; color: #fff;
+        flex-shrink: 0;
+        box-shadow: 0 3px 10px rgba(220,60,60,.3);
+    }
+    .professor-card-info { flex: 1; min-width: 0; }
+    .professor-nome {
+        font-weight: 700; font-size: .92rem; color: var(--txt);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .professor-disciplina {
+        font-size: .74rem; color: var(--txt3); margin-top: 2px;
+    }
+    .status-pin {
+        font-size: .66rem; font-weight: 800;
+        padding: 4px 9px; border-radius: 20px;
+        text-transform: uppercase; letter-spacing: .05em;
+        flex-shrink: 0; white-space: nowrap;
+    }
+    .status-pin.ativo {
+        background: rgba(34,197,94,.12);
+        border: 1px solid rgba(34,197,94,.25);
+        color: #4ade80;
+    }
+    .status-pin.pendente {
+        background: rgba(234,179,8,.1);
+        border: 1px solid rgba(234,179,8,.22);
+        color: #facc15;
+    }
+
+    .professor-card-edicao {
+        padding: 0 16px 12px;
+        display: flex; flex-direction: column; gap: 8px;
+    }
+    .professor-card-edicao input,
+    .professor-card-edicao select {
+        width: 100%;
+        padding: 11px 13px;
+        background: rgba(22,13,44,.85);
+        border: 1px solid rgba(220,60,60,.22);
+        border-radius: 11px;
+        color: var(--txt);
+        font-size: .84rem;
+        font-family: 'Poppins', sans-serif;
+        outline: none;
+        -webkit-appearance: none;
+        transition: border-color .2s, box-shadow .2s;
+    }
+    .professor-card-edicao input:focus,
+    .professor-card-edicao select:focus {
+        border-color: var(--purple);
+        box-shadow: 0 0 0 3px var(--purple-dim);
+    }
+
+    .professor-card-acoes {
+        padding: 10px 16px 14px;
+        display: flex; gap: 7px; flex-wrap: wrap;
+        border-top: 1px solid var(--border);
+    }
+    .btn-salvar-professor {
+        flex: 1; padding: 9px 12px;
+        background: rgba(220,60,60,.15);
+        border: 1px solid rgba(220,60,60,.35);
+        border-radius: 10px; color: #ffb4b0;
+        font-size: .78rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        transition: background .2s, transform .15s;
+    }
+    .btn-salvar-professor:active { background: rgba(220,60,60,.28); transform: scale(.95); }
+
+    .btn-resetar-pin {
+        flex: 1; padding: 9px 12px;
+        background: rgba(234,179,8,.1);
+        border: 1px solid rgba(234,179,8,.25);
+        border-radius: 10px; color: #facc15;
+        font-size: .78rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        transition: background .2s, transform .15s;
+    }
+    .btn-resetar-pin:active { background: rgba(234,179,8,.2); transform: scale(.95); }
+
+    .btn-excluir-professor {
+        padding: 9px 12px;
+        background: var(--red-soft);
+        border: 1px solid rgba(239,68,68,.22);
+        border-radius: 10px; color: #f87171;
+        font-size: .78rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        transition: background .2s, transform .15s;
+    }
+    .btn-excluir-professor:active { background: rgba(239,68,68,.22); transform: scale(.95); }
+
+    .gerenciar-vazio {
+        text-align: center; padding: 28px 16px;
+        color: var(--txt3); font-size: .82rem;
+    }
+
+    /* ── SALAS E TURMAS ──────────────────────────────── */
+    .gerenciar-secoes {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .gerenciar-secao-titulo {
+        display: flex; align-items: center; gap: 8px;
+        font-size: .72rem; font-weight: 800;
+        text-transform: uppercase; letter-spacing: .1em;
+        color: var(--txt3);
+        margin-bottom: 10px;
+    }
+    .gerenciar-secao-titulo::after {
+        content: ''; flex: 1; height: 1px;
+        background: var(--border);
+    }
+    .gerenciar-add {
+        display: flex; gap: 8px; margin-bottom: 10px;
+    }
+    .gerenciar-add input {
+        flex: 1; padding: 11px 13px;
+        background: rgba(22,13,44,.85);
+        border: 1px solid rgba(220,60,60,.22);
+        border-radius: 12px;
+        color: var(--txt); font-size: .84rem;
+        font-family: 'Poppins', sans-serif;
+        outline: none;
+        transition: border-color .2s, box-shadow .2s;
+    }
+    .gerenciar-add input:focus {
+        border-color: var(--purple);
+        box-shadow: 0 0 0 3px var(--purple-dim);
+    }
+    .gerenciar-add input::placeholder { color: var(--txt3); }
+    .gerenciar-add-btn {
+        padding: 11px 16px;
+        background: var(--purple);
+        color: #fff; border: none; border-radius: 12px;
+        font-size: .82rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        white-space: nowrap;
+        box-shadow: 0 4px 14px rgba(220,60,60,.3);
+        transition: opacity .2s, transform .15s;
+    }
+    .gerenciar-add-btn:active { opacity: .85; transform: scale(.96); }
+
+    .gerenciar-lista { display: flex; flex-direction: column; gap: 7px; }
+    .gerenciar-item {
+        display: flex; align-items: center; gap: 10px;
+        background: rgba(15,9,28,.7);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 11px 14px;
+        animation: entrar-card .25s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    .gerenciar-item-icone {
+        width: 32px; height: 32px;
+        border-radius: 9px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .9rem; flex-shrink: 0;
+    }
+    .gerenciar-item-icone.sala  { background: rgba(59,127,255,.12); }
+    .gerenciar-item-icone.turma { background: rgba(220,60,60,.12); }
+    .gerenciar-item-nome {
+        flex: 1; font-size: .88rem; font-weight: 600; color: var(--txt);
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .gerenciar-del {
+        background: none; border: none;
+        color: var(--txt3); cursor: pointer;
+        font-size: .85rem; padding: 4px 6px;
+        border-radius: 7px;
+        transition: color .2s, background .2s;
+        flex-shrink: 0;
+    }
+    .gerenciar-del:active { color: #f87171; background: rgba(239,68,68,.1); }
+
+    /* Filtros */
+    .filtro-item input:focus, .filtro-item select:focus { border-color: var(--purple); box-shadow: 0 0 0 2px var(--purple-dim); }
+    .btn-exportar {
+        padding: 10px 16px;
+        background: rgba(220,60,60,.12);
+        border: 1px solid rgba(220,60,60,.25);
+        border-radius: 10px;
+        color: #ffb4b0; font-size: .82rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif; cursor: pointer;
+        transition: background .2s, transform .15s;
+        white-space: nowrap; align-self: flex-end;
+    }
+    .btn-exportar:active { transform: scale(.96); background: rgba(220,60,60,.22); }
+    .badge-sala {
+        display: inline-block;
+        background: rgba(220,60,60,.12);
+        border: 1px solid rgba(220,60,60,.2);
+        color: #ffb4b0;
+        font-size: .72rem; font-weight: 600;
+        padding: 3px 8px; border-radius: 6px;
+    }
+
+    /* ── SALAS E TURMAS — tab system ────────────────── */
+    .gerenciar-tabs {
+        display: flex;
+        gap: 8px;
+        padding: 14px 0 2px;
+    }
+    .gerenciar-tab {
+        flex: 1;
+        padding: 10px 8px;
+        background: rgba(22,13,44,.6);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--txt2);
+        font-size: .82rem; font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer; touch-action: manipulation;
+        transition: background .18s, border-color .18s, color .18s;
+    }
+    .gerenciar-tab.ativa {
+        background: rgba(220,60,60,.18);
+        border-color: var(--purple);
+        color: #ffb4b0;
+        box-shadow: 0 2px 10px rgba(220,60,60,.15);
+    }
+    .gerenciar-painel { padding-top: 14px; }
+    .gerenciar-painel.oculto { display: none; }
+
+    /* ── PROFESSOR CARD — avatar + botão editar ─────── */
+    .professor-card-avatar {
+        width: 42px; height: 42px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #dc3c3c, #96272a);
+        display: flex; align-items: center; justify-content: center;
+        font-size: .9rem; font-weight: 800; color: #fff;
+        flex-shrink: 0;
+        box-shadow: 0 3px 10px rgba(220,60,60,.3);
+        letter-spacing: -.5px;
+    }
+    .professor-card-btn-editar {
+        width: 34px; height: 34px;
+        background: rgba(220,60,60,.1);
+        border: 1px solid rgba(220,60,60,.25);
+        border-radius: 50%;
+        color: #ffb4b0; font-size: .8rem;
+        cursor: pointer; touch-action: manipulation;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0;
+        transition: background .18s, transform .12s;
+    }
+    .professor-card-btn-editar:active { background: rgba(220,60,60,.28); transform: scale(.88); }
+    .professor-card-expansivel { display: none; }
+    .professor-card-expansivel.aberto { display: block; }
+    </style>
+    <link rel="stylesheet" href="./cal-inspired.css">
+</head>
+<body>
+
+<!-- ══ LOGIN ══════════════════════════════════════════════ -->
+<div id="secao-login-coord">
+    <div class="login-logo-section">
+        <img class="login-logo-icon" src="./logo-icon.png" alt="Locus">
+        <div class="login-logo-nome">Coordenação</div>
+        <div class="login-logo-sub">Painel administrativo</div>
+    </div>
+
+    <div class="login-card">
+        <div class="login-card-titulo">Painel restrito</div>
+        <div class="login-card-sub">Digite a senha de administrador para continuar.</div>
+
+        <div class="login-input-wrap">
+            <input type="password" id="senha-coord" placeholder="Senha de administrador..."
+                   autocomplete="current-password"
+                   onkeydown="if(event.key==='Enter') entrarPainel()">
+            <button class="toggle-senha" onclick="toggleSenhaVisivel()" tabindex="-1">👁</button>
+        </div>
+
+        <button class="btn-acessar" onclick="entrarPainel()">Acessar painel</button>
+
+        <div class="login-footer-link">
+            <a href="index.html">← Voltar ao início</a>
+        </div>
+    </div>
+</div>
+
+<!-- ══ DASHBOARD ══════════════════════════════════════════ -->
+<div id="secao-dashboard">
+
+    <!-- Header fixo -->
+    <div class="header-painel">
+        <div class="header-logo">
+            <img class="header-logo-icon" src="./logo-icon.png" alt="Locus">
+            <div class="header-logo-info">
+                <div class="titulo">Locus</div>
+                <div class="sub">Painel da Coordenação</div>
+            </div>
+        </div>
+        <nav class="header-nav-coord" aria-label="Navegação do painel">
+            <a href="index.html" class="header-nav-item">Início</a>
+            <span class="header-nav-item ativo" aria-current="page">Reservas</span>
+            <span class="header-nav-item desabilitado" aria-disabled="true" title="Em breve">Professores</span>
+            <span class="header-nav-item desabilitado" aria-disabled="true" title="Em breve">Salas</span>
+        </nav>
+        <div class="header-acoes">
+            <button class="btn-header btn-sair" onclick="sairPainel()">Sair</button>
+        </div>
+    </div>
+
+    <!-- Conteúdo scrollável -->
+    <div class="dashboard-content">
+
+        <!-- Banner notificações -->
+        <div id="banner-notif" onclick="ativarNotifCoord()">
+            <div class="banner-notif-icone">🔔</div>
+            <div class="banner-notif-texto">
+                <div class="banner-notif-titulo">Ativar notificações</div>
+                <div class="banner-notif-sub">Receba alertas de novas solicitações em tempo real</div>
+            </div>
+            <div class="banner-notif-seta">›</div>
+        </div>
+        <div id="banner-notif-ok">
+            <span>🔔</span> Notificações ativas — você será avisada sobre novas solicitações
+        </div>
+
+        <!-- Resumo -->
+        <div class="resumo-cards">
+            <div class="card-mini">
+                <span id="qtd-total">0</span>
+                <label>Reservas no filtro atual</label>
+            </div>
+        </div>
+
+        <!-- Professores / Solicitações -->
+        <div class="card-gerenciar">
+            <button class="card-gerenciar-toggle" onclick="alternarGerenciamentoProfessores(event)">
+                <span>Professores <span id="badge-pendentes"></span></span>
+                <span class="toggle-icon" id="icone-gerenciar-professores">▾</span>
+            </button>
+
+            <div id="conteudo-gerenciar-professores" class="card-gerenciar-conteudo hidden">
+                <div class="separador-gerenciar"><span>Solicitações pendentes</span></div>
+                <div id="lista-solicitacoes">
+                    <div class="gerenciar-vazio">Carregando...</div>
+                </div>
+                <div class="separador-gerenciar"><span>Professores com acesso ativo</span></div>
+                <div class="gerenciar-lista-professores" id="lista-professores">
+                    <div class="gerenciar-vazio">Carregando...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Salas e turmas -->
+        <div class="card-gerenciar">
+            <button class="card-gerenciar-toggle" onclick="alternarGerenciamento(event)">
+                <span>Salas e turmas</span>
+                <span class="toggle-icon" id="icone-gerenciar">▾</span>
+            </button>
+
+            <div id="conteudo-gerenciar" class="card-gerenciar-conteudo hidden">
+
+                <!-- Tabs Salas / Turmas -->
+                <div class="gerenciar-tabs">
+                    <button class="gerenciar-tab ativa" id="tab-salas"   onclick="alternarTabGerenciar('salas')">🏫 Salas</button>
+                    <button class="gerenciar-tab"       id="tab-turmas"  onclick="alternarTabGerenciar('turmas')">👥 Turmas</button>
+                </div>
+
+                <!-- Painel Salas -->
+                <div id="painel-salas" class="gerenciar-painel">
+                    <div class="gerenciar-add">
+                        <input type="text" id="nova-sala-nome" placeholder="Nome da sala..." autocomplete="off"
+                               onkeydown="if(event.key==='Enter') adicionarSala()">
+                        <button class="gerenciar-add-btn" onclick="adicionarSala()">+ Adicionar</button>
+                    </div>
+                    <div class="gerenciar-lista" id="lista-salas">
+                        <div class="gerenciar-vazio">Carregando...</div>
+                    </div>
+                </div>
+
+                <!-- Painel Turmas -->
+                <div id="painel-turmas" class="gerenciar-painel oculto">
+                    <div class="gerenciar-add">
+                        <input type="text" id="nova-turma-nome" placeholder="Nome da turma..." autocomplete="off"
+                               onkeydown="if(event.key==='Enter') adicionarTurma()">
+                        <button class="gerenciar-add-btn" onclick="adicionarTurma()">+ Adicionar</button>
+                    </div>
+                    <div class="gerenciar-lista" id="lista-turmas">
+                        <div class="gerenciar-vazio">Carregando...</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Tabela de agendamentos -->
+        <div class="tabela-larga">
+            <div class="filtros-container">
+                <div class="filtro-item">
+                    <label>Data</label>
+                    <input type="date" id="filtroData">
+                </div>
+                <div class="filtro-item">
+                    <label>Sala</label>
+                    <select id="filtroSala">
+                        <option value="">Todas as salas</option>
+                    </select>
+                </div>
+                <div class="filtro-item">
+                    <label>Professor</label>
+                    <select id="filtroProfessor">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <button class="btn-exportar" onclick="exportarParaPlanilha()">Exportar</button>
+            </div>
+            <div class="filtros-acoes">
+                <button class="btn-limpar-filtros" onclick="limparFiltros()">✕ Limpar filtros</button>
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Aula</th>
+                            <th>Local</th>
+                            <th>Professor</th>
+                            <th>Turma</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="listaAgendamentos">
+                        <tr>
+                            <td colspan="6" style="text-align:center; padding:40px; color:var(--txt3);">
+                                Selecione uma data para ver os agendamentos.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// Toggle senha visível
+function toggleSenhaVisivel() {
+    const inp = document.getElementById('senha-coord');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+</script>
+<script type="module" src="coordenacao.js"></script>
+</body>
+</html>

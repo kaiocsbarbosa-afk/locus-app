@@ -1,0 +1,877 @@
+/*
+   Locus visual refresh
+   A neutral, calendar-first interface inspired by the editorial clarity of Cal.com.
+   This file is intentionally presentation-only: markup, state and application
+   behavior remain in the original pages and scripts.
+*/
+
+:root {
+    --cal-ink: #362a21;
+    --cal-muted: #8a7768;
+    --cal-subtle: #b7a692;
+    --cal-page: linear-gradient(160deg, #fdf6ec 0%, #fce7d2 55%, #fbdcbf 100%);
+    --cal-page-solid: #fdf3e7;
+    --cal-paper: #ffffff;
+    --cal-line: #f0dfc7;
+    --cal-soft: #fbeeda;
+    --cal-blue: #dc3c3c;
+    --cal-blue-dark: #b52d2d;
+    --cal-amber: #f2a65a;
+    --cal-amber-soft: #fbe3c4;
+    --cal-green: #17834f;
+    --cal-red: #dc3c3c;
+    --cal-shadow: 0 18px 45px rgba(180, 90, 40, .12);
+    --cal-radius: 18px;
+    --cal-pill: 999px;
+    --cal-font: 'Poppins', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Shared surface tokens used by the legacy pages. */
+:root,
+body.dark-mode {
+    --bg-body: var(--cal-page);
+    --bg-card: var(--cal-paper);
+    --bg-input: var(--cal-paper);
+    --texto-principal: var(--cal-ink);
+    --texto-secundario: var(--cal-muted);
+    --texto-terciario: var(--cal-subtle);
+    --borda: var(--cal-line);
+    --borda-foco: var(--cal-blue);
+    --cor-primaria: var(--cal-ink);
+    --cor-primaria-hover: #2b2b2b;
+    --cor-primaria-clara: #f1f1f1;
+    --cor-sucesso: var(--cal-green);
+    --cor-sucesso-clara: #eaf8ef;
+    --cor-sucesso-texto: #12633b;
+    --cor-sucesso-borda: #b9e4c9;
+    --cor-perigo: var(--cal-red);
+    --cor-perigo-clara: #fff0f0;
+    --cor-perigo-texto: #a72d2d;
+    --cor-perigo-borda: #f3c5c5;
+    --shadow-sm: 0 1px 2px rgba(17,17,17,.04);
+    --shadow-md: 0 6px 18px rgba(17,17,17,.06);
+    --shadow-lg: var(--cal-shadow);
+}
+
+body.dark-mode {
+    --cal-page: linear-gradient(160deg, #121014 0%, #17151a 55%, #1c1216 100%);
+    --cal-page-solid: #121014;
+    --cal-paper: #1d1b1f;
+    --cal-line: #332c28;
+    --cal-soft: #262023;
+    --cal-ink: #f5f0ea;
+    --cal-muted: #b6aca2;
+    --cal-subtle: #857b71;
+    --cal-blue: #e9524b;
+    --cal-blue-dark: #c53f3a;
+    --cal-red: #e9524b;
+    --cal-amber: #f2a65a;
+    --cal-amber-soft: #3a2a1c;
+    --cor-primaria: #e9524b;
+    --cor-primaria-hover: #f16b64;
+    --cor-primaria-clara: #2a2023;
+    --cor-sucesso-clara: #132b1c;
+    --cor-sucesso-texto: #8ee5ad;
+    --cor-sucesso-borda: #326747;
+    --cor-perigo-clara: #341b1b;
+    --cor-perigo-texto: #ffadad;
+    --cor-perigo-borda: #743d3d;
+    --shadow-lg: 0 18px 45px rgba(0,0,0,.4);
+}
+
+body,
+button,
+input,
+select,
+textarea {
+    font-family: var(--cal-font) !important;
+}
+
+button,
+a,
+input,
+select {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* --------------------------------------------------------------------------
+   Home
+   -------------------------------------------------------------------------- */
+body:has(.hero) {
+    --bg: var(--cal-page);
+    --surface: var(--cal-paper);
+    --text: var(--cal-ink);
+    --text2: var(--cal-muted);
+    --text3: var(--cal-subtle);
+    --purple: var(--cal-blue);
+    --purple-bright: var(--cal-blue);
+    --purple-dim: #fbe3c4;
+    --purple-border: #f0c98a;
+    background: var(--cal-page);
+    color: var(--cal-ink);
+}
+
+body:has(.hero) .hero {
+    background:
+        linear-gradient(to right, var(--cal-page-solid) 0%, var(--cal-page-solid) 38%, transparent 80%),
+        url('./hero-photo.jpg') center right / cover no-repeat,
+        var(--cal-page);
+    border-bottom: 1px solid var(--cal-line);
+    padding: calc(20px + env(safe-area-inset-top)) max(24px, calc((100vw - 1120px) / 2)) 62px;
+    overflow: hidden;
+}
+
+body:has(.hero) .hero::before {
+    background-image: radial-gradient(circle, rgba(180,90,40,.16) 1px, transparent 1px);
+    background-size: 22px 22px;
+    opacity: .42;
+    mask-image: linear-gradient(110deg, black 0%, transparent 58%);
+    -webkit-mask-image: linear-gradient(110deg, black 0%, transparent 58%);
+}
+
+body:has(.hero) .hero::after {
+    display: none;
+}
+
+body:has(.hero) .hero-topo,
+body:has(.hero) .hero-conteudo {
+    width: 100%;
+    max-width: 1120px;
+    margin-inline: auto;
+}
+
+body:has(.hero) .hero-topo {
+    margin-bottom: clamp(48px, 8vw, 90px);
+}
+
+body:has(.hero) .hero-logo {
+    gap: 9px;
+}
+
+body:has(.hero) .hero-logo img {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+body:has(.hero) .hero-logo span {
+    color: var(--cal-ink);
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: -.03em;
+}
+
+body:has(.hero) .btn-dark-hero {
+    width: 38px;
+    height: 38px;
+    background: var(--cal-paper);
+    border: 1px solid var(--cal-line);
+    color: var(--cal-ink);
+    box-shadow: 0 1px 2px rgba(17,17,17,.04);
+}
+
+body:has(.hero) .btn-dark-hero:hover {
+    background: var(--cal-soft);
+    transform: translateY(-1px);
+}
+
+body:has(.hero) .hero-badge {
+    background: var(--cal-paper);
+    border-color: var(--cal-line);
+    color: var(--cal-ink);
+    border-radius: 9px;
+    padding: 6px 10px 6px 7px;
+    box-shadow: 0 1px 2px rgba(17,17,17,.04);
+}
+
+body:has(.hero) .hero-badge-dot {
+    background: var(--cal-soft);
+}
+
+body:has(.hero) .hero-badge-sair {
+    color: var(--cal-muted);
+    border-left-color: var(--cal-line);
+}
+
+body:has(.hero) .hero-conteudo {
+    min-height: 215px;
+    position: relative;
+    padding-right: min(43vw, 430px);
+}
+
+body:has(.hero) .hero-titulo {
+    max-width: 610px;
+    color: var(--cal-ink);
+    font-size: clamp(2.5rem, 5.4vw, 4.6rem);
+    line-height: .98;
+    letter-spacing: -.075em;
+    font-weight: 760;
+    margin-bottom: 16px;
+}
+
+body:has(.hero) .hero-titulo .destaque {
+    color: var(--cal-red);
+    background: none;
+    -webkit-text-fill-color: currentColor;
+}
+
+body:has(.hero) .hero-sub {
+    max-width: 440px;
+    color: var(--cal-muted);
+    font-size: .97rem;
+    line-height: 1.6;
+}
+
+/* Decorative schedule preview, deliberately a pseudo-element so the app logic stays untouched. */
+body:has(.hero) .hero-conteudo::after {
+    content: "Agenda de hoje\A\A  09:00   Sala 204\A  10:30   Laboratório 03\A\A  + Nova reserva";
+    white-space: pre-wrap;
+    position: absolute;
+    right: 0;
+    top: -26px;
+    width: min(33vw, 352px);
+    padding: 23px 24px;
+    color: var(--cal-ink);
+    background: var(--cal-paper);
+    border: 1px solid var(--cal-line);
+    border-radius: var(--cal-radius);
+    box-shadow: 0 22px 50px rgba(17,17,17,.11), 0 1px 2px rgba(17,17,17,.04);
+    font-size: .76rem;
+    font-weight: 650;
+    line-height: 2.1;
+    letter-spacing: -.015em;
+    animation: cal-float-in .8s cubic-bezier(.16, 1, .3, 1) both .22s;
+}
+
+body:has(.hero) .hero-conteudo::before {
+    content: "Seg, 13 jul";
+    position: absolute;
+    z-index: 1;
+    right: min(21vw, 220px);
+    top: -12px;
+    color: var(--cal-muted);
+    font-size: .65rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+body:has(.hero) #app-content {
+    width: min(100%, 1120px);
+    margin: 0 auto;
+    padding: 27px 0 calc(36px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-content: start;
+    gap: 12px;
+    background: transparent;
+}
+
+body:has(.hero) .secao-label {
+    grid-column: 1 / -1;
+    margin: 10px 0 1px;
+    color: var(--cal-subtle);
+    font-size: .66rem;
+    font-weight: 720;
+    letter-spacing: .1em;
+}
+
+body:has(.hero) .secao-label::after {
+    background: var(--cal-line);
+}
+
+body:has(.hero) .nav-card {
+    min-height: 200px;
+    margin: 0;
+    padding: 28px 22px 24px;
+    background: var(--cal-paper);
+    border: 1px solid var(--cal-line);
+    border-radius: var(--cal-radius);
+    box-shadow: 0 1px 2px rgba(180,90,40,.04);
+    backdrop-filter: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+}
+
+body:has(.hero) .card-retorno {
+    min-height: 128px;
+    margin: 0;
+    padding: 19px;
+    background: var(--cal-soft);
+    border: 1px solid var(--cal-line);
+    border-radius: var(--cal-radius);
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+body:has(.hero) .nav-card::before {
+    display: none;
+}
+
+body:has(.hero) .nav-card-icone {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    border-radius: 16px;
+    background: var(--cal-amber-soft);
+    margin-bottom: 14px;
+}
+
+body:has(.hero) .nav-card.verde .nav-card-icone,
+body:has(.hero) .nav-card.laranja .nav-card-icone {
+    background: var(--cal-amber-soft);
+}
+
+body:has(.hero) .nav-card:hover {
+    border-color: var(--cal-line);
+    box-shadow: var(--cal-shadow);
+    transform: translateY(-3px);
+}
+
+body:has(.hero) .card-retorno:hover {
+    border-color: #c9c9c9;
+    transform: translateY(-3px);
+}
+
+body:has(.hero) .nav-card-titulo,
+body:has(.hero) .retorno-nome {
+    color: var(--cal-ink);
+    font-size: 1.05rem;
+    font-weight: 750;
+    letter-spacing: -.02em;
+}
+
+body:has(.hero) .nav-card-desc {
+    color: var(--cal-muted);
+    font-size: .82rem;
+    line-height: 1.5;
+    max-width: 220px;
+    margin-bottom: 18px;
+}
+
+body:has(.hero) .retorno-titulo {
+    color: var(--cal-muted);
+    font-size: .77rem;
+}
+
+body:has(.hero) .nav-card-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 11px 26px;
+    background: var(--cal-red);
+    color: #fff;
+    font-size: .85rem;
+    font-weight: 700;
+    border-radius: var(--cal-pill);
+    box-shadow: 0 8px 18px rgba(220,60,60,.22);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+body:has(.hero) .nav-card:hover .nav-card-cta {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(220,60,60,.3);
+}
+
+body:has(.hero) .retorno-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--cal-paper);
+    border: 1px solid var(--cal-line);
+}
+
+body:has(.hero) .retorno-seta { color: var(--cal-muted); }
+body:has(.hero) .rodape {
+    grid-column: 1 / -1;
+    color: var(--cal-subtle);
+    padding: 18px 0 0;
+}
+
+body:has(.hero) #splash {
+    background: var(--cal-page);
+}
+
+body:has(.hero) .splash-icon {
+    width: 68px;
+    height: 68px;
+    border-radius: 17px;
+    background: var(--cal-paper);
+    border-color: var(--cal-line);
+    box-shadow: var(--cal-shadow);
+}
+
+body:has(.hero) .splash-nome { color: var(--cal-ink); }
+body:has(.hero) .splash-sub { color: var(--cal-muted); }
+body:has(.hero) .splash-loader { background: var(--cal-line); }
+body:has(.hero) .splash-loader-barra { background: var(--cal-ink); }
+body:has(.hero) #toast {
+    background: var(--cal-ink);
+    border-color: var(--cal-ink);
+    color: var(--cal-paper);
+    box-shadow: 0 12px 28px rgba(17,17,17,.18);
+}
+
+/* --------------------------------------------------------------------------
+   Access request (cadasto.html)
+   -------------------------------------------------------------------------- */
+body:has(.page-wrap) {
+    --purple: var(--cal-blue);
+    --purple-dim: #fbe3c4;
+    --purple-border: #f0c98a;
+    --purple-glow: rgba(220,60,60,.15);
+    --bg: var(--cal-page);
+    --surface: var(--cal-paper);
+    --surface2: var(--cal-soft);
+    --text: var(--cal-ink);
+    --text2: var(--cal-muted);
+    --text3: var(--cal-subtle);
+    --border: var(--cal-line);
+    --border-focus: var(--cal-blue);
+    background: var(--cal-page) !important;
+    color: var(--cal-ink);
+}
+
+body:has(.page-wrap)::before,
+body:has(.page-wrap)::after,
+body:has(#secao-login-coord)::before,
+body:has(#secao-login-coord)::after,
+body:has(#tela-login)::before,
+body:has(#tela-login)::after {
+    display: none;
+}
+
+body:has(.page-wrap) .page-wrap {
+    width: min(100%, 448px);
+    position: relative;
+    z-index: 1;
+}
+
+body:has(.page-wrap) .logo-section {
+    margin-bottom: 26px;
+}
+
+body:has(.page-wrap) .logo-icon {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    margin-bottom: 12px;
+    border-radius: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+}
+
+body:has(.page-wrap) .logo-nome {
+    color: var(--cal-ink);
+    font-size: 1.8rem;
+    font-weight: 760;
+    letter-spacing: -.07em;
+}
+
+body:has(.page-wrap) .logo-sub { color: var(--cal-muted); }
+
+body:has(.page-wrap) .card {
+    background: var(--cal-paper);
+    border: 1px solid var(--cal-line);
+    border-radius: var(--cal-radius);
+    box-shadow: var(--cal-shadow);
+    padding: 27px;
+}
+
+body:has(.page-wrap) .card::before { display: none; }
+body:has(.page-wrap) .card-titulo,
+body:has(.page-wrap) .sucesso-titulo { color: var(--cal-ink); letter-spacing: -.045em; }
+body:has(.page-wrap) .card-sub,
+body:has(.page-wrap) .sucesso-sub,
+body:has(.page-wrap) .pin-hint { color: var(--cal-muted); }
+body:has(.page-wrap) .field label,
+body:has(.page-wrap) .pin-label { color: var(--cal-ink); }
+
+body:has(.page-wrap) .field input,
+body:has(.page-wrap) .field select {
+    color: var(--cal-ink);
+    background: var(--cal-paper);
+    border-color: var(--cal-line);
+    border-radius: 9px;
+}
+
+body:has(.page-wrap) .field input:focus,
+body:has(.page-wrap) .field select:focus {
+    border-color: var(--cal-blue);
+    box-shadow: 0 0 0 3px rgba(220,60,60,.15);
+}
+
+body:has(.page-wrap) .select-wrap::after { color: var(--cal-muted); }
+body:has(.page-wrap) .pin-wrapper { background: var(--cal-soft); border-color: var(--cal-line); }
+body:has(.page-wrap) .pin-dot { border-color: #d5d5d5; background: var(--cal-paper); }
+body:has(.page-wrap) .pin-dot.ativo,
+body:has(.page-wrap) .pin-dot.preenchido { border-color: var(--cal-blue); background: #fbe3c4; }
+body:has(.page-wrap) .pin-dot.ativo::before { background: var(--cal-blue); }
+body:has(.page-wrap) .pin-char { color: var(--cal-ink); }
+body:has(.page-wrap) .aviso { background: var(--cal-amber-soft); border-color: #f0c98a; color: #8a5a1e; }
+body:has(.page-wrap) .btn-enviar {
+    background: var(--cal-red);
+    border-radius: var(--cal-pill);
+    box-shadow: 0 8px 18px rgba(220,60,60,.25);
+}
+body:has(.page-wrap) .btn-enviar:hover { background: var(--cal-blue-dark); transform: translateY(-1px); }
+body:has(.page-wrap) .btn-voltar { background: var(--cal-soft); border-color: var(--cal-line); color: var(--cal-ink); border-radius: var(--cal-pill); }
+body:has(.page-wrap) .footer,
+body:has(.page-wrap) .footer a { color: var(--cal-muted); }
+
+/* --------------------------------------------------------------------------
+   Professor application
+   -------------------------------------------------------------------------- */
+body:has(#tela-login),
+body:has(#tela-login) #tela-login {
+    --purple: var(--cal-blue);
+    --purple-bright: var(--cal-blue);
+    --purple-dim: #fbe3c4;
+    --purple-border: #f0c98a;
+    --purple-glow: rgba(220,60,60,.15);
+    --login-bg: var(--cal-page);
+    --login-surface: var(--cal-paper);
+    --login-surface2: var(--cal-soft);
+    --login-text: var(--cal-ink);
+    --login-text2: var(--cal-muted);
+    --login-text3: var(--cal-subtle);
+    --login-border: var(--cal-line);
+    background: var(--cal-page) !important;
+    color: var(--cal-ink);
+}
+
+body:has(#tela-login) #app-header {
+    background: var(--cal-paper);
+    border-bottom-color: var(--cal-line);
+    box-shadow: 0 1px 0 rgba(17,17,17,.02);
+}
+
+body:has(#tela-login) .header-titulo { color: var(--cal-ink); font-family: var(--cal-font); }
+body:has(#tela-login) .header-btn,
+body:has(#tela-login) .login-btn-dark {
+    background: var(--cal-paper);
+    border-color: var(--cal-line);
+    color: var(--cal-ink);
+    border-radius: 9px;
+}
+
+body:has(#tela-login) #app-content {
+    background: var(--cal-page);
+}
+
+body:has(#tela-login) #tela-login {
+    min-height: 100%;
+}
+
+body:has(#tela-login) .login-logo-icon {
+    background: none;
+    border: none;
+    box-shadow: none;
+}
+
+body:has(#tela-login) .login-logo-nome,
+body:has(#tela-login) .login-card-titulo,
+body:has(#tela-login) .pin-titulo { color: var(--cal-ink); }
+body:has(#tela-login) .login-logo-sub,
+body:has(#tela-login) .login-card-sub,
+body:has(#tela-login) .pin-sub { color: var(--cal-muted); }
+
+body:has(#tela-login) .login-card {
+    background: var(--cal-paper);
+    border: 1px solid var(--cal-line);
+    border-radius: var(--cal-radius);
+    box-shadow: var(--cal-shadow);
+    backdrop-filter: none;
+}
+
+body:has(#tela-login) .login-card::before { display: none; }
+body:has(#tela-login) .prof-search-wrap input,
+body:has(#tela-login) .login-select-wrap select,
+body:has(#tela-login) .form-group input,
+body:has(#tela-login) .form-group select {
+    background: var(--cal-paper) !important;
+    color: var(--cal-ink) !important;
+    border-color: var(--cal-line) !important;
+    border-radius: 9px !important;
+    box-shadow: none !important;
+}
+
+body:has(#tela-login) .prof-search-wrap input:focus,
+body:has(#tela-login) .form-group input:focus,
+body:has(#tela-login) .form-group select:focus {
+    border-color: var(--cal-blue) !important;
+    box-shadow: 0 0 0 3px rgba(220,60,60,.15) !important;
+}
+
+body:has(#tela-login) .prof-card,
+body:has(#tela-login) .prof-item {
+    background: var(--cal-paper) !important;
+    border-color: var(--cal-line) !important;
+    color: var(--cal-ink) !important;
+}
+
+body:has(#tela-login) .btn-continuar,
+body:has(#tela-login) .btn-entrar {
+    background: var(--cal-red) !important;
+    border-radius: var(--cal-pill);
+    box-shadow: 0 8px 18px rgba(220,60,60,.25) !important;
+}
+
+body:has(#tela-login) .pin-usuario-pill,
+body:has(#tela-login) .pin-wrapper {
+    background: var(--cal-soft);
+    border-color: var(--cal-line);
+}
+body:has(#tela-login) .pin-avatar-circle { background: var(--cal-red); }
+body:has(#tela-login) .pin-usuario-nome { color: var(--cal-ink); }
+body:has(#tela-login) .pin-dot { background: var(--cal-paper); border-color: #d5d5d5; }
+body:has(#tela-login) .pin-dot.ativo,
+body:has(#tela-login) .pin-dot.preenchido { border-color: var(--cal-blue); background: #fbe3c4; }
+body:has(#tela-login) .pin-dot.ativo::before { background: var(--cal-blue); }
+
+body:has(#tela-login) #bottom-nav {
+    background: var(--cal-paper);
+    border-top-color: var(--cal-line);
+}
+body:has(#tela-login) .nav-tab { color: var(--cal-subtle); }
+body:has(#tela-login) .nav-tab.ativa { color: var(--cal-red); }
+body:has(#tela-login) .nav-tab.ativa::before { background: var(--cal-red); }
+
+body:has(#tela-login) .saudacao {
+    background: var(--cal-ink);
+    border-radius: var(--cal-radius);
+    box-shadow: 0 12px 26px rgba(17,17,17,.11);
+}
+body:has(#tela-login) .saudacao::after { background: rgba(255,255,255,.09); }
+body:has(#tela-login) .form-group label,
+body:has(#tela-login) .secao-titulo { color: var(--cal-muted); }
+body:has(#tela-login) .btn-aula { border-radius: var(--cal-pill) !important; }
+body:has(#tela-login) .btn-aula.disponivel { background: var(--cal-paper) !important; color: var(--cal-red) !important; border-color: var(--cal-blue) !important; border-width: 1.5px !important; font-weight: 700; }
+body:has(#tela-login) .btn-aula.ocupada { background: var(--cal-soft) !important; color: var(--cal-muted) !important; border-color: var(--cal-line) !important; }
+body:has(#tela-login) .btn-aula.encerrada { background: var(--cal-soft) !important; color: var(--cal-subtle) !important; border-color: var(--cal-line) !important; cursor: not-allowed; }
+body:has(#tela-login) .historico-item,
+body:has(#tela-login) .reserva-card,
+body:has(#tela-login) .semana-card,
+body:has(#tela-login) .perfil-card { background: var(--cal-paper) !important; border-color: var(--cal-line) !important; }
+
+/* --------------------------------------------------------------------------
+   Coordination dashboard
+   -------------------------------------------------------------------------- */
+body:has(#secao-login-coord) {
+    --purple: var(--cal-blue);
+    --purple-bright: var(--cal-blue);
+    --purple-dim: #fbe3c4;
+    --purple-border: #f0c98a;
+    --purple-glow: rgba(220,60,60,.15);
+    --bg: var(--cal-page);
+    --surface: var(--cal-paper);
+    --surface2: var(--cal-soft);
+    --border: var(--cal-line);
+    --border2: #d9d9d9;
+    --txt: var(--cal-ink);
+    --txt2: var(--cal-muted);
+    --txt3: var(--cal-subtle);
+    --blue: var(--cal-blue);
+    --blue-glow: rgba(220,60,60,.15);
+    --green: var(--cal-green);
+    --red: var(--cal-red);
+    --red-soft: #fff0f0;
+    background: var(--cal-page) !important;
+    color: var(--cal-ink);
+}
+
+body:has(#secao-login-coord) #secao-login-coord,
+body:has(#secao-login-coord) #secao-dashboard { background: transparent; }
+
+body:has(#secao-login-coord) .login-logo-icon,
+body:has(#secao-login-coord) .header-logo-icon {
+    background: none;
+    border: none;
+    box-shadow: none;
+}
+
+body:has(#secao-login-coord) .professor-card-avatar {
+    background: var(--cal-ink);
+    border-color: var(--cal-ink);
+    box-shadow: 0 8px 18px rgba(17,17,17,.11);
+}
+
+body:has(#secao-login-coord) .login-logo-nome,
+body:has(#secao-login-coord) .login-card-titulo,
+body:has(#secao-login-coord) .header-logo-info .titulo { color: var(--cal-ink); }
+body:has(#secao-login-coord) .login-logo-sub,
+body:has(#secao-login-coord) .login-card-sub,
+body:has(#secao-login-coord) .header-logo-info .sub { color: var(--cal-muted); }
+
+body:has(#secao-login-coord) .login-card,
+body:has(#secao-login-coord) .card-mini,
+body:has(#secao-login-coord) .card-gerenciar,
+body:has(#secao-login-coord) .tabela-larga {
+    background: var(--cal-paper);
+    border-color: var(--cal-line);
+    box-shadow: 0 1px 2px rgba(17,17,17,.02);
+}
+
+body:has(#secao-login-coord) .login-card { border-radius: var(--cal-radius); box-shadow: var(--cal-shadow); }
+body:has(#secao-login-coord) .login-card::before { display: none; }
+body:has(#secao-login-coord) .login-input-wrap input,
+body:has(#secao-login-coord) .filtro-item input,
+body:has(#secao-login-coord) .filtro-item select,
+body:has(#secao-login-coord) .professor-card-edicao input,
+body:has(#secao-login-coord) .professor-card-edicao select,
+body:has(#secao-login-coord) .gerenciar-add input {
+    background: var(--cal-paper) !important;
+    color: var(--cal-ink) !important;
+    border-color: var(--cal-line) !important;
+    border-radius: 9px;
+}
+
+body:has(#secao-login-coord) .login-input-wrap input:focus,
+body:has(#secao-login-coord) .filtro-item input:focus,
+body:has(#secao-login-coord) .filtro-item select:focus,
+body:has(#secao-login-coord) .professor-card-edicao input:focus,
+body:has(#secao-login-coord) .professor-card-edicao select:focus,
+body:has(#secao-login-coord) .gerenciar-add input:focus {
+    border-color: var(--cal-blue) !important;
+    box-shadow: 0 0 0 3px rgba(220,60,60,.15) !important;
+}
+
+body:has(#secao-login-coord) .btn-acessar,
+body:has(#secao-login-coord) .gerenciar-add-btn {
+    background: var(--cal-red);
+    border-radius: var(--cal-pill);
+    box-shadow: 0 8px 18px rgba(220,60,60,.25);
+}
+
+body:has(#secao-login-coord) .header-painel {
+    background: var(--cal-paper);
+    border-bottom-color: var(--cal-line);
+}
+
+body:has(#secao-login-coord) .header-nav-coord {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+body:has(#secao-login-coord) .header-nav-item {
+    padding: 7px 16px;
+    border-radius: var(--cal-pill);
+    font-size: .82rem;
+    font-weight: 600;
+    color: var(--cal-muted);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background .15s, color .15s;
+}
+body:has(#secao-login-coord) a.header-nav-item:hover {
+    background: var(--cal-soft);
+    color: var(--cal-ink);
+}
+body:has(#secao-login-coord) .header-nav-item.ativo {
+    background: var(--cal-amber-soft);
+    color: var(--cal-ink);
+}
+body:has(#secao-login-coord) .header-nav-item.desabilitado {
+    opacity: .4;
+    cursor: default;
+}
+@media (max-width: 780px) {
+    body:has(#secao-login-coord) .header-nav-coord { display: none; }
+}
+
+body:has(#secao-login-coord) .btn-header,
+body:has(#secao-login-coord) .btn-exportar,
+body:has(#secao-login-coord) .btn-limpar-filtros {
+    background: var(--cal-paper);
+    border-color: var(--cal-line);
+    color: var(--cal-ink);
+    border-radius: 8px;
+}
+
+body:has(#secao-login-coord) .btn-sair { background: #fff4f4; border-color: #f3caca; color: #a72d2d; }
+body:has(#secao-login-coord) .card-mini { border-radius: var(--cal-radius); border-width: 1.5px; border-color: var(--cal-blue) !important; }
+body:has(#secao-login-coord) .card-mini::before { display: none; }
+body:has(#secao-login-coord) .card-mini span,
+body:has(#secao-login-coord) .card-gerenciar-toggle,
+body:has(#secao-login-coord) .solicitacao-nome,
+body:has(#secao-login-coord) .professor-nome,
+body:has(#secao-login-coord) .gerenciar-item-nome { color: var(--cal-ink); }
+body:has(#secao-login-coord) .card-mini label,
+body:has(#secao-login-coord) .solicitacao-meta,
+body:has(#secao-login-coord) .professor-disciplina { color: var(--cal-muted); }
+body:has(#secao-login-coord) .card-gerenciar { border-radius: var(--cal-radius); }
+body:has(#secao-login-coord) .card-gerenciar-conteudo,
+body:has(#secao-login-coord) .professor-card-acoes { border-color: var(--cal-line); }
+body:has(#secao-login-coord) .solicitacao-card,
+body:has(#secao-login-coord) .professor-card,
+body:has(#secao-login-coord) .gerenciar-item {
+    background: var(--cal-paper);
+    border-color: var(--cal-line);
+    border-radius: 10px;
+}
+body:has(#secao-login-coord) .gerenciar-tab { border-color: var(--cal-line); color: var(--cal-muted); }
+body:has(#secao-login-coord) .gerenciar-tab.ativa { background: var(--cal-ink); border-color: var(--cal-ink); color: #fff; }
+body:has(#secao-login-coord) .badge-sala { background: #fbe3c4; border-color: #f0c98a; color: #8a5a1e; }
+body:has(#secao-login-coord) table thead { background: var(--cal-soft); }
+body:has(#secao-login-coord) table th,
+body:has(#secao-login-coord) table td { border-color: var(--cal-line); color: var(--cal-ink); }
+
+/* Entry and interactive motion: restrained, fast, and disabled when requested. */
+@keyframes cal-float-in {
+    from { opacity: 0; transform: translateY(16px) rotate(1.5deg); }
+    to { opacity: 1; transform: translateY(0) rotate(0); }
+}
+
+@keyframes cal-rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+body:has(.page-wrap) .card,
+body:has(#secao-login-coord) .login-card,
+body:has(#tela-login) .login-card { animation: cal-rise .55s cubic-bezier(.16, 1, .3, 1) both; }
+
+body:has(#secao-login-coord) .card-mini,
+body:has(#secao-login-coord) .card-gerenciar,
+body:has(#secao-login-coord) .tabela-larga { animation: cal-rise .45s cubic-bezier(.16, 1, .3, 1) both; }
+
+@media (max-width: 720px) {
+    body:has(.hero) .hero {
+        padding: calc(18px + env(safe-area-inset-top)) 20px 38px;
+        background: var(--cal-page);
+    }
+
+    body:has(.hero) .hero-topo { margin-bottom: 46px; }
+    body:has(.hero) .hero-conteudo { min-height: 0; padding-right: 0; }
+    body:has(.hero) .hero-titulo { font-size: clamp(2.45rem, 12vw, 3.5rem); }
+    body:has(.hero) .hero-conteudo::before,
+    body:has(.hero) .hero-conteudo::after { display: none; }
+    body:has(.hero) #app-content {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        padding: 21px 18px calc(26px + env(safe-area-inset-bottom));
+        gap: 10px;
+    }
+    body:has(.hero) .secao-label { margin: 9px 2px 1px; }
+    body:has(.hero) .nav-card { min-height: 0; padding: 22px 18px 20px; }
+    body:has(.hero) .card-retorno { order: -1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+    }
+}
