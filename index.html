@@ -1,616 +1,733 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Locus</title>
+    <title>Locus - Sistema de Agendamento</title>
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./apple-touch-icon.png">
     <link rel="icon" href="./icon-96.png" type="image/png">
-    <meta name="theme-color" content="#07030f">
+    <meta name="theme-color" content="#ffffff">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Locus">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <style>
-    *, *::before, *::after {
-        box-sizing: border-box; margin: 0; padding: 0;
-        -webkit-tap-highlight-color: transparent;
-    }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
 
-    @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
-    }
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: .01ms !important;
+                transition-duration: .01ms !important;
+            }
+        }
 
-    :root {
-        /* ── Tema claro (padrão) ── */
-        --purple:        #dc3c3c;
-        --purple-bright: #dc3c3c;
-        --purple-dim:    rgba(220,60,60,0.12);
-        --purple-border: rgba(220,60,60,0.28);
-        --green:         #10b981;
-        --green-dim:     rgba(16,185,129,0.12);
-        --green-border:  rgba(16,185,129,0.3);
-        --orange:        #f59e0b;
-        --orange-dim:    rgba(245,158,11,0.1);
-        --orange-border: rgba(245,158,11,0.25);
-        --bg:            #f5f3ff;
-        --surface:       rgba(255,255,255,0.9);
-        --text:          #1e1b4b;
-        --text2:         rgba(30,27,75,0.6);
-        --text3:         rgba(30,27,75,0.4);
-        --card-shadow:        0 2px 20px rgba(30,27,75,.1);
-        --card-shadow-active: 0 1px 8px rgba(30,27,75,.14);
-    }
+        :root {
+            --primary-red: #dc3c3c;
+            --primary-red-hover: #b82e2e;
+            --bg: #ffffff;
+            --surface: #ffffff;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border-light: rgba(220, 60, 60, 0.14);
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.05), 0 2px 8px rgba(0, 0, 0, 0.03);
+            --card-shadow-hover: 0 16px 40px rgba(220, 60, 60, 0.12), 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
 
-    /* ── Tema escuro ── */
-    body.dark-mode {
-        --purple-bright: #e9524b;
-        --purple-dim:    rgba(220,60,60,0.18);
-        --purple-border: rgba(220,60,60,0.35);
-        --green-dim:     rgba(16,185,129,0.15);
-        --green-border:  rgba(16,185,129,0.35);
-        --orange-dim:    rgba(245,158,11,0.12);
-        --orange-border: rgba(245,158,11,0.3);
-        --bg:            #07030f;
-        --surface:       rgba(15,9,28,0.85);
-        --text:          #f0eeff;
-        --text2:         rgba(240,238,255,0.55);
-        --text3:         rgba(240,238,255,0.35);
-        --card-shadow:        0 2px 20px rgba(0,0,0,.35);
-        --card-shadow-active: 0 1px 8px rgba(0,0,0,.4);
-    }
+        body.dark-mode {
+            --bg: #0b0914;
+            --surface: #151125;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border-light: rgba(220, 60, 60, 0.25);
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            --card-shadow-hover: 0 16px 40px rgba(220, 60, 60, 0.25);
+        }
 
-    html { height: 100%; overflow: hidden; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            transition: background-color .3s ease, color .3s ease;
+        }
 
-    body {
-        font-family: 'Poppins', sans-serif;
-        height: 100dvh;
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        background: var(--bg);
-        color: var(--text);
-        transition: background-color .3s ease, color .3s ease;
-    }
+        /* ── SPLASH ─────────────────────────── */
+        #splash {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity .55s cubic-bezier(.4, 0, .2, 1), transform .55s cubic-bezier(.4, 0, .2, 1);
+        }
 
-    /* ── SPLASH ─────────────────────────── */
-    #splash {
-        position: fixed;
-        inset: 0;
-        background: var(--bg);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        transition: opacity .55s cubic-bezier(.4,0,.2,1), transform .55s cubic-bezier(.4,0,.2,1);
-    }
-    #splash.saindo { opacity: 0; transform: scale(1.04); pointer-events: none; }
+        #splash.saindo {
+            opacity: 0;
+            transform: scale(1.04);
+            pointer-events: none;
+        }
 
-    .splash-icon {
-        width: 88px; height: 88px;
-        border-radius: 26px;
-        background: var(--purple-dim);
-        border: 1px solid var(--purple-border);
-        display: flex; align-items: center; justify-content: center;
-        margin-bottom: 20px;
-        animation: pulsar 2.2s ease-in-out infinite;
-        box-shadow: 0 0 60px rgba(220,60,60,0.25);
-    }
-    .splash-icon img { width: 60px; height: 60px; border-radius: 16px; }
+        .splash-icon {
+            width: 88px;
+            height: 88px;
+            border-radius: 26px;
+            background: rgba(220, 60, 60, 0.12);
+            border: 1px solid rgba(220, 60, 60, 0.28);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            animation: pulsar 2.2s ease-in-out infinite;
+            box-shadow: 0 0 60px rgba(220, 60, 60, 0.25);
+        }
 
-    .splash-nome {
-        font-size: 2.4rem; font-weight: 800; color: var(--text);
-        letter-spacing: -2px;
-        animation: surgir .6s cubic-bezier(.34,1.56,.64,1) both .12s;
-    }
-    .splash-sub {
-        font-size: .8rem; color: var(--text2);
-        margin-top: 5px; letter-spacing: .04em;
-        animation: surgir .6s cubic-bezier(.34,1.56,.64,1) both .22s;
-    }
-    .splash-loader {
-        margin-top: 56px; width: 44px; height: 2px;
-        background: rgba(220,60,60,.2); border-radius: 2px; overflow: hidden;
-        animation: surgir .4s ease both .38s;
-    }
-    .splash-loader-barra {
-        height: 100%; background: var(--purple-bright); border-radius: 2px;
-        animation: carregar 2s cubic-bezier(.4,0,.2,1) forwards;
-    }
+        .splash-icon img {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+        }
 
-    @keyframes pulsar {
-        0%,100% { box-shadow: 0 0 40px rgba(220,60,60,.2); }
-        50%      { box-shadow: 0 0 70px rgba(220,60,60,.4); }
-    }
-    @keyframes surgir {
-        from { opacity: 0; transform: translateY(12px) scale(.97); }
-        to   { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    @keyframes carregar {
-        from { width: 0; } to { width: 100%; }
-    }
-    @keyframes fadeUp {
-        from { opacity: 0; transform: translateY(18px); }
-        to   { opacity: 1; transform: translateY(0); }
-    }
+        .splash-nome {
+            font-size: 2.4rem;
+            font-weight: 800;
+            color: var(--text-main);
+            letter-spacing: -1.5px;
+        }
 
-    /* ── HERO ───────────────────────────── */
-    .hero {
-        flex-shrink: 0;
-        position: relative;
-        overflow: hidden;
-        padding: calc(22px + env(safe-area-inset-top)) 22px 52px;
-        background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(220,60,60,.35) 0%, transparent 70%),
-                    var(--bg);
-    }
+        .splash-sub {
+            font-size: .85rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+        }
 
-    /* Dot grid — the signature element */
-    .hero::before {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background-image: radial-gradient(circle, rgba(220,60,60,.22) 1px, transparent 1px);
-        background-size: 26px 26px;
-        mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black 30%, transparent 100%);
-        -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 0%, black 30%, transparent 100%);
-        pointer-events: none;
-    }
+        .splash-loader {
+            margin-top: 40px;
+            width: 44px;
+            height: 3px;
+            background: rgba(220, 60, 60, .2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
 
-    /* Bottom fade into content */
-    .hero::after {
-        content: '';
-        position: absolute;
-        bottom: 0; left: 0; right: 0; height: 56px;
-        background: linear-gradient(to bottom, transparent, var(--bg));
-        pointer-events: none;
-    }
+        .splash-loader-barra {
+            height: 100%;
+            background: var(--primary-red);
+            border-radius: 3px;
+            animation: carregar 1.8s cubic-bezier(.4, 0, .2, 1) forwards;
+        }
 
-    .hero-topo {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 28px;
-        position: relative; z-index: 1;
-    }
+        @keyframes pulsar {
+            0%, 100% { box-shadow: 0 0 30px rgba(220, 60, 60, .2); }
+            50% { box-shadow: 0 0 60px rgba(220, 60, 60, .4); }
+        }
 
-    .hero-logo {
-        display: flex; align-items: center; gap: 9px;
-    }
-    .hero-logo img {
-        width: 28px; height: 28px; border-radius: 8px;
-    }
-    .hero-logo span {
-        font-size: 1.1rem; font-weight: 800; color: var(--text);
-        letter-spacing: -.4px;
-    }
+        @keyframes carregar {
+            from { width: 0; }
+            to { width: 100%; }
+        }
 
-    .btn-dark-hero {
-        width: 34px; height: 34px; border-radius: 50%;
-        border: 1px solid rgba(220,60,60,.4);
-        background: rgba(220,60,60,.12);
-        display: flex; align-items: center; justify-content: center;
-        font-size: .95rem; cursor: pointer;
-        transition: background .2s, transform .15s;
-    }
-    .btn-dark-hero:active { transform: scale(.88); }
+        /* ── HERO BANNER (header + hero as one block) ── */
+        .hero-banner {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+            background-color: #d4b8a0;
+            background-image: url('./hero-photo.jpg');
+            background-size: cover;
+            background-position: center top;
+            background-repeat: no-repeat;
+        }
 
-    .hero-conteudo { position: relative; z-index: 1; }
+        @supports (background-image: url('./hero-photo.avif')) {
+            .hero-banner {
+                background-image: url('./hero-photo.avif');
+            }
+        }
 
-    .hero-titulo {
-        font-size: 1.75rem; font-weight: 800;
-        color: var(--text); letter-spacing: -.6px; line-height: 1.18;
-        margin-bottom: 8px;
-        animation: fadeUp .5s ease both .1s;
-    }
-    .hero-titulo .destaque {
-        color: transparent;
-        background: linear-gradient(135deg, #ef6b64, #dc3c3c);
-        -webkit-background-clip: text; background-clip: text;
-    }
+        /* Warm beige/peach gradient overlay — fades left side for text readability */
+        .hero-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                to right,
+                rgba(235, 210, 185, 0.92) 0%,
+                rgba(235, 210, 185, 0.75) 30%,
+                rgba(235, 210, 185, 0.25) 55%,
+                transparent 75%
+            );
+            z-index: 1;
+            pointer-events: none;
+        }
 
-    .hero-sub {
-        font-size: .82rem; color: var(--text2); line-height: 1.55;
-        animation: fadeUp .5s ease both .16s;
-    }
-    .hero-sub:empty { display: none; }
+        /* Bottom soft fade */
+        .hero-banner::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: linear-gradient(to bottom, transparent, #f5ebe0);
+            z-index: 1;
+            pointer-events: none;
+        }
 
-    /* Badge de professor logado — também funciona como botão de sair */
-    .hero-badge {
-        display: none; align-items: center; gap: 7px;
-        background: rgba(220,60,60,.15);
-        border: 1px solid rgba(220,60,60,.3);
-        border-radius: 20px; padding: 5px 12px 5px 7px;
-        font-size: .74rem; color: #ffb4b0; font-weight: 600;
-        font-family: inherit; cursor: pointer;
-        -webkit-appearance: none; appearance: none;
-        backdrop-filter: blur(8px); animation: surgir .4s ease both;
-        transition: background .2s, transform .15s;
-    }
-    .hero-badge.visivel { display: flex; }
-    .hero-badge:active { transform: scale(.95); background: rgba(220,60,60,.25); }
-    .hero-badge-dot {
-        width: 20px; height: 20px; border-radius: 50%;
-        background: rgba(220,60,60,.25);
-        display: flex; align-items: center; justify-content: center; font-size: .65rem;
-    }
-    .hero-badge-sair {
-        font-size: .62rem; color: rgba(255,180,175,.65); font-weight: 600;
-        margin-left: 2px; padding-left: 7px; border-left: 1px solid rgba(255,180,175,.3);
-    }
+        body.dark-mode .hero-banner {
+            background-color: #1a1520;
+        }
 
-    /* ── CONTEÚDO ───────────────────────── */
-    #app-content {
-        flex: 1; overflow-y: auto; overflow-x: hidden;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior-y: contain;
-        padding: 14px 18px calc(24px + env(safe-area-inset-bottom));
-        min-height: 0;
-    }
+        body.dark-mode .hero-banner::before {
+            background: linear-gradient(
+                to right,
+                rgba(15, 10, 25, 0.92) 0%,
+                rgba(15, 10, 25, 0.75) 30%,
+                rgba(15, 10, 25, 0.30) 55%,
+                transparent 75%
+            );
+        }
 
-    /* ── LABEL DE SEÇÃO ─────────────────── */
-    .secao-label {
-        font-size: .64rem; font-weight: 700;
-        text-transform: uppercase; letter-spacing: .14em;
-        color: var(--text3); margin: 20px 2px 10px;
-        display: flex; align-items: center; gap: 8px;
-    }
-    .secao-label::after {
-        content: ''; flex: 1; height: 1px;
-        background: rgba(220,60,60,.15);
-    }
+        body.dark-mode .hero-banner::after {
+            background: linear-gradient(to bottom, transparent, var(--bg));
+        }
 
-    /* ── NAV CARDS ──────────────────────── */
-    .nav-card {
-        display: flex; align-items: center; gap: 14px;
-        background: var(--surface);
-        border: 1px solid rgba(220,60,60,.15);
-        border-radius: 18px; padding: 15px 14px;
-        text-decoration: none; margin-bottom: 10px;
-        position: relative; overflow: hidden;
-        backdrop-filter: blur(12px);
-        box-shadow: var(--card-shadow);
-        opacity: 0; transform: translateY(16px);
-        transition: border-color .25s, box-shadow .25s, opacity .35s, transform .45s;
-        will-change: transform, opacity;
-    }
+        /* ── HEADER NAVBAR ─────────────────── */
+        .navbar {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 24px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            z-index: 10;
+        }
 
-    .nav-card.verde  { border-color: rgba(16,185,129,.2); }
-    .nav-card.laranja { border-color: rgba(245,158,11,.18); }
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
 
-    /* Accent line at top of card */
-    .nav-card::before {
-        content: '';
-        position: absolute; top: 0; left: 20%; right: 20%; height: 1.5px;
-        border-radius: 0 0 3px 3px;
-        background: linear-gradient(to right, transparent, var(--purple), transparent);
-        opacity: 0; transition: opacity .3s;
-    }
-    .nav-card.verde::before {
-        background: linear-gradient(to right, transparent, var(--green), transparent);
-    }
-    .nav-card.laranja::before {
-        background: linear-gradient(to right, transparent, var(--orange), transparent);
-    }
+        .brand-logo img {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+        }
 
-    .nav-card.animado {
-        opacity: 1; transform: translateY(0);
-        transition:
-            transform .48s cubic-bezier(.34,1.56,.64,1),
-            opacity .35s ease,
-            border-color .25s, box-shadow .25s;
-    }
-    .nav-card.animado::before { opacity: 1; }
+        .brand-name {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #1e1b2e;
+            letter-spacing: -0.5px;
+        }
 
-    .nav-card:active {
-        transform: scale(.97) !important;
-        box-shadow: var(--card-shadow-active) !important;
-    }
+        body.dark-mode .brand-name {
+            color: #f3f4f6;
+        }
 
-    .nav-card-texto { flex: 1; min-width: 0; }
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
 
-    .nav-card-titulo {
-        font-size: .9rem; font-weight: 700;
-        color: var(--text); letter-spacing: -.2px;
-        margin-bottom: 2px;
-    }
-    .nav-card-desc {
-        font-size: .74rem; color: var(--text2); line-height: 1.4;
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
+        .btn-theme-toggle {
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: transform 0.2s ease, background 0.2s ease;
+            backdrop-filter: blur(6px);
+        }
 
-    .nav-card-seta {
-        width: 26px; height: 26px; border-radius: 8px;
-        background: rgba(220,60,60,.1);
-        display: flex; align-items: center; justify-content: center;
-        color: var(--purple-bright); font-size: .9rem; flex-shrink: 0;
-        transition: transform .2s;
-    }
-    .nav-card.verde  .nav-card-seta { background: rgba(16,185,129,.1);  color: var(--green); }
-    .nav-card.laranja .nav-card-seta { background: rgba(245,158,11,.1); color: var(--orange); }
+        .btn-theme-toggle:hover {
+            transform: scale(1.08);
+            background: rgba(255, 255, 255, 0.7);
+        }
 
-    .nav-card:active .nav-card-seta { transform: translateX(3px); }
+        body.dark-mode .btn-theme-toggle {
+            background: rgba(220, 60, 60, 0.15);
+            border-color: rgba(220, 60, 60, 0.3);
+        }
 
-    /* ── CARD RETORNO RÁPIDO ─────────────── */
-    .card-retorno {
-        background: linear-gradient(135deg, rgba(220,60,60,.2), rgba(160,35,35,.25));
-        border: 1px solid rgba(220,60,60,.35);
-        border-radius: 18px; padding: 15px 14px; margin-bottom: 10px;
-        display: none; align-items: center; gap: 14px;
-        text-decoration: none;
-        box-shadow: 0 4px 24px rgba(220,60,60,.2);
-        backdrop-filter: blur(12px);
-        opacity: 0; transform: translateY(16px);
-        will-change: transform, opacity;
-        position: relative; overflow: hidden;
-    }
-    .card-retorno::before {
-        content: '';
-        position: absolute; top: 0; left: 20%; right: 20%; height: 1.5px;
-        border-radius: 0 0 3px 3px;
-        background: linear-gradient(to right, transparent, #ef6b64, transparent);
-    }
-    .card-retorno.visivel { display: flex; }
-    .card-retorno.animado {
-        opacity: 1; transform: translateY(0);
-        transition: transform .48s cubic-bezier(.34,1.56,.64,1), opacity .35s ease;
-    }
-    .card-retorno:active { transform: scale(.97) !important; }
+        /* ── HERO CONTENT ────────────────────── */
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 40px 32px 80px;
+        }
 
-    .retorno-avatar {
-        width: 44px; height: 44px; border-radius: 13px;
-        background: rgba(220,60,60,.25);
-        display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0;
-    }
-    .retorno-texto { flex: 1; min-width: 0; }
-    .retorno-titulo { font-size: .72rem; color: rgba(255,180,175,.7); margin-bottom: 2px; font-weight: 500; }
-    .retorno-nome {
-        font-size: .94rem; font-weight: 700; color: #e9d5ff;
-        letter-spacing: -.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .retorno-seta { color: rgba(255,180,175,.6); font-size: 1.2rem; flex-shrink: 0; transition: transform .2s; }
-    .card-retorno:active .retorno-seta { transform: translateX(3px); }
+        .hero-left {
+            max-width: 550px;
+        }
 
-    /* ── TOAST ──────────────────────────── */
-    #toast {
-        position: fixed;
-        bottom: calc(24px + env(safe-area-inset-bottom));
-        left: 50%; transform: translateX(-50%) translateY(16px);
-        background: rgba(15,9,28,.95);
-        border: 1px solid rgba(220,60,60,.4);
-        color: #f0eeff; font-size: .79rem; font-weight: 600;
-        padding: 10px 20px; border-radius: 30px;
-        white-space: nowrap; opacity: 0; pointer-events: none;
-        transition: opacity .22s, transform .3s cubic-bezier(.34,1.56,.64,1);
-        z-index: 9000;
-        box-shadow: 0 8px 28px rgba(0,0,0,.4), 0 0 0 1px rgba(220,60,60,.2);
-        backdrop-filter: blur(12px);
-    }
-    #toast.visivel { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 800;
+            color: #1e1b2e;
+            line-height: 1.15;
+            letter-spacing: -1px;
+            margin-bottom: 20px;
+        }
 
-    /* ── RODAPÉ ─────────────────────────── */
-    .rodape {
-        text-align: center; padding: 14px 0 4px;
-        font-size: .68rem; color: var(--text3); letter-spacing: .01em;
-    }
+        .hero-title .destaque {
+            color: var(--primary-red);
+        }
+
+        body.dark-mode .hero-title {
+            color: #f0eeff;
+        }
+
+        .hero-desc {
+            font-size: 0.95rem;
+            color: rgba(30, 27, 46, 0.65);
+            line-height: 1.65;
+            max-width: 480px;
+        }
+
+        body.dark-mode .hero-desc {
+            color: rgba(240, 238, 255, 0.6);
+        }
+
+        /* Logged in badge */
+        .user-status-badge {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            background: rgba(220, 60, 60, 0.12);
+            border: 1px solid rgba(220, 60, 60, 0.3);
+            border-radius: 30px;
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--primary-red);
+            margin-bottom: 16px;
+            cursor: pointer;
+        }
+
+        .user-status-badge.visivel {
+            display: inline-flex;
+        }
+
+        .user-status-badge button {
+            background: none;
+            border: none;
+            color: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-left: 6px;
+        }
+
+        /* ── ACTION CARDS GRID ────────────────── */
+        .cards-section {
+            background: #f5ebe0;
+            padding: 50px 0 60px;
+        }
+
+        body.dark-mode .cards-section {
+            background: var(--bg);
+        }
+
+        .cards-container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 0 32px;
+            position: relative;
+            z-index: 5;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 28px;
+        }
+
+        .action-card {
+            background: var(--surface);
+            border-radius: 22px;
+            padding: 42px 28px 36px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 260px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(235, 218, 218, 0.8);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            text-decoration: none;
+            position: relative;
+        }
+
+        body.dark-mode .action-card {
+            border-color: rgba(220, 60, 60, 0.2);
+        }
+
+        .action-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--card-shadow-hover);
+            border-color: rgba(220, 60, 60, 0.35);
+        }
+
+        .card-body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 12px;
+        }
+
+        .card-desc {
+            font-size: 0.86rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+            max-width: 280px;
+            margin-bottom: 24px;
+        }
+
+        .card-btn {
+            background-color: var(--primary-red);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.92rem;
+            padding: 10px 32px;
+            border-radius: 50px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(220, 60, 60, 0.25);
+            transition: all 0.2s ease;
+        }
+
+        .action-card:hover .card-btn {
+            background-color: var(--primary-red-hover);
+            box-shadow: 0 6px 18px rgba(220, 60, 60, 0.4);
+        }
+
+        /* ── FOOTER ─────────────────────────── */
+        .footer {
+            margin-top: auto;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            padding: 24px 32px;
+            background: var(--bg);
+        }
+
+        body.dark-mode .footer {
+            border-top-color: rgba(255, 255, 255, 0.08);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .footer-links {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary-red);
+        }
+
+        /* ── TOAST ──────────────────────────── */
+        #toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(16px);
+            background: rgba(17, 24, 39, 0.95);
+            border: 1px solid rgba(220, 60, 60, 0.4);
+            color: #ffffff;
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 10px 22px;
+            border-radius: 30px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 9000;
+            box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        #toast.visivel {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ── RESPONSIVE MOBILE STYLING ────────── */
+        @media (max-width: 900px) {
+            .hero-content {
+                padding: 30px 20px 60px;
+            }
+
+            .hero-title {
+                font-size: 2.2rem;
+            }
+
+            .hero-banner::before {
+                background: linear-gradient(
+                    to right,
+                    rgba(235, 210, 185, 0.95) 0%,
+                    rgba(235, 210, 185, 0.85) 40%,
+                    rgba(235, 210, 185, 0.50) 70%,
+                    rgba(235, 210, 185, 0.30) 100%
+                );
+            }
+
+            body.dark-mode .hero-banner::before {
+                background: linear-gradient(
+                    to right,
+                    rgba(15, 10, 25, 0.95) 0%,
+                    rgba(15, 10, 25, 0.85) 40%,
+                    rgba(15, 10, 25, 0.55) 70%,
+                    rgba(15, 10, 25, 0.35) 100%
+                );
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+        }
     </style>
     <link rel="stylesheet" href="./cal-inspired.css">
 </head>
+
 <body>
 
-<!-- SPLASH -->
-<div id="splash">
-    <div class="splash-icon">
-        <img src="./logo-icon.png" alt="Locus">
-    </div>
-    <div class="splash-nome">Locus</div>
-    <div class="splash-sub">Agendamento de salas</div>
-    <div class="splash-loader">
-        <div class="splash-loader-barra"></div>
-    </div>
-</div>
-
-<!-- HERO -->
-<div class="hero">
-    <div class="hero-topo">
-        <div class="hero-logo">
+    <!-- SPLASH -->
+    <div id="splash">
+        <div class="splash-icon">
             <img src="./logo-icon.png" alt="Locus">
-            <span>Locus</span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
-            <button class="hero-badge" id="hero-badge" type="button" title="Toque para sair da sua conta" aria-label="Sair da conta">
-                <div class="hero-badge-dot">👨‍🏫</div>
-                <span id="hero-badge-nome"></span>
-                <span class="hero-badge-sair">Sair</span>
-            </button>
-            <button class="btn-dark-hero" id="btn-dark" title="Alternar modo" aria-label="Alternar modo">🌙</button>
+        <div class="splash-nome">Locus</div>
+        <div class="splash-sub">Agendamento de salas</div>
+        <div class="splash-loader">
+            <div class="splash-loader-barra"></div>
         </div>
     </div>
-    <div class="hero-conteudo">
-        <div class="hero-titulo" id="hero-titulo">
-            Olá!<br>Vamos reservar a sua <span class="destaque">aula?</span>
+
+    <!-- HERO BANNER (header + hero unified) -->
+    <div class="hero-banner">
+        <header class="navbar">
+            <a href="index.html" class="brand-logo">
+                <img src="./logo-icon.png" alt="Locus">
+                <span class="brand-name">Locus</span>
+            </a>
+            <div class="nav-actions">
+                <button class="btn-theme-toggle" id="btn-dark" title="Alternar modo" aria-label="Alternar modo">🌙</button>
+            </div>
+        </header>
+
+        <div class="hero-content">
+            <div class="hero-left">
+                <div class="user-status-badge" id="hero-badge">
+                    <span>👨‍🏫 <span id="hero-badge-nome"></span></span>
+                    <button type="button" id="btn-logout">Sair</button>
+                </div>
+
+                <h1 class="hero-title" id="hero-titulo">Olá, seja<br>bem-vindo ao<br><span class="destaque">Locus!</span></h1>
+                <p class="hero-desc" id="hero-sub">
+                    Locus está pronto para transformar sua experiência educacional, trazendo uma visão colaborativa e intuitiva para professores e coordenação acadêmica.
+                </p>
+            </div>
         </div>
-        <div class="hero-sub" id="hero-sub"></div>
     </div>
-</div>
 
-<!-- TOAST -->
-<div id="toast"></div>
+    <!-- ACTION CARDS GRID -->
+    <section class="cards-section">
+        <main class="cards-container">
+            <div class="cards-grid">
+                
+                <a href="professor.html" class="action-card" id="card-professor">
+                    <div class="card-body">
+                        <h2 class="card-title">Área do Professor</h2>
+                        <p class="card-desc">Organize e gerencie sua Área do Professor e suas atividades acadêmicas.</p>
+                    </div>
+                    <div class="card-btn">Acessar</div>
+                </a>
 
-<!-- CONTEÚDO -->
-<main id="app-content">
+                <a href="cadastro.html" class="action-card" id="card-cadastro">
+                    <div class="card-body">
+                        <h2 class="card-title">Ativar Meu Acesso</h2>
+                        <p class="card-desc">Ativar meu acesso e solicitar PIN de confirmação de cadastro.</p>
+                    </div>
+                    <div class="card-btn">Solicitar PIN</div>
+                </a>
 
-    <a href="professor.html" class="card-retorno" id="card-retorno">
-        <div class="retorno-avatar">📅</div>
-        <div class="retorno-texto">
-            <div class="retorno-titulo">Continuar como</div>
-            <div class="retorno-nome" id="retorno-nome">—</div>
+                <a href="coordenacao.html" class="action-card" id="card-coord">
+                    <div class="card-body">
+                        <h2 class="card-title">Painel da Coordenação</h2>
+                        <p class="card-desc">Painel da Coordenação, área gerencial da Painel da Coordenação.</p>
+                    </div>
+                    <div class="card-btn">Gerenciar</div>
+                </a>
+
+            </div>
+        </main>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="index.html">Intervalos</a>
+                <a href="professor.html">Professor</a>
+                <a href="coordenacao.html">Painel da Coordenação</a>
+            </div>
+            <div class="footer-copy">
+                &copy; 2026. All rights reserved
+            </div>
         </div>
-        <span class="retorno-seta">›</span>
-    </a>
+    </footer>
 
-    <div class="secao-label" id="label-rapido">Acesso rápido</div>
+    <!-- TOAST -->
+    <div id="toast"></div>
 
-    <a href="professor.html" class="nav-card" id="card-professor">
-        <div class="nav-card-icone">👤</div>
-        <div class="nav-card-texto">
-            <div class="nav-card-titulo">Área do Professor</div>
-            <div class="nav-card-desc">Reserve salas, pátios e laboratórios</div>
-        </div>
-        <span class="nav-card-cta">Acessar</span>
-    </a>
+    <script type="module">
+        import { supabase as sb } from './utils.js';
 
-    <a href="cadastro.html" class="nav-card verde" id="card-cadastro">
-        <div class="nav-card-icone">🔑</div>
-        <div class="nav-card-texto">
-            <div class="nav-card-titulo">Ativar Meu Acesso</div>
-            <div class="nav-card-desc">Primeiro acesso? Solicite seu PIN aqui</div>
-        </div>
-        <span class="nav-card-cta">Solicitar PIN</span>
-    </a>
-
-    <div class="secao-label">Administração</div>
-
-    <a href="coordenacao.html" class="nav-card laranja" id="card-coord">
-        <div class="nav-card-icone">💼</div>
-        <div class="nav-card-texto">
-            <div class="nav-card-titulo">Painel da Coordenação</div>
-            <div class="nav-card-desc">Gerencie professores, salas e reservas</div>
-        </div>
-        <span class="nav-card-cta">Gerenciar</span>
-    </a>
-
-    <div class="rodape">Locus v2.0 · Sistema de agendamento escolar</div>
-
-</main>
-
-<script type="module">
-    import { supabase as sb } from './utils.js';
-
-    // ── DARK MODE ──────────────────────────────────────────────
-    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    function atualizarThemeColor(ativado) {
-        if (metaThemeColor) metaThemeColor.setAttribute('content', ativado ? '#07030f' : '#f5f3ff');
-    }
-
-    const isDark = localStorage.getItem('darkMode') === 'enabled';
-    if (isDark) {
-        document.body.classList.add('dark-mode');
-        document.getElementById('btn-dark').textContent = '☀️';
-    }
-    atualizarThemeColor(isDark);
-
-    document.getElementById('btn-dark').addEventListener('click', () => {
-        const ativado = document.body.classList.toggle('dark-mode');
-        localStorage.setItem('darkMode', ativado ? 'enabled' : 'disabled');
-        document.getElementById('btn-dark').textContent = ativado ? '☀️' : '🌙';
-        atualizarThemeColor(ativado);
-        mostrarToast(ativado ? 'Modo escuro ativado' : 'Modo claro ativado');
-    });
-
-    // ── TOAST ──────────────────────────────────────────────────
-    let toastTimer = null;
-    function mostrarToast(msg) {
-        const toast = document.getElementById('toast');
-        toast.textContent = msg;
-        toast.classList.add('visivel');
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => toast.classList.remove('visivel'), 2200);
-    }
-
-    // ── SAUDAÇÃO ───────────────────────────────────────────────
-    const hora = new Date().getHours();
-    const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
-    const periodoMinusculo = periodo.toLowerCase();
-    const emoji   = hora < 12 ? '☀️' : hora < 18 ? '🌤️' : '🌙';
-
-    // ── SAIR PELO BADGE (topo direito) ──────────────────────────
-    // Ao voltar da área do professor para a home, o badge com o nome
-    // do professor logado funciona como atalho para encerrar a sessão
-    // sem precisar entrar novamente na área do professor.
-    document.getElementById('hero-badge').addEventListener('click', async () => {
-        const badge = document.getElementById('hero-badge');
-        badge.disabled = true;
-        try {
-            await sb.auth.signOut();
-        } catch (err) {
-            console.error('Erro ao sair:', err);
-        } finally {
-            window.location.reload();
+        // ── DARK MODE ──────────────────────────────────────────────
+        const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        function atualizarThemeColor(ativado) {
+            if (metaThemeColor) metaThemeColor.setAttribute('content', ativado ? '#0b0914' : '#ffffff');
         }
-    });
 
-    // ── SESSÃO SUPABASE ────────────────────────────────────────
-    async function verificarSessao() {
-        try {
-            const { data: { session } } = await sb.auth.getSession();
-            if (!session) return aplicarSaudacaoGenerica();
+        const isDark = localStorage.getItem('darkMode') === 'enabled';
+        if (isDark) {
+            document.body.classList.add('dark-mode');
+            document.getElementById('btn-dark').textContent = '☀️';
+        }
+        atualizarThemeColor(isDark);
 
-            const { data: prof } = await sb
-                .from('professores')
-                .select('nome')
-                .eq('auth_user_id', session.user.id)
-                .single();
+        document.getElementById('btn-dark').addEventListener('click', () => {
+            const ativado = document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', ativado ? 'enabled' : 'disabled');
+            document.getElementById('btn-dark').textContent = ativado ? '☀️' : '🌙';
+            atualizarThemeColor(ativado);
+            mostrarToast(ativado ? 'Modo escuro ativado' : 'Modo claro ativado');
+        });
 
-            if (prof?.nome) {
-                aplicarSaudacaoPersonalizada(prof.nome);
-            } else {
-                aplicarSaudacaoGenerica();
+        // ── TOAST ──────────────────────────────────────────────────
+        let toastTimer = null;
+        function mostrarToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('visivel');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('visivel'), 2200);
+        }
+
+        // ── LOGOUT VIA BADGE ───────────────────────────────────────
+        document.getElementById('btn-logout').addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            try {
+                await sb.auth.signOut();
+            } catch (err) {
+                console.error('Erro ao sair:', err);
+            } finally {
+                window.location.reload();
             }
-        } catch {
-            aplicarSaudacaoGenerica();
+        });
+
+        // ── SESSÃO SUPABASE ────────────────────────────────────────
+        async function verificarSessao() {
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                if (!session) return;
+
+                const { data: prof } = await sb
+                    .from('professores')
+                    .select('nome')
+                    .eq('auth_user_id', session.user.id)
+                    .single();
+
+                if (prof?.nome) {
+                    const primeiroNome = prof.nome.split(' ')[0];
+                    document.getElementById('hero-titulo').innerHTML = `Olá,<br>${primeiroNome},<br>vamos reservar a<br>sua <span class="destaque">aula?</span>`;
+                    document.getElementById('hero-badge-nome').textContent = primeiroNome;
+                    document.getElementById('hero-badge').classList.add('visivel');
+                }
+            } catch {
+                // Manter saudação padrão
+            }
         }
-    }
 
-    function aplicarSaudacaoGenerica() {
-        document.getElementById('hero-titulo').innerHTML =
-            `${emoji} Olá, ${periodoMinusculo},<br>vamos reservar a sua <span class="destaque">aula?</span>`;
-    }
+        // ── INICIALIZAÇÃO ──────────────────────────────────────────
+        const splash = document.getElementById('splash');
+        verificarSessao();
 
-    function aplicarSaudacaoPersonalizada(nomeCompleto) {
-        const primeiroNome = nomeCompleto.split(' ')[0];
-        document.getElementById('hero-titulo').innerHTML =
-            `${emoji} ${periodo},<br><span class="destaque">${primeiroNome}!</span>`;
-        document.getElementById('hero-sub').textContent =
-            'Toque abaixo para agendar ou gerenciar suas reservas.';
-
-        document.getElementById('hero-badge-nome').textContent = primeiroNome;
-        document.getElementById('hero-badge').classList.add('visivel');
-
-        document.getElementById('retorno-nome').textContent = nomeCompleto;
-        document.getElementById('card-retorno').classList.add('visivel');
-        document.getElementById('label-rapido').textContent = 'Suas opções';
-
-        const cardCadastro = document.getElementById('card-cadastro');
-        if (cardCadastro) cardCadastro.style.display = 'none';
-    }
-
-    // ── ANIMAÇÃO STAGGER ───────────────────────────────────────
-    function animarCards() {
-        const cards = document.querySelectorAll('.nav-card, .card-retorno.visivel');
-        cards.forEach((card, i) => {
-            setTimeout(() => card.classList.add('animado'), i * 70);
-        });
-    }
-
-    // ── INICIALIZAÇÃO ──────────────────────────────────────────
-    const splash = document.getElementById('splash');
-    verificarSessao();
-
-    setTimeout(() => {
-        splash.classList.add('saindo');
         setTimeout(() => {
-            splash.style.display = 'none';
-            animarCards();
-        }, 550);
-    }, 2000);
+            splash.classList.add('saindo');
+            setTimeout(() => {
+                splash.style.display = 'none';
+            }, 550);
+        }, 1200);
 
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js').catch(() => {});
-        });
-    }
-</script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(() => { });
+            });
+        }
+    </script>
 </body>
+
 </html>
