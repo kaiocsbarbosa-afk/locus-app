@@ -402,11 +402,7 @@
 </div>
 
 <script>
-    /* ── APP NATIVO — bloqueia comportamentos de browser ──── */
-
-    // Menu de contexto (segurar o dedo no Android)
-    document.addEventListener('contextmenu', e => e.preventDefault());
-
+    /* ── Gestos Nativos ──── */
     // Pinch-zoom via gestos (iOS Safari)
     document.addEventListener('gesturestart',  e => e.preventDefault(), { passive: false });
     document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });

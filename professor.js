@@ -351,7 +351,9 @@ window.fazerLogout = async function() {
 function mostrarAppLogado() {
     document.getElementById('tela-login').style.display = 'none';
     document.getElementById('app-header').classList.add('visivel');
-    document.getElementById('bottom-nav').classList.add('visivel');
+
+    const statusBanner = document.getElementById('status-usuario');
+    if (statusBanner) statusBanner.style.display = 'flex';
 
     // Saudação personalizada com período do dia
     const hora = new Date().getHours();
@@ -362,9 +364,16 @@ function mostrarAppLogado() {
     const elPeriodo = document.getElementById('saudacao-periodo');
     const elNome    = document.getElementById('saudacao-nome');
     const elDisc    = document.getElementById('saudacao-disciplina');
-    if (elPeriodo) elPeriodo.textContent = `${emoji} ${periodo}!`;
+    if (elPeriodo) elPeriodo.innerHTML = `<span class="greeting-dot">${emoji}</span> ${periodo}!`;
     if (elNome)    elNome.textContent    = primeiroNome;
     if (elDisc)    elDisc.textContent    = professorLogado.disciplina || '';
+
+    // Atualiza avatar do banner
+    const avatarBanner = document.getElementById('perfil-avatar');
+    if (avatarBanner && professorLogado.nome) {
+        avatarBanner.style.background = _corAvatar(professorLogado.nome);
+        avatarBanner.innerHTML = `<span style="font-size:1.1rem;font-weight:700;color:#fff;">${_iniciais(professorLogado.nome)}</span>`;
+    }
 
     document.getElementById('tela-agendar').classList.add('ativa');
     configurarCalendarioSemana();
@@ -510,6 +519,10 @@ window.trocarTela = function(nomeTela) {
     const tab = document.getElementById(`tab-${nomeTela}`);
     if (tab) tab.classList.add('ativa');
 
+    document.querySelectorAll('.stitch-tab').forEach(t => t.classList.remove('ativa'));
+    const topTab = document.getElementById(`top-tab-${nomeTela}`);
+    if (topTab) topTab.classList.add('ativa');
+
     if (nomeTela === 'semana') carregarVisaoSemanal();
     if (nomeTela === 'minhas-aulas') carregarHistorico();
     if (nomeTela === 'perfil') atualizarPerfil();
@@ -538,19 +551,22 @@ function atualizarPerfil() {
 function atualizarStatusNotificacoes() {
     const desc = document.getElementById('status-notif-desc');
     const btn = document.getElementById('btn-notif');
-    if (!desc || !btn) return;
+    const switchEl = document.getElementById('btn-notif-switch');
+    if (!desc) return;
 
     const perm = Notification?.permission;
     if (perm === 'granted') {
         desc.textContent = 'Ativas — lembretes e avisos habilitados';
-        btn.textContent = 'Reativar';
+        if (btn) { btn.textContent = 'Reativar'; btn.disabled = false; }
+        if (switchEl) { switchEl.checked = true; switchEl.disabled = false; }
     } else if (perm === 'denied') {
         desc.textContent = 'Bloqueadas — habilite nas configurações do navegador';
-        btn.textContent = 'Bloqueadas';
-        btn.disabled = true;
+        if (btn) { btn.textContent = 'Bloqueadas'; btn.disabled = true; }
+        if (switchEl) { switchEl.checked = false; switchEl.disabled = true; }
     } else {
         desc.textContent = 'Toque para ativar lembretes de aula';
-        btn.textContent = 'Ativar';
+        if (btn) { btn.textContent = 'Ativar'; btn.disabled = false; }
+        if (switchEl) { switchEl.checked = false; switchEl.disabled = false; }
     }
 }
 
@@ -604,57 +620,121 @@ async function carregarSalas() {
 }
 
 // ============================================================
-//  JANELA DE AGENDAMENTO (regra única, usada no calendário de
-//  marcação E na visão semanal — nenhuma das duas pode fugir
-//  da mesma semana de agendamento válida)
+//  FUSO HORÁRIO DE BRASÍLIA & JANELA DA SEMANA ATUAL
+//  Regra: Agendamentos permitidos EXCLUSIVAMENTE para a semana
+//  atual (Segunda a Sexta). Abertura toda Segunda-feira às 00:00
+//  (horário de Brasília). Semanas anteriores e posteriores são
+//  bloqueadas.
 // ============================================================
-function _limitesAgendamento() {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const diaSemana = hoje.getDay();
-    let minData = new Date(hoje);
-    let maxData = new Date(hoje);
 
-    if (diaSemana === 0) { minData.setDate(hoje.getDate() + 1); maxData.setDate(hoje.getDate() + 5); }
-    else if (diaSemana === 6) { minData.setDate(hoje.getDate() + 2); maxData.setDate(hoje.getDate() + 6); }
-    else { maxData.setDate(hoje.getDate() + (5 - diaSemana)); }
-
-    return { minData, maxData };
+function _getAgoraBrasilia() {
+    // Retorna a data/hora atual no fuso de Brasília (UTC-3)
+    const agoraUtc = new Date();
+    const strSp = agoraUtc.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
+    return new Date(strSp);
 }
 
-// Retorna true se a semana identificada por `offset` (0 = semana atual)
-// tem interseção com a janela de agendamento válida.
-function _offsetSemanaValido(offset) {
-    const hoje = new Date();
+function _limitesAgendamento() {
+    const agoraSp = _getAgoraBrasilia();
+    const hoje = new Date(agoraSp);
     hoje.setHours(0, 0, 0, 0);
-    const dow = hoje.getDay();
-    const diffSeg = dow === 0 ? -6 : 1 - dow;
-    const segunda = new Date(hoje);
-    segunda.setDate(hoje.getDate() + diffSeg + offset * 7);
-    const sexta = new Date(segunda);
-    sexta.setDate(segunda.getDate() + 4);
 
-    const { minData, maxData } = _limitesAgendamento();
-    return sexta >= minData && segunda <= maxData;
+    const diaSemana = hoje.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
+
+    // Se hoje for Sábado (6) ou Domingo (0), a semana letiva atual encerrou.
+    // As reservas para a próxima semana abrem exclusivamente na Segunda-feira às 00:00 (Brasília).
+    let bloqueadoFimDeSemana = false;
+    let minData, maxData, segundaSemana, sextaSemana;
+
+    if (diaSemana === 0 || diaSemana === 6) {
+        bloqueadoFimDeSemana = true;
+        const diasAteProximaSegunda = diaSemana === 0 ? 1 : 2;
+        segundaSemana = new Date(hoje);
+        segundaSemana.setDate(hoje.getDate() + diasAteProximaSegunda);
+        sextaSemana = new Date(segundaSemana);
+        sextaSemana.setDate(segundaSemana.getDate() + 4);
+        minData = new Date(segundaSemana);
+        maxData = new Date(sextaSemana);
+    } else {
+        // Segunda (1) a Sexta (5) da semana atual
+        segundaSemana = new Date(hoje);
+        segundaSemana.setDate(hoje.getDate() - (diaSemana - 1));
+
+        sextaSemana = new Date(segundaSemana);
+        sextaSemana.setDate(segundaSemana.getDate() + 4);
+
+        // minData: não pode agendar dias que já passaram na semana atual
+        minData = new Date(hoje);
+        // maxData: não pode agendar semanas futuras além da sexta-feira da semana atual
+        maxData = new Date(sextaSemana);
+    }
+
+    return { minData, maxData, segundaSemana, sextaSemana, bloqueadoFimDeSemana };
+}
+
+function _dataEstaNaSemanaAtual(dataIso) {
+    const { minData, maxData, bloqueadoFimDeSemana } = _limitesAgendamento();
+    if (bloqueadoFimDeSemana) return false;
+
+    const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const minIso = fmt(minData);
+    const maxIso = fmt(maxData);
+
+    return dataIso >= minIso && dataIso <= maxIso;
+}
+
+// Bloqueia qualquer semana anterior (< 0) ou futura (> 0).
+// Apenas a semana atual (offset === 0) é permitida.
+function _offsetSemanaValido(offset) {
+    return offset === 0;
 }
 
 function configurarCalendarioSemana() {
-    const { minData, maxData } = _limitesAgendamento();
+    const { minData, maxData, bloqueadoFimDeSemana } = _limitesAgendamento();
     const input = document.getElementById('data-agendamento');
+    if (!input) return;
+
     const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    input.min = fmt(minData);
-    input.max = fmt(maxData);
-    input.value = fmt(minData);
+
+    if (bloqueadoFimDeSemana) {
+        input.min = fmt(minData);
+        input.max = fmt(maxData);
+        input.value = fmt(minData);
+        input.disabled = true;
+    } else {
+        input.disabled = false;
+        input.min = fmt(minData);
+        input.max = fmt(maxData);
+
+        const valAtual = input.value;
+        if (!valAtual || valAtual < fmt(minData) || valAtual > fmt(maxData)) {
+            input.value = fmt(minData);
+        }
+    }
 }
 
 // ============================================================
-//  GRADE DE AULAS
+//  GRADE DE AULAS — Horários Oficiais
 // ============================================================
 
-// Grade contínua de 50 minutos: a 1ª aula é 07:00–07:50.
-// Se a escola tiver intervalos entre aulas, ajuste estes dois valores aqui.
-const INICIO_PRIMEIRA_AULA_MINUTOS = 7 * 60;
-const DURACAO_AULA_MINUTOS = 50;
+// Horários oficiais das aulas:
+// 1ª aula: 07:00 – 07:50
+// 2ª aula: 07:50 – 08:40
+// 3ª aula: 09:00 – 09:50
+// 4ª aula: 09:50 – 10:40
+// 5ª aula: 10:40 – 11:30
+// 6ª aula: 12:20 – 13:10
+// 7ª aula: 13:10 – 14:00
+const GRADE_HORARIOS = {
+    1: { inicioMinutos: 7 * 60,       fimMinutos: 7 * 60 + 50,  inicio: '07:00', fim: '07:50' },
+    2: { inicioMinutos: 7 * 60 + 50,  fimMinutos: 8 * 60 + 40,  inicio: '07:50', fim: '08:40' },
+    3: { inicioMinutos: 9 * 60,       fimMinutos: 9 * 60 + 50,  inicio: '09:00', fim: '09:50' },
+    4: { inicioMinutos: 9 * 60 + 50,  fimMinutos: 10 * 60 + 40, inicio: '09:50', fim: '10:40' },
+    5: { inicioMinutos: 10 * 60 + 40, fimMinutos: 11 * 60 + 30, inicio: '10:40', fim: '11:30' },
+    6: { inicioMinutos: 12 * 60 + 20, fimMinutos: 13 * 60 + 10, inicio: '12:20', fim: '13:10' },
+    7: { inicioMinutos: 13 * 60 + 10, fimMinutos: 14 * 60,      inicio: '13:10', fim: '14:00' },
+};
+
 let timerAtualizacaoHorario = null;
 
 function _formatarHora(totalMinutos) {
@@ -664,8 +744,11 @@ function _formatarHora(totalMinutos) {
 }
 
 function _horarioDaAula(numeroAula) {
-    const inicioMinutos = INICIO_PRIMEIRA_AULA_MINUTOS + (numeroAula - 1) * DURACAO_AULA_MINUTOS;
-    const fimMinutos = inicioMinutos + DURACAO_AULA_MINUTOS;
+    if (GRADE_HORARIOS[numeroAula]) {
+        return GRADE_HORARIOS[numeroAula];
+    }
+    const inicioMinutos = 7 * 60 + (numeroAula - 1) * 50;
+    const fimMinutos = inicioMinutos + 50;
     return {
         inicioMinutos,
         inicio: _formatarHora(inicioMinutos),
@@ -710,7 +793,7 @@ window.buscarAulas = async function() {
     if (telaAtual === 'semana') carregarVisaoSemanal();
     if (buscandoAulasAtualmente) return;
     if (!salaId || !dataEscolhida) {
-        grid.innerHTML = '<div class="grid-vazio"><div class="icone-vazio">🗓️</div><p>Selecione uma data e sala para ver os horários.</p></div>';
+        grid.innerHTML = '<div class="stitch-empty-card"><div class="stitch-empty-art"><div class="stitch-art-glow"></div><div class="stitch-art-graphic"><svg width="84" height="84" viewBox="0 0 84 84" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="calBg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#f5ede2"/></linearGradient><linearGradient id="calHeader" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ea5a52"/><stop offset="100%" stop-color="#d33c36"/></linearGradient><linearGradient id="clockFace" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fff8f2"/><stop offset="100%" stop-color="#fae7d4"/></linearGradient><filter id="shadowArt" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="#8a5a1e" flood-opacity="0.14"/></filter></defs><g filter="url(#shadowArt)"><rect x="14" y="16" width="46" height="46" rx="10" fill="url(#calBg)" stroke="#f0dfc7" stroke-width="1.5"/><path d="M14 26C14 20.4772 18.4772 16 24 16H50C55.5228 16 60 20.4772 60 26V29H14V26Z" fill="url(#calHeader)"/><rect x="23" y="12" width="4" height="7" rx="2" fill="#7a6250"/><rect x="47" y="12" width="4" height="7" rx="2" fill="#7a6250"/><circle cx="24" cy="38" r="2.2" fill="#cfbeae"/><circle cx="34" cy="38" r="2.2" fill="#cfbeae"/><circle cx="44" cy="38" r="2.2" fill="#cfbeae"/><circle cx="24" cy="48" r="2.2" fill="#cfbeae"/><circle cx="34" cy="48" r="2.2" fill="#cfbeae"/></g><g filter="url(#shadowArt)"><circle cx="54" cy="54" r="19" fill="url(#clockFace)" stroke="#f48646" stroke-width="2.5"/><line x1="54" y1="54" x2="54" y2="44" stroke="#7a421a" stroke-width="2.2" stroke-linecap="round"/><line x1="54" y1="54" x2="62" y2="54" stroke="#7a421a" stroke-width="2.2" stroke-linecap="round"/><circle cx="54" cy="54" r="2.5" fill="#f48646"/></g></svg></div></div><p class="stitch-empty-text">Selecione uma data e sala para ver os horários.</p></div>';
         return;
     }
 
@@ -747,7 +830,7 @@ window.buscarAulas = async function() {
                 lblAula.textContent = `Aula ${i}`;
 
                 const lblDetalhe = document.createElement('span');
-                lblDetalhe.style.cssText = 'font-size:.7rem;font-weight:400;display:block;margin-top:2px;';
+                lblDetalhe.style.cssText = 'font-size:.72rem;font-weight:400;display:block;margin-top:2px;';
                 lblDetalhe.textContent = `⏱ ${horario.inicio}–${horario.fim} · Encerrada`;
 
                 btn.appendChild(lblAula);
@@ -760,8 +843,8 @@ window.buscarAulas = async function() {
                 lblAula.style.cssText = 'display:block;font-weight:600;';
                 lblAula.textContent = `Aula ${i}`;
                 const lblDetalhe = document.createElement('span');
-                lblDetalhe.style.cssText = 'font-size:.7rem;font-weight:400;display:block;margin-top:2px;';
-                lblDetalhe.textContent = `🔒 ${mapaOcupacao[i].turma} (${mapaOcupacao[i].prof})`;
+                lblDetalhe.style.cssText = 'font-size:.72rem;font-weight:400;display:block;margin-top:2px;';
+                lblDetalhe.textContent = `🔒 ${mapaOcupacao[i].turma} (${mapaOcupacao[i].prof}) · ${horario.inicio}–${horario.fim}`;
                 btn.appendChild(lblAula);
                 btn.appendChild(lblDetalhe);
             } else {
@@ -770,8 +853,8 @@ window.buscarAulas = async function() {
                 lblLivre.style.cssText = 'display:block;font-weight:600;';
                 lblLivre.textContent = `Aula ${i}`;
                 const lblStatus = document.createElement('span');
-                lblStatus.style.cssText = 'font-size:.7rem;font-weight:400;display:block;margin-top:2px;';
-                lblStatus.textContent = '✨ Livre';
+                lblStatus.style.cssText = 'font-size:.72rem;font-weight:400;display:block;margin-top:2px;';
+                lblStatus.textContent = `✨ Livre · ${horario.inicio}–${horario.fim}`;
                 btn.appendChild(lblLivre);
                 btn.appendChild(lblStatus);
                 btn.addEventListener('click', () => agendarAula(i));
@@ -795,6 +878,27 @@ window.agendarAula = async function(numeroAula) {
     const dataEscolhida = document.getElementById('data-agendamento').value;
 
     if (!salaId || !dataEscolhida) return; // slots só aparecem após sala+data serem escolhidos
+
+    const { bloqueadoFimDeSemana } = _limitesAgendamento();
+    if (bloqueadoFimDeSemana) {
+        Swal.fire({
+            icon: 'info',
+            title: 'Agendamentos fechados',
+            text: 'Os agendamentos são permitidos exclusivamente para a semana atual e abrem toda Segunda-feira às 00:00 (horário de Brasília).',
+            confirmButtonColor: '#dc3c3c'
+        });
+        return;
+    }
+
+    if (!_dataEstaNaSemanaAtual(dataEscolhida)) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Semana bloqueada',
+            text: 'Só é possível agendar horários para a semana corrente (de Segunda a Sexta). Semanas anteriores e posteriores estão bloqueadas.',
+            confirmButtonColor: '#dc3c3c'
+        });
+        return;
+    }
 
     if (_aulaJaComecou(dataEscolhida, numeroAula)) {
         const horario = _horarioDaAula(numeroAula);
@@ -904,8 +1008,9 @@ window.carregarHistorico = async function() {
         const info = document.createElement('div');
         info.className = 'historico-info';
 
-        const titulo = document.createElement('strong');
-        titulo.textContent = `${nomeSala} — Aula ${item.aula_numero}ª`;  // textContent: sem XSS
+        const horario   = _horarioDaAula(item.aula_numero);
+        const titulo    = document.createElement('strong');
+        titulo.textContent = `${nomeSala} — Aula ${item.aula_numero}ª (${horario.inicio}–${horario.fim})`;  // textContent: sem XSS
 
         const meta = document.createElement('span');
         meta.textContent = `${dataBr} · Turma ${nomeTurma}`;

@@ -556,7 +556,7 @@ body:has(.page-wrap) .footer,
 body:has(.page-wrap) .footer a { color: var(--cal-muted); }
 
 /* --------------------------------------------------------------------------
-   Professor application
+   Professor application — Stitch Innovative Dashboard V1 Design
    -------------------------------------------------------------------------- */
 body:has(#tela-login),
 body:has(#tela-login) #tela-login {
@@ -576,42 +576,644 @@ body:has(#tela-login) #tela-login {
     color: var(--cal-ink);
 }
 
+/* App Header (Top Nav) matching Stitch */
 body:has(#tela-login) #app-header {
-    background: var(--cal-paper);
-    border-bottom-color: var(--cal-line);
-    box-shadow: 0 1px 0 rgba(17,17,17,.02);
+    display: none;
+    background: rgba(253, 246, 236, 0.90);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(240, 223, 199, 0.8);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    padding: calc(10px + env(safe-area-inset-top)) 24px 10px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
-body:has(#tela-login) .header-titulo { color: var(--cal-ink); font-family: var(--cal-font); }
-body:has(#tela-login) .header-btn,
-body:has(#tela-login) .login-btn-dark {
-    background: var(--cal-paper);
-    border-color: var(--cal-line);
-    color: var(--cal-ink);
-    border-radius: 9px;
+body:has(#tela-login) #app-header.visivel {
+    display: block;
 }
 
-body:has(#tela-login) #app-content {
-    background: var(--cal-page);
+.stitch-header-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
 }
 
-body:has(#tela-login) #tela-login {
-    min-height: 100%;
+.stitch-tabs-nav {
+    display: flex;
+    align-items: center;
+    gap: 32px;
 }
 
-body:has(#tela-login) .login-logo-icon {
+.stitch-tab {
     background: none;
     border: none;
-    box-shadow: none;
+    font-family: var(--cal-font);
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--cal-muted);
+    cursor: pointer;
+    padding: 8px 4px 10px;
+    position: relative;
+    transition: color 0.2s ease;
+    white-space: nowrap;
 }
 
+.stitch-tab:hover {
+    color: var(--cal-ink);
+}
+
+.stitch-tab.ativa {
+    color: var(--cal-ink);
+    font-weight: 700;
+}
+
+.stitch-tab.ativa::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    right: 0;
+    height: 2.5px;
+    background: var(--cal-ink);
+    border-radius: 4px;
+}
+
+.stitch-profile-badge-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    font-family: var(--cal-font);
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--cal-ink);
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: var(--cal-pill);
+    transition: background 0.2s;
+}
+
+.stitch-profile-badge-btn:hover {
+    background: var(--cal-soft);
+}
+
+.stitch-profile-badge-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--cal-soft);
+    border: 1px solid var(--cal-line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--cal-ink);
+    font-size: 0.8rem;
+    overflow: hidden;
+}
+
+/* App Main Container */
+body:has(#tela-login) #app-content {
+    background: transparent !important;
+    max-width: 1120px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 20px 24px calc(40px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    box-sizing: border-box;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Screen Transitions */
+.tela {
+    display: none;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    animation: cal-rise 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.tela.ativa {
+    display: flex;
+}
+
+/* ── STITCH DARK FROSTED BANNER ── */
+.stitch-banner {
+    background: linear-gradient(135deg, #1c1815 0%, #28211b 50%, #221a14 100%);
+    border-radius: 20px;
+    padding: 24px 28px;
+    position: relative;
+    overflow: hidden;
+    color: #ffffff;
+    box-shadow: 0 16px 36px rgba(40, 25, 15, 0.18), 0 2px 6px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid rgba(240, 223, 199, 0.12);
+}
+
+/* Glowing amber ambient orbs inside banner */
+.stitch-banner::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    left: 80px;
+    width: 220px;
+    height: 180px;
+    background: radial-gradient(circle, rgba(242, 166, 90, 0.35) 0%, transparent 70%);
+    pointer-events: none;
+    filter: blur(20px);
+}
+
+.stitch-banner::after {
+    content: '';
+    position: absolute;
+    bottom: -60px;
+    right: 140px;
+    width: 240px;
+    height: 180px;
+    background: radial-gradient(circle, rgba(233, 82, 75, 0.28) 0%, transparent 70%);
+    pointer-events: none;
+    filter: blur(24px);
+}
+
+.stitch-banner-info {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stitch-banner-greeting {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #e5dacd;
+    letter-spacing: 0.01em;
+}
+
+.stitch-banner-name {
+    font-size: clamp(1.4rem, 2.5vw, 1.85rem);
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.03em;
+    margin: 2px 0 0;
+    line-height: 1.15;
+}
+
+.stitch-banner-sub {
+    font-size: 0.84rem;
+    color: #b7a692;
+    font-weight: 400;
+    margin: 0;
+}
+
+.stitch-banner-avatar-wrap {
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+}
+
+.stitch-banner-avatar {
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 0 24px rgba(242, 166, 90, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fce7d2;
+}
+
+/* ── STITCH SELECTOR CARDS (AGENDAR) ── */
+.stitch-selectors-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    width: 100%;
+}
+
+.stitch-select-card {
+    background: var(--cal-paper);
+    border: 1px solid var(--cal-line);
+    border-radius: var(--cal-radius);
+    padding: 16px 20px;
+    box-shadow: 0 4px 16px rgba(180, 90, 40, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    position: relative;
+}
+
+.stitch-select-card:hover {
+    border-color: #e0cca9;
+    box-shadow: 0 8px 24px rgba(180, 90, 40, 0.08);
+}
+
+.stitch-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stitch-card-icon-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--cal-amber-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: #7a421a;
+    flex-shrink: 0;
+}
+
+.stitch-card-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--cal-ink);
+    text-transform: uppercase;
+}
+
+.stitch-input-wrap {
+    position: relative;
+    width: 100%;
+}
+
+.stitch-input-wrap input,
+.stitch-input-wrap select {
+    width: 100%;
+    padding: 10px 14px;
+    padding-right: 32px;
+    background: var(--cal-page-solid) !important;
+    border: 1px solid var(--cal-line) !important;
+    border-radius: 10px !important;
+    color: var(--cal-ink) !important;
+    font-family: var(--cal-font);
+    font-size: 0.9rem;
+    font-weight: 500;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.stitch-input-wrap input:focus,
+.stitch-input-wrap select:focus {
+    border-color: var(--cal-blue) !important;
+    box-shadow: 0 0 0 3px rgba(220, 60, 60, 0.12) !important;
+}
+
+.stitch-select-arrow {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--cal-muted);
+    font-size: 0.85rem;
+}
+
+/* ── STITCH SECTION HEADERS ── */
+.stitch-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 6px;
+}
+
+.stitch-section-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stitch-section-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: var(--cal-ink);
+    text-transform: uppercase;
+}
+
+.stitch-section-subtitle {
+    font-size: 0.82rem;
+    color: var(--cal-muted);
+    font-weight: 400;
+}
+
+.stitch-actions-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.stitch-btn-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 18px;
+    background: var(--cal-paper);
+    border: 1px solid var(--cal-line);
+    border-radius: var(--cal-pill);
+    color: var(--cal-ink);
+    font-family: var(--cal-font);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(180, 90, 40, 0.04);
+    transition: background 0.15s, transform 0.15s, border-color 0.15s;
+}
+
+.stitch-btn-pill:hover {
+    background: var(--cal-soft);
+    border-color: #dfcca9;
+    transform: translateY(-1px);
+}
+
+/* ── STITCH EMPTY CARD CONTAINER ── */
+.stitch-empty-card {
+    background: var(--cal-paper);
+    border: 1px solid var(--cal-line);
+    border-radius: 20px;
+    padding: 60px 24px;
+    box-shadow: 0 4px 20px rgba(180, 90, 40, 0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: 100%;
+    min-height: 280px;
+    box-sizing: border-box;
+    grid-column: 1 / -1;
+}
+
+.stitch-empty-art {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 18px;
+}
+
+.stitch-art-glow {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(242, 166, 90, 0.35) 0%, rgba(242, 166, 90, 0.05) 55%, transparent 70%);
+    filter: blur(10px);
+    pointer-events: none;
+}
+
+.stitch-art-graphic {
+    position: relative;
+    z-index: 2;
+}
+
+.stitch-empty-text {
+    color: var(--cal-muted);
+    font-size: 0.92rem;
+    font-weight: 500;
+    max-width: 340px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* ── STITCH PROFILE GRID (PERFIL) ── */
+.stitch-profile-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    width: 100%;
+}
+
+.stitch-profile-card {
+    background: var(--cal-paper);
+    border: 1px solid var(--cal-line);
+    border-radius: var(--cal-radius);
+    padding: 20px 24px;
+    box-shadow: 0 4px 16px rgba(180, 90, 40, 0.04);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.stitch-profile-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stitch-profile-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.stitch-profile-card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--cal-amber-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: #7a421a;
+    flex-shrink: 0;
+}
+
+.stitch-profile-card-title {
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--cal-ink);
+}
+
+.stitch-profile-card-desc {
+    font-size: 0.82rem;
+    color: var(--cal-muted);
+    margin-top: 6px;
+    line-height: 1.4;
+}
+
+.stitch-profile-card-sub {
+    font-size: 0.76rem;
+    color: var(--cal-subtle);
+    margin-top: 2px;
+}
+
+/* iOS-style toggle switch */
+.stitch-switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 30px;
+    flex-shrink: 0;
+}
+
+.stitch-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.stitch-switch-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #2b221b;
+    border-radius: 34px;
+    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.stitch-switch-slider::before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 4px;
+    bottom: 4px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.stitch-switch input:checked + .stitch-switch-slider {
+    background-color: var(--cal-red);
+}
+
+.stitch-switch input:checked + .stitch-switch-slider::before {
+    transform: translateX(22px);
+}
+
+/* Logout Button */
+.stitch-btn-logout {
+    margin-top: 10px;
+    padding: 13px 28px;
+    background: #fff3f3;
+    border: 1px solid #f9d5d5;
+    color: #c53f3a;
+    border-radius: var(--cal-pill);
+    font-family: var(--cal-font);
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    align-self: flex-start;
+    transition: background 0.15s, transform 0.15s;
+}
+
+.stitch-btn-logout:hover {
+    background: #ffe6e6;
+    transform: translateY(-1px);
+}
+
+/* ── 100% RESPONSIVE MOBILE ADAPTATIONS ── */
+@media (max-width: 860px) {
+    .stitch-selectors-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .stitch-profile-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .stitch-banner {
+        padding: 20px;
+    }
+
+    .stitch-banner-name {
+        font-size: 1.45rem;
+    }
+
+    .stitch-banner-avatar {
+        width: 48px;
+        height: 48px;
+    }
+
+    .stitch-empty-card {
+        padding: 40px 16px;
+        min-height: 220px;
+    }
+}
+
+@media (max-width: 600px) {
+    body:has(#tela-login) #app-header {
+        padding: calc(8px + env(safe-area-inset-top)) 16px 8px;
+    }
+
+    .stitch-tabs-nav {
+        gap: 16px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .stitch-tabs-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .stitch-tab {
+        font-size: 0.88rem;
+        padding: 6px 2px 8px;
+    }
+
+    .stitch-tab.ativa::after {
+        bottom: -8px;
+    }
+
+    .stitch-profile-badge-btn span {
+        display: none;
+    }
+
+    body:has(#tela-login) #app-content {
+        padding: 14px 16px calc(24px + env(safe-area-inset-bottom));
+        gap: 16px;
+    }
+}
+
+#bottom-nav,
+body:has(#tela-login) #bottom-nav {
+    display: none !important;
+}
+
+/* Login Card Overrides */
+body:has(#tela-login) .login-logo-icon { background: none; border: none; box-shadow: none; }
 body:has(#tela-login) .login-logo-nome,
 body:has(#tela-login) .login-card-titulo,
 body:has(#tela-login) .pin-titulo { color: var(--cal-ink); }
 body:has(#tela-login) .login-logo-sub,
 body:has(#tela-login) .login-card-sub,
 body:has(#tela-login) .pin-sub { color: var(--cal-muted); }
-
 body:has(#tela-login) .login-card {
     background: var(--cal-paper);
     border: 1px solid var(--cal-line);
@@ -619,7 +1221,6 @@ body:has(#tela-login) .login-card {
     box-shadow: var(--cal-shadow);
     backdrop-filter: none;
 }
-
 body:has(#tela-login) .login-card::before { display: none; }
 body:has(#tela-login) .prof-search-wrap input,
 body:has(#tela-login) .login-select-wrap select,
@@ -631,53 +1232,37 @@ body:has(#tela-login) .form-group select {
     border-radius: 9px !important;
     box-shadow: none !important;
 }
-
 body:has(#tela-login) .prof-search-wrap input:focus,
 body:has(#tela-login) .form-group input:focus,
 body:has(#tela-login) .form-group select:focus {
     border-color: var(--cal-blue) !important;
     box-shadow: 0 0 0 3px rgba(220,60,60,.15) !important;
 }
-
 body:has(#tela-login) .prof-card,
 body:has(#tela-login) .prof-item {
     background: var(--cal-paper) !important;
     border-color: var(--cal-line) !important;
     color: var(--cal-ink) !important;
 }
-
 body:has(#tela-login) .btn-continuar,
 body:has(#tela-login) .btn-entrar {
     background: var(--cal-red) !important;
     border-radius: var(--cal-pill);
     box-shadow: 0 8px 18px rgba(220,60,60,.25) !important;
 }
-
 body:has(#tela-login) .pin-usuario-pill,
-body:has(#tela-login) .pin-wrapper {
-    background: var(--cal-soft);
-    border-color: var(--cal-line);
-}
+body:has(#tela-login) .pin-wrapper { background: var(--cal-soft); border-color: var(--cal-line); }
 body:has(#tela-login) .pin-avatar-circle { background: var(--cal-red); }
 body:has(#tela-login) .pin-usuario-nome { color: var(--cal-ink); }
 body:has(#tela-login) .pin-dot { background: var(--cal-paper); border-color: #d5d5d5; }
 body:has(#tela-login) .pin-dot.ativo,
 body:has(#tela-login) .pin-dot.preenchido { border-color: var(--cal-blue); background: #fbe3c4; }
 body:has(#tela-login) .pin-dot.ativo::before { background: var(--cal-blue); }
-
-body:has(#tela-login) #bottom-nav {
-    background: var(--cal-paper);
-    border-top-color: var(--cal-line);
-}
+body:has(#tela-login) #bottom-nav { background: var(--cal-paper); border-top-color: var(--cal-line); }
 body:has(#tela-login) .nav-tab { color: var(--cal-subtle); }
 body:has(#tela-login) .nav-tab.ativa { color: var(--cal-red); }
 body:has(#tela-login) .nav-tab.ativa::before { background: var(--cal-red); }
-
-body:has(#tela-login) .saudacao {
-    background: var(--cal-ink);
-    border-radius: var(--cal-radius);
-    box-shadow: 0 12px 26px rgba(17,17,17,.11);
-}
+body:has(#tela-login) .saudacao { background: var(--cal-ink); border-radius: var(--cal-radius); box-shadow: 0 12px 26px rgba(17,17,17,.11); }
 body:has(#tela-login) .saudacao::after { background: rgba(255,255,255,.09); }
 body:has(#tela-login) .form-group label,
 body:has(#tela-login) .secao-titulo { color: var(--cal-muted); }
@@ -689,6 +1274,7 @@ body:has(#tela-login) .historico-item,
 body:has(#tela-login) .reserva-card,
 body:has(#tela-login) .semana-card,
 body:has(#tela-login) .perfil-card { background: var(--cal-paper) !important; border-color: var(--cal-line) !important; }
+
 
 /* --------------------------------------------------------------------------
    Coordination dashboard
