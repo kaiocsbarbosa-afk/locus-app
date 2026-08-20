@@ -55,11 +55,40 @@ async function exigirAuth() {
 //  INICIALIZAÇÃO
 // ============================================================
 
+function bloquearAcessoPorSessaoProfessor(nomeProf) {
+    const cardLogin = document.querySelector('.login-card');
+    if (cardLogin) {
+        cardLogin.innerHTML = `
+            <div class="login-card-titulo" style="color:#f59e0b;">⚠️ Sessão de Professor Ativa</div>
+            <div class="login-card-sub" style="margin-top:10px; margin-bottom:20px; font-size:0.9rem;">
+                Você está conectado como <strong>${nomeProf}</strong>.<br>
+                Para acessar o Painel da Coordenação, você deve sair da sua conta de professor primeiro.
+            </div>
+            <button type="button" id="btn-ir-prof" class="btn-login-coord" style="margin-bottom:10px; background:#4f46e5;">
+                Ir para Área do Professor
+            </button>
+            <button type="button" id="btn-sair-prof" class="btn-login-coord" style="background:#dc2626;">
+                Sair da Conta de Professor
+            </button>
+            <div class="login-footer-link" style="margin-top:16px;">
+                <a href="index.html">← Voltar ao Início</a>
+            </div>
+        `;
+
+        document.getElementById('btn-ir-prof')?.addEventListener('click', () => {
+            window.location.href = 'professor.html';
+        });
+        document.getElementById('btn-sair-prof')?.addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            window.location.reload();
+        });
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     registrarServiceWorker()
 
     // Verifica se já existe uma sessão válida do coordenador.
-    // Isso permite recarregar a página sem precisar fazer login novamente.
     const { data: { session } } = await supabase.auth.getSession()
 
     if (session) {
@@ -68,8 +97,16 @@ document.addEventListener("DOMContentLoaded", async () => {
             mostrarDashboard()
             return
         } else {
-            // Sessão de professor que vazou para esta página — descarta
-            await supabase.auth.signOut()
+            // Sessão de professor ativa detectada: bloqueia login na coordenação
+            const { data: prof } = await supabase
+                .from('professores')
+                .select('nome')
+                .eq('auth_user_id', session.user.id)
+                .single()
+
+            const nomeProf = prof?.nome || 'Professor'
+            bloquearAcessoPorSessaoProfessor(nomeProf)
+            return
         }
     }
 
@@ -86,7 +123,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 })
 
 window.entrarPainel = async function() {
-    const senhaDigitada = document.getElementById('senha-coord').value
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session && session.user?.email !== COORD_EMAIL) {
+        dispararAlerta({
+            icon: 'warning',
+            title: 'Sessão de Professor Ativa',
+            text: 'Você precisa sair da conta de Professor antes de entrar no Painel da Coordenação.',
+            confirmButtonColor: 'var(--cor-primaria)'
+        })
+        return
+    }
+
+    const senhaDigitada = document.getElementById('senha-coord')?.value
 
     if (!senhaDigitada) {
         dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Por favor, digite a senha.', confirmButtonColor: 'var(--cor-primaria)' })

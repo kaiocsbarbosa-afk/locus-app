@@ -1,5 +1,5 @@
 /* professor.js — login em 2 passos: selecionar nome → PIN */
-import { supabase, registrarServiceWorker, getProfessorLogado, fazerLogoutAuth } from './utils.js'
+import { supabase, registrarServiceWorker, getProfessorLogado, fazerLogoutAuth, getInfoSessaoAtual, COORD_EMAIL } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 let professorLogado = null;
@@ -11,8 +11,49 @@ let telaAtual = 'agendar';
 //  INICIALIZAÇÃO
 // ============================================================
 
+function bloquearAcessoPorSessaoCoord() {
+    const telaLogin = document.getElementById('tela-login');
+    if (telaLogin) {
+        telaLogin.innerHTML = `
+            <div style="min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center;">
+                <div style="background:var(--login-surface, #ffffff); border:1px solid rgba(220,60,60,0.3); border-radius:22px; padding:36px 28px; max-width:440px; width:100%; box-shadow:0 12px 36px rgba(0,0,0,0.15);">
+                    <div style="font-size:3rem; margin-bottom:12px;">⚠️</div>
+                    <h2 style="font-size:1.35rem; font-weight:700; margin-bottom:10px; color:var(--text-main, #111827);">Sessão da Coordenação Ativa</h2>
+                    <p style="font-size:0.9rem; color:var(--text-muted, #6b7280); line-height:1.5; margin-bottom:24px;">
+                        Você está conectado como <strong>Coordenação</strong>.<br>
+                        Para fazer login ou acessar a Área do Professor, é necessário sair da conta de Coordenação.
+                    </p>
+                    <button type="button" id="btn-ir-coord" style="width:100%; padding:12px; background:var(--primary-red, #dc3c3c); color:#fff; font-weight:600; border:none; border-radius:50px; cursor:pointer; margin-bottom:12px; font-size:0.95rem;">
+                        Ir para Painel da Coordenação
+                    </button>
+                    <button type="button" id="btn-sair-coord" style="width:100%; padding:12px; background:#4f46e5; color:#fff; font-weight:600; border:none; border-radius:50px; cursor:pointer; margin-bottom:16px; font-size:0.95rem;">
+                        Sair da Conta da Coordenação
+                    </button>
+                    <a href="index.html" style="font-size:0.85rem; color:var(--text-muted, #6b7280); text-decoration:none; font-weight:500;">← Voltar ao Início</a>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('btn-ir-coord')?.addEventListener('click', () => {
+            window.location.href = 'coordenacao.html';
+        });
+        document.getElementById('btn-sair-coord')?.addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            window.location.reload();
+        });
+    }
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
     registrarServiceWorker();
+
+    const sessaoInfo = await getInfoSessaoAtual();
+
+    if (sessaoInfo.tipo === 'coordenacao') {
+        // Bloqueia acesso à área do professor enquanto a sessão da coordenação estiver ativa
+        bloquearAcessoPorSessaoCoord();
+        return;
+    }
 
     // Verifica sessão JWT ativa — se professor já está logado, pula login
     const professor = await getProfessorLogado();
@@ -284,6 +325,16 @@ function erroPin(mensagem, isRateLimit = false) {
 }
 
 window.fazerLogin = async function() {
+    const sessaoInfo = await getInfoSessaoAtual();
+    if (sessaoInfo.tipo === 'coordenacao') {
+        return Swal.fire({
+            icon: 'warning',
+            title: 'Sessão da Coordenação Ativa',
+            text: 'Você precisa sair da conta de Coordenação antes de entrar como Professor.',
+            confirmButtonColor: '#dc3c3c'
+        });
+    }
+
     const profId = _profId;   // definido em _selecionarCard()
     const pin = (document.getElementById('pin-input-real')?.value || '').replace(/\D/g, '').slice(0, 4);
 
@@ -689,18 +740,26 @@ function _offsetSemanaValido(offset) {
     return offset === 0;
 }
 
+const DIAS_SEMANA_NOMES = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+
 function configurarCalendarioSemana() {
-    const { minData, maxData, bloqueadoFimDeSemana } = _limitesAgendamento();
+    const { minData, maxData, segundaSemana, sextaSemana, bloqueadoFimDeSemana } = _limitesAgendamento();
     const input = document.getElementById('data-agendamento');
+    const selectData = document.getElementById('select-data');
     if (!input) return;
 
     const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const agoraSp = _getAgoraBrasilia();
+    const hojeIso = fmt(agoraSp);
+
+    let valorSelecionado = fmt(minData);
 
     if (bloqueadoFimDeSemana) {
         input.min = fmt(minData);
         input.max = fmt(maxData);
         input.value = fmt(minData);
         input.disabled = true;
+        valorSelecionado = fmt(minData);
     } else {
         input.disabled = false;
         input.min = fmt(minData);
@@ -709,9 +768,65 @@ function configurarCalendarioSemana() {
         const valAtual = input.value;
         if (!valAtual || valAtual < fmt(minData) || valAtual > fmt(maxData)) {
             input.value = fmt(minData);
+            valorSelecionado = fmt(minData);
+        } else {
+            valorSelecionado = valAtual;
         }
     }
+
+    if (selectData) {
+        selectData.innerHTML = '';
+        const inicio = new Date(segundaSemana || minData);
+        const fim = new Date(sextaSemana || maxData);
+        const cur = new Date(inicio);
+
+        while (cur <= fim) {
+            const curIso = fmt(cur);
+            const diaSem = cur.getDay();
+            if (diaSem >= 1 && diaSem <= 5) {
+                const opt = document.createElement('option');
+                opt.value = curIso;
+                const nomeDia = DIAS_SEMANA_NOMES[diaSem];
+                const dataFormatada = `${String(cur.getDate()).padStart(2, '0')}/${String(cur.getMonth() + 1).padStart(2, '0')}`;
+                const ehHoje = curIso === hojeIso ? ' — (Hoje)' : '';
+                const jaPassou = !bloqueadoFimDeSemana && curIso < fmt(minData);
+
+                opt.textContent = `${nomeDia}, ${dataFormatada}${ehHoje}${jaPassou ? ' [Encerrado]' : ''}`;
+                if (jaPassou) {
+                    opt.disabled = true;
+                }
+                selectData.appendChild(opt);
+            }
+            cur.setDate(cur.getDate() + 1);
+        }
+
+        selectData.value = valorSelecionado;
+        selectData.disabled = bloqueadoFimDeSemana;
+    }
 }
+
+window.selecionarDataDropdown = function(novaData) {
+    const input = document.getElementById('data-agendamento');
+    if (input && novaData) {
+        input.value = novaData;
+    }
+    const select = document.getElementById('select-data');
+    if (select && novaData) {
+        select.value = novaData;
+    }
+    buscarAulas();
+};
+
+window.abrirSeletorData = function() {
+    const input = document.getElementById('data-agendamento');
+    if (input && typeof input.showPicker === 'function') {
+        try {
+            input.showPicker();
+        } catch {
+            input.focus();
+        }
+    }
+};
 
 // ============================================================
 //  GRADE DE AULAS — Horários Oficiais

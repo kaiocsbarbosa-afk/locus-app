@@ -547,6 +547,7 @@
             }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="./cal-inspired.css">
 </head>
 
@@ -579,14 +580,11 @@
         <div class="hero-content">
             <div class="hero-left">
                 <div class="user-status-badge" id="hero-badge">
-                    <span>👨‍🏫 <span id="hero-badge-nome"></span></span>
+                    <span id="hero-badge-texto">👨‍🏫 <span id="hero-badge-nome"></span></span>
                     <button type="button" id="btn-logout">Sair</button>
                 </div>
 
                 <h1 class="hero-title" id="hero-titulo">Olá, seja<br>bem-vindo ao<br><span class="destaque">Locus!</span></h1>
-                <p class="hero-desc" id="hero-sub">
-                    Locus está pronto para transformar sua experiência educacional, trazendo uma visão colaborativa e intuitiva para professores e coordenação acadêmica.
-                </p>
             </div>
         </div>
     </div>
@@ -642,7 +640,7 @@
     <div id="toast"></div>
 
     <script type="module">
-        import { supabase as sb } from './utils.js';
+        import { supabase as sb, getInfoSessaoAtual } from './utils.js';
 
         // ── DARK MODE ──────────────────────────────────────────────
         const metaThemeColor = document.querySelector('meta[name="theme-color"]');
@@ -688,28 +686,72 @@
             }
         });
 
-        // ── SESSÃO SUPABASE ────────────────────────────────────────
+        // ── SESSÃO SUPABASE & VERIFICAÇÃO ──────────────────────────
+        let sessaoAtual = null;
+
         async function verificarSessao() {
             try {
-                const { data: { session } } = await sb.auth.getSession();
-                if (!session) return;
+                sessaoAtual = await getInfoSessaoAtual();
+                if (!sessaoAtual?.tipo) return;
 
-                const { data: prof } = await sb
-                    .from('professores')
-                    .select('nome')
-                    .eq('auth_user_id', session.user.id)
-                    .single();
-
-                if (prof?.nome) {
-                    const primeiroNome = prof.nome.split(' ')[0];
+                if (sessaoAtual.tipo === 'coordenacao') {
+                    document.getElementById('hero-titulo').innerHTML = `Olá,<br>Coordenação!<br>Painel de controle do<br><span class="destaque">Locus</span>`;
+                    const badgeTexto = document.getElementById('hero-badge-texto');
+                    if (badgeTexto) badgeTexto.innerHTML = `🏛️ <span>Coordenação</span>`;
+                    document.getElementById('hero-badge').classList.add('visivel');
+                } else if (sessaoAtual.tipo === 'professor' && sessaoAtual.professor?.nome) {
+                    const primeiroNome = sessaoAtual.professor.nome.split(' ')[0];
                     document.getElementById('hero-titulo').innerHTML = `Olá,<br>${primeiroNome},<br>vamos reservar a<br>sua <span class="destaque">aula?</span>`;
-                    document.getElementById('hero-badge-nome').textContent = primeiroNome;
+                    const badgeTexto = document.getElementById('hero-badge-texto');
+                    if (badgeTexto) badgeTexto.innerHTML = `👨‍🏫 <span>${primeiroNome}</span>`;
                     document.getElementById('hero-badge').classList.add('visivel');
                 }
-            } catch {
-                // Manter saudação padrão
+            } catch (err) {
+                console.error('Erro ao verificar sessão:', err);
             }
         }
+
+        // ── INTERCEPTADORES DE ACESSO CRUZADO ──────────────────────
+        document.getElementById('card-professor')?.addEventListener('click', async (e) => {
+            if (sessaoAtual?.tipo === 'coordenacao') {
+                e.preventDefault();
+                const res = await Swal.fire({
+                    icon: 'info',
+                    title: 'Sessão da Coordenação Ativa',
+                    text: 'Você está conectado como Coordenação. Para acessar a Área do Professor, você deve sair da conta atual.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sair e Acessar Professor',
+                    cancelButtonText: 'Permanecer na Coordenação',
+                    confirmButtonColor: 'var(--primary-red)',
+                    cancelButtonColor: '#6b7280'
+                });
+                if (res.isConfirmed) {
+                    await sb.auth.signOut();
+                    window.location.href = 'professor.html';
+                }
+            }
+        });
+
+        document.getElementById('card-coord')?.addEventListener('click', async (e) => {
+            if (sessaoAtual?.tipo === 'professor') {
+                e.preventDefault();
+                const nomeProf = sessaoAtual.professor?.nome?.split(' ')[0] || 'Professor';
+                const res = await Swal.fire({
+                    icon: 'info',
+                    title: 'Sessão de Professor Ativa',
+                    text: `Você está conectado como ${nomeProf}. Para acessar o Painel da Coordenação, você deve sair da sua conta de professor.`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Sair e Acessar Coordenação',
+                    cancelButtonText: 'Permanecer como Professor',
+                    confirmButtonColor: 'var(--primary-red)',
+                    cancelButtonColor: '#6b7280'
+                });
+                if (res.isConfirmed) {
+                    await sb.auth.signOut();
+                    window.location.href = 'coordenacao.html';
+                }
+            }
+        });
 
         // ── INICIALIZAÇÃO ──────────────────────────────────────────
         const splash = document.getElementById('splash');

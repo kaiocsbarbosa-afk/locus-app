@@ -1742,11 +1742,15 @@
             <!-- Card 1: DATA -->
             <div class="stitch-select-card">
                 <div class="stitch-card-header">
-                    <div class="stitch-card-icon-badge">📅</div>
+                    <div class="stitch-card-icon-badge" onclick="abrirSeletorData()" style="cursor:pointer;" title="Abrir calendário">📅</div>
                     <span class="stitch-card-label">Data</span>
                 </div>
                 <div class="stitch-input-wrap">
-                    <input type="date" id="data-agendamento" onchange="buscarAulas()">
+                    <select id="select-data" onchange="selecionarDataDropdown(this.value)">
+                        <option value="">Selecione a data...</option>
+                    </select>
+                    <span class="stitch-select-arrow">⌄</span>
+                    <input type="date" id="data-agendamento" style="position:absolute; opacity:0; pointer-events:none; width:1px; height:1px;" onchange="selecionarDataDropdown(this.value)">
                 </div>
             </div>
 

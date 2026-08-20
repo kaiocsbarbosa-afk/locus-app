@@ -21,9 +21,32 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     }
 })
 
-// ------------------------------------------------------------
-// Auth helpers
-// ------------------------------------------------------------
+export const COORD_EMAIL = 'coordenacao@locus.interno'
+
+/**
+ * Retorna as informações da sessão ativa:
+ * { tipo: 'coordenacao' | 'professor' | null, session, professor }
+ */
+export async function getInfoSessaoAtual() {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) return { tipo: null, session: null, professor: null }
+
+    if (session.user?.email === COORD_EMAIL) {
+        return { tipo: 'coordenacao', session, professor: null }
+    }
+
+    const { data: professor } = await supabase
+        .from('professores')
+        .select('*')
+        .eq('auth_user_id', session.user.id)
+        .single()
+
+    if (professor) {
+        return { tipo: 'professor', session, professor }
+    }
+
+    return { tipo: null, session, professor: null }
+}
 
 /**
  * Retorna o professor logado buscando pelo auth_user_id do JWT atual.
@@ -32,6 +55,7 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 export async function getProfessorLogado() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return null
+    if (session.user?.email === COORD_EMAIL) return null
 
     const { data: professor, error } = await supabase
         .from('professores')
@@ -44,7 +68,7 @@ export async function getProfessorLogado() {
 }
 
 /**
- * Logout do professor — invalida o JWT no servidor.
+ * Logout do usuário — invalida o JWT no servidor.
  */
 export async function fazerLogoutAuth() {
     await supabase.auth.signOut()
