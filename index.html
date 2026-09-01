@@ -57,13 +57,17 @@
 
         body {
             font-family: 'Poppins', sans-serif;
-            background: var(--bg);
+            background: #f5ebe0;
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             overflow-x: hidden;
             transition: background-color .3s ease, color .3s ease;
+        }
+
+        body.dark-mode {
+            background: var(--bg);
         }
 
         /* ── SPLASH ─────────────────────────── */
@@ -152,8 +156,9 @@
             background-color: #d4b8a0;
             background-image: url('./hero-photo.jpg');
             background-size: cover;
-            background-position: center top;
+            background-position: center 25%;
             background-repeat: no-repeat;
+            min-height: 480px;
         }
 
         @supports (background-image: url('./hero-photo.avif')) {
@@ -169,10 +174,11 @@
             inset: 0;
             background: linear-gradient(
                 to right,
-                rgba(235, 210, 185, 0.92) 0%,
-                rgba(235, 210, 185, 0.75) 30%,
-                rgba(235, 210, 185, 0.25) 55%,
-                transparent 75%
+                rgba(235, 210, 185, 0.94) 0%,
+                rgba(235, 210, 185, 0.80) 28%,
+                rgba(235, 210, 185, 0.38) 52%,
+                rgba(235, 210, 185, 0.10) 70%,
+                transparent 85%
             );
             z-index: 1;
             pointer-events: none;
@@ -185,8 +191,14 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 60px;
-            background: linear-gradient(to bottom, transparent, #f5ebe0);
+            height: 120px;
+            background: linear-gradient(
+                to bottom,
+                transparent 0%,
+                rgba(245, 235, 224, 0.25) 30%,
+                rgba(245, 235, 224, 0.70) 70%,
+                #f5ebe0 100%
+            );
             z-index: 1;
             pointer-events: none;
         }
@@ -198,15 +210,22 @@
         body.dark-mode .hero-banner::before {
             background: linear-gradient(
                 to right,
-                rgba(15, 10, 25, 0.92) 0%,
-                rgba(15, 10, 25, 0.75) 30%,
-                rgba(15, 10, 25, 0.30) 55%,
-                transparent 75%
+                rgba(15, 10, 25, 0.94) 0%,
+                rgba(15, 10, 25, 0.80) 28%,
+                rgba(15, 10, 25, 0.40) 52%,
+                rgba(15, 10, 25, 0.15) 70%,
+                transparent 85%
             );
         }
 
         body.dark-mode .hero-banner::after {
-            background: linear-gradient(to bottom, transparent, var(--bg));
+            background: linear-gradient(
+                to bottom,
+                transparent 0%,
+                rgba(11, 9, 20, 0.25) 30%,
+                rgba(11, 9, 20, 0.70) 70%,
+                var(--bg) 100%
+            );
         }
 
         /* ── HEADER NAVBAR ─────────────────── */
@@ -284,7 +303,7 @@
             max-width: 1200px;
             width: 100%;
             margin: 0 auto;
-            padding: 40px 32px 80px;
+            padding: 50px 32px 120px;
         }
 
         .hero-left {
@@ -352,7 +371,8 @@
         /* ── ACTION CARDS GRID ────────────────── */
         .cards-section {
             background: #f5ebe0;
-            padding: 50px 0 60px;
+            padding: 20px 0 50px;
+            flex: 1;
         }
 
         body.dark-mode .cards-section {
@@ -443,12 +463,13 @@
         /* ── FOOTER ─────────────────────────── */
         .footer {
             margin-top: auto;
-            border-top: 1px solid rgba(0, 0, 0, 0.08);
+            border-top: 1px solid rgba(0, 0, 0, 0.06);
             padding: 24px 32px;
-            background: var(--bg);
+            background: #f5ebe0;
         }
 
         body.dark-mode .footer {
+            background: var(--bg);
             border-top-color: rgba(255, 255, 255, 0.08);
         }
 
@@ -507,6 +528,28 @@
 
         /* ── RESPONSIVE MOBILE STYLING ────────── */
         @media (max-width: 900px) {
+            body {
+                background: #f5ebe0;
+            }
+
+            body.dark-mode {
+                background: var(--bg);
+            }
+
+            .hero-banner {
+                min-height: auto;
+                background-position: center top;
+            }
+
+            .hero-banner::after {
+                height: 60px;
+                background: linear-gradient(to bottom, transparent, #f5ebe0);
+            }
+
+            body.dark-mode .hero-banner::after {
+                background: linear-gradient(to bottom, transparent, var(--bg));
+            }
+
             .hero-content {
                 padding: 30px 20px 60px;
             }
@@ -535,9 +578,24 @@
                 );
             }
 
+            .cards-section {
+                padding: 40px 0 50px;
+                flex: none;
+            }
+
             .cards-grid {
                 grid-template-columns: 1fr;
                 gap: 20px;
+            }
+
+            .footer {
+                background: #f5ebe0;
+                border-top: 1px solid rgba(0, 0, 0, 0.06);
+            }
+
+            body.dark-mode .footer {
+                background: var(--bg);
+                border-top-color: rgba(255, 255, 255, 0.08);
             }
 
             .footer-content {
