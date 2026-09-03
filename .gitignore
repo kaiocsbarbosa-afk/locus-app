@@ -1,2 +1,5 @@
-
 mcp_config.json
+.env
+.env.local
+.env.*
+!.env.example

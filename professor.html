@@ -1582,6 +1582,167 @@
             font-size: .8rem;
             color: var(--login-text3);
         }
+
+        /* ── SELETOR DE TURNO (LOGIN) ── */
+        .login-turno-wrap {
+            margin-bottom: 16px;
+            width: 100%;
+        }
+        .login-turno-label {
+            font-size: 0.74rem;
+            font-weight: 600;
+            color: var(--login-text3, #9ca3af);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+        }
+        .login-turno-toggle {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            background: var(--login-surface2, rgba(0,0,0,0.03));
+            padding: 4px;
+            border-radius: 14px;
+            border: 1px solid var(--login-border, rgba(0,0,0,0.08));
+        }
+        .btn-turno {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 8px;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--login-text2, #4b5563);
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .btn-turno:hover {
+            color: var(--login-text, #111827);
+            background: rgba(255,255,255,0.6);
+        }
+        .btn-turno.ativo {
+            background: #ffffff;
+            color: #dc3c3c;
+            border-color: rgba(220, 60, 60, 0.3);
+            box-shadow: 0 4px 12px rgba(220, 60, 60, 0.12);
+        }
+        .btn-turno-eja.ativo {
+            background: linear-gradient(135deg, #1e1b4b, #312e81);
+            color: #e0e7ff;
+            border-color: rgba(99, 102, 241, 0.5);
+            box-shadow: 0 4px 16px rgba(49, 46, 129, 0.35);
+        }
+        body.dark-mode .btn-turno {
+            color: #9ca3af;
+        }
+        body.dark-mode .btn-turno:hover {
+            color: #f3f4f6;
+            background: rgba(255,255,255,0.05);
+        }
+        body.dark-mode .btn-turno.ativo {
+            background: #1f1b2e;
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.4);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+        }
+        body.dark-mode .btn-turno-eja.ativo {
+            background: linear-gradient(135deg, #312e81, #4338ca);
+            color: #e0e7ff;
+            border-color: rgba(129, 140, 248, 0.5);
+            box-shadow: 0 4px 18px rgba(49, 46, 129, 0.5);
+        }
+        .login-turno-status {
+            font-size: 0.74rem;
+            color: var(--login-text3, #6b7280);
+            margin-top: 6px;
+            text-align: center;
+        }
+        .login-turno-status strong {
+            color: var(--login-text, #111827);
+        }
+        body.dark-mode .login-turno-status strong {
+            color: #f3f4f6;
+        }
+
+        /* ── TURNO PILL NO BANNER ── */
+        .stitch-banner-header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+        }
+        .stitch-turno-pill-wrap {
+            display: flex;
+            align-items: center;
+        }
+        .stitch-turno-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.76rem;
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            transition: all 0.2s ease;
+        }
+        .stitch-turno-btn:hover {
+            background: rgba(255, 255, 255, 0.22);
+            transform: translateY(-1px);
+        }
+        .stitch-turno-icon-switch {
+            font-size: 0.85rem;
+            opacity: 0.85;
+        }
+
+        /* ── CARD INTERVALO EJA ── */
+        .card-intervalo {
+            grid-column: 1 / -1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 12px 16px;
+            margin: 6px 0;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.09), rgba(220, 60, 60, 0.07));
+            border: 1.5px dashed rgba(245, 158, 11, 0.4);
+            border-radius: 14px;
+            text-align: center;
+            animation: fadeIn 0.25s ease;
+        }
+        .card-intervalo-badge {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #b45309;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .card-intervalo-sub {
+            font-size: 0.72rem;
+            color: var(--text-muted, #6b7280);
+        }
+        body.dark-mode .card-intervalo {
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(220, 60, 60, 0.12));
+            border-color: rgba(245, 158, 11, 0.45);
+        }
+        body.dark-mode .card-intervalo-badge {
+            color: #fcd34d;
+        }
     </style>
     <link rel="stylesheet" href="./cal-inspired.css">
 </head>
@@ -1627,6 +1788,22 @@
             <div id="login-step1">
                 <div class="login-card-titulo">Bem-vindo</div>
                 <div class="login-card-sub">Toque no seu nome para continuar</div>
+
+                <!-- Seletor de Turno (Manhã Integral vs EJA) -->
+                <div class="login-turno-wrap">
+                    <div class="login-turno-label">Turno de Acesso:</div>
+                    <div class="login-turno-toggle" role="group" aria-label="Seleção de Turno">
+                        <button type="button" class="btn-turno ativo" id="btn-turno-manha" onclick="selecionarTurnoLogin('manha')">
+                            <span>☀️</span> Manhã Integral
+                        </button>
+                        <button type="button" class="btn-turno btn-turno-eja" id="btn-turno-eja" onclick="selecionarTurnoLogin('eja')">
+                            <span>🌙</span> EJA (Noturno)
+                        </button>
+                    </div>
+                    <div class="login-turno-status" id="login-turno-status">
+                        Turno selecionado: <strong>Manhã Integral (7 aulas)</strong>
+                    </div>
+                </div>
 
                 <!-- Busca por texto -->
                 <div class="prof-search-wrap">
@@ -1698,8 +1875,16 @@
     <!-- BANNER TOPO STITCH (VISÍVEL QUANDO LOGADO) -->
     <div class="stitch-banner" id="status-usuario" style="display:none;">
         <div class="stitch-banner-info">
-            <div class="stitch-banner-greeting" id="saudacao-periodo">
-                <span class="greeting-dot">☀️</span> Bom dia!
+            <div class="stitch-banner-header-row">
+                <div class="stitch-banner-greeting" id="saudacao-periodo">
+                    <span class="greeting-dot">☀️</span> Bom dia!
+                </div>
+                <div class="stitch-turno-pill-wrap">
+                    <button type="button" class="stitch-turno-btn" id="btn-toggle-turno-header" onclick="alternarTurnoHeader()" title="Alternar entre Manhã Integral e EJA Noturno">
+                        <span id="txt-turno-header">🌙 EJA (Noite)</span>
+                        <span class="stitch-turno-icon-switch">⇄</span>
+                    </button>
+                </div>
             </div>
             <h1 class="stitch-banner-name" id="saudacao-nome">Carregando...</h1>
             <p class="stitch-banner-sub" id="saudacao-disciplina">Análise e Desenvolvimento de Sistemas</p>

@@ -6,9 +6,11 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 // ------------------------------------------------------------
 // Cliente Supabase único
+// A chave pública (anon) é segura para o navegador e protegida por RLS.
+// Chaves administrativas (service_role e secrets) são mantidas no .env (git-ignored)
 // ------------------------------------------------------------
-const SUPABASE_URL = 'https://ixhuqbfzwkobhrvlzwgm.supabase.co'
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84'
+const SUPABASE_URL = window.__ENV__?.SUPABASE_URL || 'https://ixhuqbfzwkobhrvlzwgm.supabase.co'
+const SUPABASE_KEY = window.__ENV__?.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84'
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: {
@@ -20,6 +22,20 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
         detectSessionInUrl: false,
     }
 })
+
+// ------------------------------------------------------------
+// Gerenciamento de Turnos (Manhã Integral x EJA Noturno)
+// ------------------------------------------------------------
+export function getTurnoAtivo() {
+    return localStorage.getItem('locus_turno') || 'manha'
+}
+
+export function setTurnoAtivo(turno) {
+    const turnoNormalizado = turno === 'eja' ? 'eja' : 'manha'
+    localStorage.setItem('locus_turno', turnoNormalizado)
+    window.dispatchEvent(new CustomEvent('locus:turno_alterado', { detail: { turno: turnoNormalizado } }))
+    return turnoNormalizado
+}
 
 export const COORD_EMAIL = 'coordenacao@locus.interno'
 
