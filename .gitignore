@@ -1,4 +1,6 @@
 mcp_config.json
+env.js
+!env.example.js
 .env
 .env.local
 .env.*

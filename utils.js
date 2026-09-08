@@ -6,11 +6,14 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 // ------------------------------------------------------------
 // Cliente Supabase único
-// A chave pública (anon) é segura para o navegador e protegida por RLS.
-// Chaves administrativas (service_role e secrets) são mantidas no .env (git-ignored)
+// Credenciais carregadas de forma segura via env.js (ignorado no Git)
 // ------------------------------------------------------------
-const SUPABASE_URL = window.__ENV__?.SUPABASE_URL || 'https://ixhuqbfzwkobhrvlzwgm.supabase.co'
-const SUPABASE_KEY = window.__ENV__?.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84'
+const SUPABASE_URL = window.__ENV__?.SUPABASE_URL || ''
+const SUPABASE_KEY = window.__ENV__?.SUPABASE_KEY || ''
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.warn('Locus: Credenciais do Supabase não encontradas. Certifique-se de configurar o arquivo env.js (consulte env.example.js).')
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: {

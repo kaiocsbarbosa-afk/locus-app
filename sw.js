@@ -14,6 +14,7 @@ const ASSETS = [
   './manifest.json',
   './locus.css',
   './cal-inspired.css',
+  './env.js',
   './utils.js',
   './push.js',
   './professor.js',
