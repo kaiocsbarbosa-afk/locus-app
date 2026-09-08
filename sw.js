@@ -1,5 +1,5 @@
 // IMPORTANTE: incremente CACHE_VERSION a cada deploy para forçar atualização
-const CACHE_VERSION = 'v9';
+const CACHE_VERSION = 'v13';
 const CACHE_NAME    = `locus-cache-${CACHE_VERSION}`;
 
 // Chave pública VAPID — necessária para renovar a subscription em pushsubscriptionchange

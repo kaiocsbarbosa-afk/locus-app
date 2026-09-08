@@ -1,5 +1,4 @@
-/* professor.js — login em 2 passos: selecionar nome → PIN */
-import { supabase, registrarServiceWorker, getProfessorLogado, fazerLogoutAuth, getInfoSessaoAtual, COORD_EMAIL, getTurnoAtivo, setTurnoAtivo } from './utils.js'
+import { supabase, registrarServiceWorker, getProfessorLogado, fazerLogoutAuth, getInfoSessaoAtual, COORD_EMAIL, getTurnoAtivo, setTurnoAtivo, detectarTurnoTurma, obterHorarioAula, obterTotalAulasTurno, GRADE_HORARIOS_MANHA, GRADE_HORARIOS_EJA } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 let professorLogado = null;
@@ -41,13 +40,23 @@ window.alternarTurnoHeader = function() {
     carregarTurmas();
     buscarAulas();
     if (telaAtual === 'semana') carregarVisaoSemanal();
+    if (telaAtual === 'perfil') atualizarPerfil();
+};
+
+window.alternarTurnoPerfil = function() {
+    window.alternarTurnoHeader();
+    atualizarPerfil();
 };
 
 function atualizarVisualTurnoBanner() {
     const txtTurno = document.getElementById('txt-turno-header');
+    const txtAgendar = document.getElementById('txt-turno-agendar');
     const elPeriodo = document.getElementById('saudacao-periodo');
     if (txtTurno) {
         txtTurno.textContent = turnoAtivo === 'eja' ? '🌙 EJA (Noite)' : '☀️ Manhã Integral';
+    }
+    if (txtAgendar) {
+        txtAgendar.textContent = turnoAtivo === 'eja' ? '🌙 EJA' : '☀️ Manhã';
     }
     if (elPeriodo) {
         if (turnoAtivo === 'eja') {
@@ -458,6 +467,9 @@ function mostrarAppLogado() {
     document.getElementById('tela-login').style.display = 'none';
     document.getElementById('app-header').classList.add('visivel');
 
+    const telaPerfilEl = document.getElementById('tela-perfil');
+    if (telaPerfilEl) telaPerfilEl.style.display = 'none';
+
     const statusBanner = document.getElementById('status-usuario');
     if (statusBanner) statusBanner.style.display = 'flex';
 
@@ -487,6 +499,7 @@ function mostrarAppLogado() {
     carregarTurmas();
     carregarSalas();
     carregarHistorico();
+    atualizarPerfil();
 
     // Mostra banner de notificações se ainda não foi permitido/negado
     setTimeout(() => verificarBannerNotificacoes(), 1200);
@@ -599,6 +612,7 @@ const TELAS = {
 const ORDEM_TELAS_NAV = ['agendar', 'semana', 'minhas-aulas', 'perfil'];
 
 window.trocarTela = function(nomeTela) {
+    if (nomeTela === 'perfil') atualizarPerfil();
     if (nomeTela === telaAtual) return;
 
     // Determina direção da animação
@@ -622,6 +636,11 @@ window.trocarTela = function(nomeTela) {
         }
     });
 
+    const telaPerfilEl = document.getElementById('tela-perfil');
+    if (telaPerfilEl) {
+        telaPerfilEl.style.display = (nomeTela === 'perfil') ? 'flex' : 'none';
+    }
+
     document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('ativa'));
     const tab = document.getElementById(`tab-${nomeTela}`);
     if (tab) tab.classList.add('ativa');
@@ -635,25 +654,176 @@ window.trocarTela = function(nomeTela) {
     if (nomeTela === 'perfil') atualizarPerfil();
 }
 
-function atualizarPerfil() {
+async function atualizarPerfil() {
+    if (!professorLogado) {
+        try {
+            professorLogado = await getProfessorLogado();
+        } catch (e) {
+            console.warn('Perfil: aguardando sessão ativa...', e);
+        }
+    }
     if (!professorLogado) return;
+
     const nome = document.getElementById('perfil-nome');
     const disc = document.getElementById('perfil-disciplina');
     if (nome) nome.textContent = professorLogado.nome;
-    if (disc) disc.textContent = professorLogado.disciplina || 'Sem disciplina';
+    if (disc) disc.textContent = professorLogado.disciplina ? `📚 ${professorLogado.disciplina}` : '📚 Docente Titular';
 
-    // Iniciais dinâmicas no avatar
+    // Iniciais dinâmicas e gradiente no avatar grande
     const iniciais = document.getElementById('perfil-iniciais');
+    const avatarGrande = document.getElementById('perfil-avatar-grande');
     if (iniciais && professorLogado.nome) {
-        const partes = professorLogado.nome.trim().split(' ').filter(Boolean);
-        const sigla = partes.length >= 2
-            ? partes[0][0] + partes[partes.length - 1][0]
-            : partes[0]?.slice(0, 2) || '?';
-        iniciais.textContent = sigla.toUpperCase();
+        iniciais.textContent = _iniciais(professorLogado.nome);
+    }
+    if (avatarGrande && professorLogado.nome) {
+        avatarGrande.style.background = _corAvatar(professorLogado.nome);
     }
 
+    // Atualiza badges e detalhes do turno ativo
+    const badgeTurno = document.getElementById('perfil-turno-badge');
+    const nomeTurno = document.getElementById('perfil-turno-nome');
+    const detalheTurno = document.getElementById('perfil-turno-detalhe');
+
+    if (turnoAtivo === 'eja') {
+        if (badgeTurno) {
+            badgeTurno.textContent = '🌙 EJA Noturno (4 aulas)';
+            badgeTurno.className = 'perfil-badge-turno perfil-badge-turno-eja';
+        }
+        if (nomeTurno) nomeTurno.textContent = 'EJA Noturno (4 aulas)';
+        if (detalheTurno) detalheTurno.textContent = 'Horário das aulas: 18:00 às 21:40 (com intervalo)';
+    } else {
+        if (badgeTurno) {
+            badgeTurno.textContent = '☀️ Manhã Integral (7 aulas)';
+            badgeTurno.className = 'perfil-badge-turno perfil-badge-turno-manha';
+        }
+        if (nomeTurno) nomeTurno.textContent = 'Manhã Integral (7 aulas)';
+        if (detalheTurno) detalheTurno.textContent = 'Horário das aulas: 07:00 às 14:00 (com almoço e intervalo)';
+    }
+
+    // Atualiza banner stitch exclusivo do perfil
+    const elNome = document.getElementById('saudacao-nome');
+    const elDisc = document.getElementById('saudacao-disciplina');
+    const avatarBanner = document.getElementById('perfil-avatar');
+    if (elNome && professorLogado.nome) elNome.textContent = professorLogado.nome;
+    if (elDisc) elDisc.textContent = professorLogado.disciplina || 'Docente Titular';
+    if (avatarBanner && professorLogado.nome) {
+        avatarBanner.style.background = _corAvatar(professorLogado.nome);
+        avatarBanner.innerHTML = `<span style="font-size:1.1rem;font-weight:700;color:#fff;">${_iniciais(professorLogado.nome)}</span>`;
+    }
+
+    atualizarVisualTurnoBanner();
     atualizarStatusNotificacoes();
 }
+
+window.abrirModalAlterarPin = async function() {
+    if (!professorLogado) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Sessão necessária',
+            text: 'Faça login para poder alterar seu PIN.',
+            background: '#ffffff',
+            color: '#241a14',
+            confirmButtonColor: '#dc3c3c'
+        });
+        return;
+    }
+
+    const { value: novoPin } = await Swal.fire({
+        title: '🔑 Alterar PIN de Acesso',
+        html: `
+            <p style="font-size:0.88rem;color:#6e5d50;margin-bottom:18px;line-height:1.4;">
+                Crie um novo PIN numérico de <strong>4 dígitos</strong> para seus próximos acessos ao Locus.
+            </p>
+            <div style="display:flex;flex-direction:column;gap:14px;text-align:left;">
+                <div>
+                    <label style="font-size:0.8rem;font-weight:600;color:#544336;display:block;margin-bottom:6px;">Novo PIN (4 dígitos)</label>
+                    <input id="swal-novo-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off"
+                        style="width:100%;box-sizing:border-box;padding:12px;background:#fdfaf6;border:1.5px solid #ecd8c8;border-radius:12px;color:#241a14;font-size:1.4rem;letter-spacing:6px;text-align:center;">
+                </div>
+                <div>
+                    <label style="font-size:0.8rem;font-weight:600;color:#544336;display:block;margin-bottom:6px;">Confirmar Novo PIN</label>
+                    <input id="swal-confirma-pin" type="password" inputmode="numeric" maxlength="4" placeholder="••••" autocomplete="off"
+                        style="width:100%;box-sizing:border-box;padding:12px;background:#fdfaf6;border:1.5px solid #ecd8c8;border-radius:12px;color:#241a14;font-size:1.4rem;letter-spacing:6px;text-align:center;">
+                </div>
+            </div>
+        `,
+        focusConfirm: false,
+        showCancelButton: true,
+        confirmButtonText: 'Salvar Novo PIN',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc3c3c',
+        cancelButtonColor: '#9ca3af',
+        background: '#ffffff',
+        color: '#241a14',
+        didOpen: () => {
+            const input1 = document.getElementById('swal-novo-pin');
+            const input2 = document.getElementById('swal-confirma-pin');
+            [input1, input2].forEach(inp => {
+                if (!inp) return;
+                inp.addEventListener('input', () => {
+                    inp.value = inp.value.replace(/\D/g, '').slice(0, 4);
+                });
+            });
+            input1?.focus();
+        },
+        preConfirm: () => {
+            const p1 = document.getElementById('swal-novo-pin')?.value.trim();
+            const p2 = document.getElementById('swal-confirma-pin')?.value.trim();
+
+            if (!p1 || !p2) {
+                Swal.showValidationMessage('Preencha os dois campos de PIN.');
+                return false;
+            }
+            if (!/^\d{4}$/.test(p1)) {
+                Swal.showValidationMessage('O PIN deve ter exatamente 4 dígitos numéricos.');
+                return false;
+            }
+            if (p1 !== p2) {
+                Swal.showValidationMessage('A confirmação do PIN não coincide.');
+                return false;
+            }
+            return p1;
+        }
+    });
+
+    if (!novoPin) return;
+
+    Swal.fire({
+        title: 'Atualizando PIN...',
+        text: 'Gravando alterações de segurança',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+        background: '#ffffff',
+        color: '#241a14'
+    });
+
+    try {
+        const { data, error } = await supabase.auth.updateUser({
+            password: novoPin
+        });
+
+        if (error) throw error;
+
+        await Swal.fire({
+            icon: 'success',
+            title: 'PIN Atualizado!',
+            text: 'Seu PIN de 4 dígitos foi alterado com sucesso. Use seu novo PIN no próximo login.',
+            background: '#ffffff',
+            color: '#241a14',
+            confirmButtonColor: '#dc3c3c'
+        });
+    } catch (err) {
+        console.error('Erro ao atualizar PIN:', err);
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro ao alterar PIN',
+            text: err.message || 'Não foi possível atualizar o PIN. Tente novamente.',
+            background: '#ffffff',
+            color: '#241a14',
+            confirmButtonColor: '#dc3c3c'
+        });
+    }
+};
 
 function atualizarStatusNotificacoes() {
     const desc = document.getElementById('status-notif-desc');
@@ -706,10 +876,9 @@ async function carregarTurmas() {
         if (error) throw error;
         select.innerHTML = '<option value="">Selecione a turma...</option>';
         
-        // Filtra turmas conforme o turno ativo (EJA ou Manhã Regular)
+        // Filtra turmas conforme o turno ativo (EJA Noturno ou Manhã Integral)
         const turmasFiltradas = (data || []).filter(t => {
-            const isEja = (t.nome || '').toUpperCase().includes('EJA');
-            return turnoAtivo === 'eja' ? isEja : !isEja;
+            return detectarTurnoTurma(t.nome) === turnoAtivo;
         });
 
         turmasFiltradas.forEach(t => {
@@ -718,6 +887,7 @@ async function carregarTurmas() {
             o.textContent = t.nome;
             select.appendChild(o);
         });
+        select.value = '';
     } catch (err) { console.error("Erro ao carregar turmas:", err); }
 }
 
@@ -895,41 +1065,11 @@ window.abrirSeletorData = function() {
 
 // ============================================================
 //  GRADE DE AULAS — Horários Oficiais (Manhã e EJA Noturno)
+//  Importadas de utils.js (GRADE_HORARIOS_MANHA e GRADE_HORARIOS_EJA)
 // ============================================================
 
-// MANHÃ INTEGRAL (7 aulas):
-// 1ª aula: 07:00 – 07:50
-// 2ª aula: 07:50 – 08:40
-// 3ª aula: 09:00 – 09:50
-// 4ª aula: 09:50 – 10:40
-// 5ª aula: 10:40 – 11:30
-// 6ª aula: 12:20 – 13:10
-// 7ª aula: 13:10 – 14:00
-const GRADE_HORARIOS_MANHA = {
-    1: { inicioMinutos: 7 * 60,       fimMinutos: 7 * 60 + 50,  inicio: '07:00', fim: '07:50' },
-    2: { inicioMinutos: 7 * 60 + 50,  fimMinutos: 8 * 60 + 40,  inicio: '07:50', fim: '08:40' },
-    3: { inicioMinutos: 9 * 60,       fimMinutos: 9 * 60 + 50,  inicio: '09:00', fim: '09:50' },
-    4: { inicioMinutos: 9 * 60 + 50,  fimMinutos: 10 * 60 + 40, inicio: '09:50', fim: '10:40' },
-    5: { inicioMinutos: 10 * 60 + 40, fimMinutos: 11 * 60 + 30, inicio: '10:40', fim: '11:30' },
-    6: { inicioMinutos: 12 * 60 + 20, fimMinutos: 13 * 60 + 10, inicio: '12:20', fim: '13:10' },
-    7: { inicioMinutos: 13 * 60 + 10, fimMinutos: 14 * 60,      inicio: '13:10', fim: '14:00' },
-};
-
-// EJA NOTURNO (4 aulas, início 18:00, 50 min cada, 20 min de intervalo entre 2ª e 3ª):
-// 1ª aula: 18:00 – 18:50
-// 2ª aula: 18:50 – 19:40
-// Intervalo pedagógico: 19:40 – 20:00 (20 min)
-// 3ª aula: 20:00 – 20:50
-// 4ª aula: 20:50 – 21:40
-const GRADE_HORARIOS_EJA = {
-    1: { inicioMinutos: 18 * 60,       fimMinutos: 18 * 60 + 50,  inicio: '18:00', fim: '18:50' },
-    2: { inicioMinutos: 18 * 60 + 50,  fimMinutos: 19 * 60 + 40,  inicio: '18:50', fim: '19:40' },
-    3: { inicioMinutos: 20 * 60,       fimMinutos: 20 * 60 + 50,  inicio: '20:00', fim: '20:50' },
-    4: { inicioMinutos: 20 * 60 + 50,  fimMinutos: 21 * 60 + 40, inicio: '20:50', fim: '21:40' },
-};
-
 function _totalAulasTurno(turno = turnoAtivo) {
-    return turno === 'eja' ? 4 : 7;
+    return obterTotalAulasTurno(turno);
 }
 
 function _gradeHorariosTurno(turno = turnoAtivo) {
@@ -945,18 +1085,7 @@ function _formatarHora(totalMinutos) {
 }
 
 function _horarioDaAula(numeroAula, turno = turnoAtivo) {
-    const grade = _gradeHorariosTurno(turno);
-    if (grade[numeroAula]) {
-        return grade[numeroAula];
-    }
-    const baseHora = turno === 'eja' ? 18 : 7;
-    const inicioMinutos = baseHora * 60 + (numeroAula - 1) * 50;
-    const fimMinutos = inicioMinutos + 50;
-    return {
-        inicioMinutos,
-        inicio: _formatarHora(inicioMinutos),
-        fim: _formatarHora(fimMinutos),
-    };
+    return obterHorarioAula(numeroAula, turno);
 }
 
 function _inicioDaAula(dataIso, numeroAula, turno = turnoAtivo) {
@@ -1014,11 +1143,8 @@ window.buscarAulas = async function() {
 
         const mapaOcupacao = {};
         agendamentos.forEach(a => {
-            const isEja = (a.turmas?.nome || '').toUpperCase().includes('EJA');
-            // Se estiver em EJA, mostra reservas de turmas EJA; se Manhã, mostra de turmas da manhã
-            if (turnoAtivo === 'eja' && isEja) {
-                mapaOcupacao[a.aula_numero] = { prof: a.professores?.nome || 'Desconhecido', turma: a.turmas?.nome || 'Turma' };
-            } else if (turnoAtivo === 'manha' && !isEja) {
+            const turnoAgendamento = detectarTurnoTurma(a.turmas?.nome);
+            if (turnoAgendamento === turnoAtivo) {
                 mapaOcupacao[a.aula_numero] = { prof: a.professores?.nome || 'Desconhecido', turma: a.turmas?.nome || 'Turma' };
             }
         });
@@ -1140,19 +1266,29 @@ window.agendarAula = async function(numeroAula) {
     }
 
     try {
-        // Verifica conflito: professor já tem este horário em outra sala
+        // Verifica conflito: professor já tem este horário em outra sala no MESMO turno
         const { data: choqueProf, error: errChoque } = await supabase
             .from('agendamentos')
-            .select('id, salas(nome)')
+            .select('id, salas(nome), turmas(nome)')
             .eq('professor_id', professorLogado.id)
             .eq('data', dataEscolhida)
             .eq('aula_numero', numeroAula);
 
         if (errChoque) throw errChoque;
 
-        if (choqueProf && choqueProf.length > 0) {
-            const nomeSalaChoque = choqueProf[0].salas?.nome || 'outra sala';
-            Swal.fire({ icon: 'error', title: 'Conflito!', text: `Você já reservou "${nomeSalaChoque}" neste horário.`, confirmButtonColor: '#7c3aed' });
+        const choqueMesmoTurno = (choqueProf || []).filter(c => {
+            return detectarTurnoTurma(c.turmas?.nome) === turnoAtivo;
+        });
+
+        if (choqueMesmoTurno.length > 0) {
+            const nomeSalaChoque = choqueMesmoTurno[0].salas?.nome || 'outra sala';
+            const nomeTurno = turnoAtivo === 'eja' ? 'EJA Noturno' : 'Manhã Integral';
+            Swal.fire({
+                icon: 'error',
+                title: 'Conflito de horário!',
+                text: `Você já reservou "${nomeSalaChoque}" na Aula ${numeroAula} do turno ${nomeTurno}.`,
+                confirmButtonColor: '#7c3aed'
+            });
             return;
         }
 
@@ -1226,6 +1362,9 @@ window.carregarHistorico = async function() {
         const dataBr    = item.data.split('-').reverse().join('/');
         const nomeSala  = item.salas?.nome  || 'Sala removida';
         const nomeTurma = item.turmas?.nome || 'Turma removida';
+        const turnoItem = detectarTurnoTurma(nomeTurma);
+        const horario   = _horarioDaAula(item.aula_numero, turnoItem);
+        const badgeTurno = turnoItem === 'eja' ? '🌙 EJA' : '☀️ Manhã';
 
         const div = document.createElement('div');
         div.classList.add('historico-item');
@@ -1233,12 +1372,11 @@ window.carregarHistorico = async function() {
         const info = document.createElement('div');
         info.className = 'historico-info';
 
-        const horario   = _horarioDaAula(item.aula_numero);
         const titulo    = document.createElement('strong');
         titulo.textContent = `${nomeSala} — Aula ${item.aula_numero}ª (${horario.inicio}–${horario.fim})`;  // textContent: sem XSS
 
         const meta = document.createElement('span');
-        meta.textContent = `${dataBr} · Turma ${nomeTurma}`;
+        meta.textContent = `${badgeTurno} · ${dataBr} · Turma ${nomeTurma}`;
 
         info.appendChild(titulo);
         info.appendChild(meta);
@@ -1440,11 +1578,14 @@ async function _fetchESalvar() {
 
         const mapa = {};
         data.forEach(a => {
-            mapa[`${a.data}|${a.aula_numero}`] = {
-                prof:  a.professores?.nome || '—',
-                turma: a.turmas?.nome     || '—',
-                minha: professorLogado && a.professor_id === professorLogado.id
-            };
+            const turnoItem = detectarTurnoTurma(a.turmas?.nome);
+            if (turnoItem === turnoAtivo) {
+                mapa[`${a.data}|${a.aula_numero}`] = {
+                    prof:  a.professores?.nome || '—',
+                    turma: a.turmas?.nome     || '—',
+                    minha: professorLogado && a.professor_id === professorLogado.id
+                };
+            }
         });
 
         _semDados = { salaId, offset: _semOffset, mapa, dias, hojeStr };

@@ -1,5 +1,5 @@
 /* coordenacao.js — autenticação via Supabase Auth */
-import { supabase, registrarServiceWorker, dispararAlerta } from './utils.js'
+import { supabase, registrarServiceWorker, dispararAlerta, detectarTurnoTurma, obterHorarioAula } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 window.addEventListener('error', function(e) {
@@ -13,8 +13,6 @@ window.addEventListener('error', function(e) {
         });
     }
 });
-
-const URL_GOOGLE_SCRIPT = "https://script.google.com/macros/s/AKfycbw6fMtP880hmAdtRSj8tgBVCw-U9qGo-JnOqMD7DCb_I5q6Isooady17YNCmmUlKemhzQ/exec"
 
 // E-mail interno do usuário coordenador no Supabase Auth.
 // Deve coincidir com o COORD_EMAIL nas Edge Functions.
@@ -204,12 +202,14 @@ function mostrarDashboard() {
     carregarDisciplinasNoPreCadastro()
 
     // Listeners do relatório — registrados aqui para não disparar antes do login
-    const fData     = document.getElementById('filtroData')
-    const fSala     = document.getElementById('filtroSala')
+    const fData      = document.getElementById('filtroData')
+    const fSala      = document.getElementById('filtroSala')
     const fProfessor = document.getElementById('filtroProfessor')
+    const fTurno     = document.getElementById('filtroTurno')
     if (fData)      fData.addEventListener('change', () => carregarRelatorioGeral())
     if (fSala)      fSala.addEventListener('change', () => carregarRelatorioGeral())
     if (fProfessor) fProfessor.addEventListener('change', () => carregarRelatorioGeral())
+    if (fTurno)     fTurno.addEventListener('change', () => carregarRelatorioGeral())
 
     carregarRelatorioGeral()
     atualizarBadgePendentes()
@@ -525,22 +525,24 @@ window.carregarSolicitacoes = carregarSolicitacoes
 window.carregarRelatorioGeral = async function() {
     if (!await exigirAuth()) return
 
-    const filtroData     = document.getElementById('filtroData')
-    const filtroSala     = document.getElementById('filtroSala')
+    const filtroData      = document.getElementById('filtroData')
+    const filtroSala      = document.getElementById('filtroSala')
     const filtroProfessor = document.getElementById('filtroProfessor')
-    const tabela         = document.getElementById('listaAgendamentos')
+    const filtroTurno     = document.getElementById('filtroTurno')
+    const tabela          = document.getElementById('listaAgendamentos')
 
     if (!filtroData || !tabela) return
 
     const dataFiltro      = filtroData.value
     const salaFiltro      = filtroSala?.value || ''
     const professorFiltro = filtroProfessor?.value || ''
+    const turnoFiltro     = filtroTurno?.value || ''
 
     tabela.innerHTML = ''
     dadosAtuaisParaExportar = []
 
-    if (!dataFiltro && !salaFiltro && !professorFiltro) {
-        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Selecione uma data, sala ou professor para ver os agendamentos.</td></tr>`
+    if (!dataFiltro && !salaFiltro && !professorFiltro && !turnoFiltro) {
+        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Selecione uma data, sala, professor ou turno para ver os agendamentos.</td></tr>`
         return
     }
 
@@ -562,17 +564,24 @@ window.carregarRelatorioGeral = async function() {
         return
     }
 
-    const qtdEl = document.getElementById('qtd-total')
-    if (qtdEl) qtdEl.innerText = agendamentos.length
-    dadosAtuaisParaExportar = agendamentos
+    let agendamentosFiltrados = agendamentos || []
+    if (turnoFiltro) {
+        agendamentosFiltrados = agendamentosFiltrados.filter(item => {
+            return detectarTurnoTurma(item.turmas?.nome) === turnoFiltro
+        })
+    }
 
-    if (!agendamentos || agendamentos.length === 0) {
+    const qtdEl = document.getElementById('qtd-total')
+    if (qtdEl) qtdEl.innerText = agendamentosFiltrados.length
+    dadosAtuaisParaExportar = agendamentosFiltrados
+
+    if (agendamentosFiltrados.length === 0) {
         tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Nenhum agendamento encontrado para os filtros selecionados.</td></tr>`
         return
     }
 
     tabela.innerHTML = ''
-    agendamentos.forEach(item => {
+    agendamentosFiltrados.forEach(item => {
         const dataBr = item.data.split('-').reverse().join('/')
         const tr = document.createElement('tr')
 
@@ -582,10 +591,14 @@ window.carregarRelatorioGeral = async function() {
         strong.textContent = dataBr
         tdData.appendChild(strong)
 
+        const turnoItem = detectarTurnoTurma(item.turmas?.nome)
+        const horario = obterHorarioAula(item.aula_numero, turnoItem)
+        const badgeTurno = turnoItem === 'eja' ? '🌙 EJA' : '☀️ Manhã'
+
         const tdAula = document.createElement('td')
         const badge = document.createElement('span')
         badge.className = 'badge-aula'
-        badge.textContent = `Aula ${item.aula_numero}º`
+        badge.textContent = `${badgeTurno} · Aula ${item.aula_numero}ª (${horario.inicio}–${horario.fim})`
         tdAula.appendChild(badge)
 
         const tdSala = document.createElement('td')
@@ -623,9 +636,11 @@ window.limparFiltros = function() {
     const filtroData      = document.getElementById('filtroData')
     const filtroSala      = document.getElementById('filtroSala')
     const filtroProfessor = document.getElementById('filtroProfessor')
+    const filtroTurno     = document.getElementById('filtroTurno')
     if (filtroData)       filtroData.value = ''
     if (filtroSala)       filtroSala.value = ''
     if (filtroProfessor)  filtroProfessor.value = ''
+    if (filtroTurno)      filtroTurno.value = ''
     carregarRelatorioGeral()
 }
 
@@ -663,36 +678,89 @@ window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula, 
     }
 }
 
-window.exportarParaPlanilha = async function() {
+window.baixarRelatorioCSV = async function() {
     if (!await exigirAuth()) return
 
     if (!dadosAtuaisParaExportar || dadosAtuaisParaExportar.length === 0) {
-        dispararAlerta({ icon: 'warning', title: 'Tabela vazia', text: 'Filtre por uma data com agendamentos antes de exportar.', confirmButtonColor: 'var(--cor-primaria)' })
+        dispararAlerta({
+            icon: 'warning',
+            title: 'Tabela vazia',
+            text: 'Filtre por uma data com agendamentos antes de baixar a planilha.',
+            confirmButtonColor: 'var(--cor-primaria)'
+        })
         return
     }
 
-    Swal.fire({ title: 'Exportando...', text: 'Enviando para o Google Planilhas.', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
-
-    const dadosFormatados = dadosAtuaisParaExportar.map(item => ({
-        data:      item.data.split('-').reverse().join('/'),
-        horario:   `Aula ${item.aula_numero}º`,
-        sala:      item.salas?.nome || 'Não informada',
-        professor: item.professores?.nome || 'Desconhecido',
-        turma:     item.turmas?.nome || 'Geral'
-    }))
-
     try {
-        await fetch(URL_GOOGLE_SCRIPT, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify(dadosFormatados)
+        const escapeCSV = (val) => {
+            const str = String(val ?? '')
+            return `"${str.replace(/"/g, '""')}"`
+        }
+
+        const cabecalho = ['Data', 'Turno', 'Aula', 'Horário Início', 'Horário Fim', 'Sala / Local', 'Professor', 'Turma']
+        const linhas = [cabecalho.map(escapeCSV).join(';')]
+
+        dadosAtuaisParaExportar.forEach(item => {
+            const dataBr    = item.data.split('-').reverse().join('/')
+            const turnoItem = detectarTurnoTurma(item.turmas?.nome)
+            const horario   = obterHorarioAula(item.aula_numero, turnoItem)
+            const nomeTurno = turnoItem === 'eja' ? 'EJA Noturno' : 'Manhã Integral'
+            const nomeSala  = item.salas?.nome || 'Não informada'
+            const nomeProf  = item.professores?.nome || 'Desconhecido'
+            const nomeTurma = item.turmas?.nome || 'Geral'
+
+            const linha = [
+                dataBr,
+                nomeTurno,
+                `Aula ${item.aula_numero}ª`,
+                horario.inicio,
+                horario.fim,
+                nomeSala,
+                nomeProf,
+                nomeTurma
+            ]
+            linhas.push(linha.map(escapeCSV).join(';'))
         })
-        Swal.close()
-        dispararAlerta({ icon: 'success', title: 'Concluído!', text: 'Dados enviados para a planilha.', confirmButtonColor: 'var(--cor-sucesso)' })
-    } catch (erro) {
-        Swal.close()
-        dispararAlerta({ icon: 'error', title: 'Falha no envio', text: 'Não foi possível exportar. Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' })
+
+        // Adiciona UTF-8 BOM (\uFEFF) para garantir abertura com acentuação correta no Excel (Windows e Mac)
+        const conteudoCSV = '\uFEFF' + linhas.join('\r\n')
+        const blob = new Blob([conteudoCSV], { type: 'text/csv;charset=utf-8;' })
+
+        const filtroData = document.getElementById('filtroData')?.value
+        const filtroTurno = document.getElementById('filtroTurno')?.value
+        const sufixoTurno = filtroTurno ? `-${filtroTurno}` : ''
+        const sufixoData  = filtroData || new Date().toISOString().split('T')[0]
+        const nomeArquivo = `locus-agendamentos${sufixoTurno}-${sufixoData}.csv`
+
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.setAttribute('download', nomeArquivo)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Download Concluído!',
+                text: `Arquivo "${nomeArquivo}" baixado com sucesso.`,
+                timer: 2200,
+                showConfirmButton: false
+            })
+        } else {
+            alert(`Arquivo "${nomeArquivo}" baixado com sucesso!`)
+        }
+
+    } catch (err) {
+        console.error('Erro ao gerar CSV:', err)
+        dispararAlerta({
+            icon: 'error',
+            title: 'Falha no download',
+            text: 'Ocorreu um erro ao gerar o arquivo CSV.',
+            confirmButtonColor: 'var(--cor-perigo)'
+        })
     }
 }
 

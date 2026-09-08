@@ -665,19 +665,59 @@
     }
     .gerenciar-del:active { color: #f87171; background: rgba(239,68,68,.1); }
 
-    /* Filtros */
+    /* Filtros & Exportação */
     .filtro-item input:focus, .filtro-item select:focus { border-color: var(--purple); box-shadow: 0 0 0 2px var(--purple-dim); }
+    .filtros-botoes-exportar {
+        display: flex;
+        gap: 8px;
+        align-self: flex-end;
+    }
+    .btn-baixar-csv {
+        padding: 10px 15px;
+        background: rgba(16, 185, 129, 0.15);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        border-radius: 10px;
+        color: #6ee7b7;
+        font-size: .82rem;
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: background .2s, transform .15s, border-color .2s;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .btn-baixar-csv:hover {
+        background: rgba(16, 185, 129, 0.25);
+        border-color: rgba(16, 185, 129, 0.6);
+    }
+    .btn-baixar-csv:active {
+        transform: scale(.96);
+    }
     .btn-exportar {
-        padding: 10px 16px;
+        padding: 10px 14px;
         background: rgba(220,60,60,.12);
         border: 1px solid rgba(220,60,60,.25);
         border-radius: 10px;
-        color: #ffb4b0; font-size: .82rem; font-weight: 700;
-        font-family: 'Poppins', sans-serif; cursor: pointer;
+        color: #ffb4b0;
+        font-size: .82rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
         transition: background .2s, transform .15s;
-        white-space: nowrap; align-self: flex-end;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
     }
-    .btn-exportar:active { transform: scale(.96); background: rgba(220,60,60,.22); }
+    .btn-exportar:hover {
+        background: rgba(220,60,60,.2);
+    }
+    .btn-exportar:active {
+        transform: scale(.96);
+        background: rgba(220,60,60,.25);
+    }
     .badge-sala {
         display: inline-block;
         background: rgba(220,60,60,.12);
@@ -898,7 +938,17 @@
                         <option value="">Todos</option>
                     </select>
                 </div>
-                <button class="btn-exportar" onclick="exportarParaPlanilha()">Exportar</button>
+                <div class="filtro-item">
+                    <label>Turno</label>
+                    <select id="filtroTurno">
+                        <option value="">Todos os turnos</option>
+                        <option value="manha">☀️ Manhã Integral</option>
+                        <option value="eja">🌙 EJA Noturno</option>
+                    </select>
+                </div>
+                <div class="filtros-botoes-exportar">
+                    <button class="btn-baixar-csv" onclick="baixarRelatorioCSV()" title="Baixar relatório em formato CSV compatível com Excel">📥 Baixar Planilha (CSV)</button>
+                </div>
             </div>
             <div class="filtros-acoes">
                 <button class="btn-limpar-filtros" onclick="limparFiltros()">✕ Limpar filtros</button>

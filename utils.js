@@ -26,6 +26,23 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
 // ------------------------------------------------------------
 // Gerenciamento de Turnos (Manhã Integral x EJA Noturno)
 // ------------------------------------------------------------
+export const GRADE_HORARIOS_MANHA = {
+    1: { inicioMinutos: 7 * 60,       fimMinutos: 7 * 60 + 50,  inicio: '07:00', fim: '07:50' },
+    2: { inicioMinutos: 7 * 60 + 50,  fimMinutos: 8 * 60 + 40,  inicio: '07:50', fim: '08:40' },
+    3: { inicioMinutos: 9 * 60,       fimMinutos: 9 * 60 + 50,  inicio: '09:00', fim: '09:50' },
+    4: { inicioMinutos: 9 * 60 + 50,  fimMinutos: 10 * 60 + 40, inicio: '09:50', fim: '10:40' },
+    5: { inicioMinutos: 10 * 60 + 40, fimMinutos: 11 * 60 + 30, inicio: '10:40', fim: '11:30' },
+    6: { inicioMinutos: 12 * 60 + 20, fimMinutos: 13 * 60 + 10, inicio: '12:20', fim: '13:10' },
+    7: { inicioMinutos: 13 * 60 + 10, fimMinutos: 14 * 60,      inicio: '13:10', fim: '14:00' },
+};
+
+export const GRADE_HORARIOS_EJA = {
+    1: { inicioMinutos: 18 * 60,       fimMinutos: 18 * 60 + 50,  inicio: '18:00', fim: '18:50' },
+    2: { inicioMinutos: 18 * 60 + 50,  fimMinutos: 19 * 60 + 40,  inicio: '18:50', fim: '19:40' },
+    3: { inicioMinutos: 20 * 60,       fimMinutos: 20 * 60 + 50,  inicio: '20:00', fim: '20:50' },
+    4: { inicioMinutos: 20 * 60 + 50,  fimMinutos: 21 * 60 + 40, inicio: '20:50', fim: '21:40' },
+};
+
 export function getTurnoAtivo() {
     return localStorage.getItem('locus_turno') || 'manha'
 }
@@ -35,6 +52,34 @@ export function setTurnoAtivo(turno) {
     localStorage.setItem('locus_turno', turnoNormalizado)
     window.dispatchEvent(new CustomEvent('locus:turno_alterado', { detail: { turno: turnoNormalizado } }))
     return turnoNormalizado
+}
+
+export function obterTotalAulasTurno(turno = getTurnoAtivo()) {
+    return turno === 'eja' ? 4 : 7;
+}
+
+export function detectarTurnoTurma(turmaNome) {
+    if (!turmaNome) return 'manha';
+    const nomeNorm = String(turmaNome).toUpperCase();
+    const isEja = nomeNorm.includes('EJA') || nomeNorm.includes('E.J.A.') || nomeNorm.includes('NOTURNO') || nomeNorm.includes('NOITE');
+    return isEja ? 'eja' : 'manha';
+}
+
+export function obterHorarioAula(numeroAula, turno = getTurnoAtivo()) {
+    const grade = turno === 'eja' ? GRADE_HORARIOS_EJA : GRADE_HORARIOS_MANHA;
+    if (grade[numeroAula]) {
+        return grade[numeroAula];
+    }
+    const baseHora = turno === 'eja' ? 18 : 7;
+    const inicioMinutos = baseHora * 60 + (numeroAula - 1) * 50;
+    const fimMinutos = inicioMinutos + 50;
+    const formatarMin = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+    return {
+        inicioMinutos,
+        fimMinutos,
+        inicio: formatarMin(inicioMinutos),
+        fim: formatarMin(fimMinutos)
+    };
 }
 
 export const COORD_EMAIL = 'coordenacao@locus.interno'
