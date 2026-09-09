@@ -33,6 +33,16 @@ function atualizarVisualTurnoLogin() {
     }
 }
 
+window.selecionarTurnoSegmented = function(turno) {
+    if (turno === turnoAtivo) return;
+    turnoAtivo = setTurnoAtivo(turno);
+    atualizarVisualTurnoBanner();
+    carregarTurmas();
+    buscarAulas();
+    if (telaAtual === 'semana') carregarVisaoSemanal();
+    if (telaAtual === 'perfil') atualizarPerfil();
+};
+
 window.alternarTurnoHeader = function() {
     const novoTurno = turnoAtivo === 'eja' ? 'manha' : 'eja';
     turnoAtivo = setTurnoAtivo(novoTurno);
@@ -52,6 +62,23 @@ function atualizarVisualTurnoBanner() {
     const txtTurno = document.getElementById('txt-turno-header');
     const txtAgendar = document.getElementById('txt-turno-agendar');
     const elPeriodo = document.getElementById('saudacao-periodo');
+    const segManha = document.getElementById('seg-turno-manha');
+    const segEja = document.getElementById('seg-turno-eja');
+
+    if (segManha && segEja) {
+        if (turnoAtivo === 'eja') {
+            segManha.classList.remove('ativo');
+            segManha.setAttribute('aria-selected', 'false');
+            segEja.classList.add('ativo');
+            segEja.setAttribute('aria-selected', 'true');
+        } else {
+            segEja.classList.remove('ativo');
+            segEja.setAttribute('aria-selected', 'false');
+            segManha.classList.add('ativo');
+            segManha.setAttribute('aria-selected', 'true');
+        }
+    }
+
     if (txtTurno) {
         txtTurno.textContent = turnoAtivo === 'eja' ? '🌙 EJA (Noite)' : '☀️ Manhã Integral';
     }
@@ -1253,15 +1280,26 @@ window.agendarAula = async function(numeroAula) {
             icon: 'info',
             title: 'Horário encerrado',
             text: `A Aula ${numeroAula} (${horario.inicio}–${horario.fim}) já começou e não pode mais ser reservada.`,
-            confirmButtonColor: '#7c3aed'
+            confirmButtonColor: '#dc3c3c'
         });
         buscarAulas();
         return;
     }
 
     if (!turmaId) {
-        Swal.fire({ icon: 'warning', title: 'Atenção!', text: 'Selecione a TURMA antes de escolher o horário!', confirmButtonColor: '#7c3aed' })
-            .then(() => document.getElementById('select-turma').focus());
+        const containerTurma = document.getElementById('container-turma');
+        if (containerTurma) {
+            containerTurma.classList.remove('destaque-aviso');
+            void containerTurma.offsetWidth; // trigger reflow
+            containerTurma.classList.add('destaque-aviso');
+            setTimeout(() => containerTurma.classList.remove('destaque-aviso'), 1500);
+        }
+        Swal.fire({
+            icon: 'warning',
+            title: 'Selecione a Turma!',
+            html: 'Por favor, selecione para qual <strong>turma</strong> será esta aula antes de escolher o horário.',
+            confirmButtonColor: '#dc3c3c'
+        }).then(() => document.getElementById('select-turma')?.focus());
         return;
     }
 
@@ -1287,20 +1325,38 @@ window.agendarAula = async function(numeroAula) {
                 icon: 'error',
                 title: 'Conflito de horário!',
                 text: `Você já reservou "${nomeSalaChoque}" na Aula ${numeroAula} do turno ${nomeTurno}.`,
-                confirmButtonColor: '#7c3aed'
+                confirmButtonColor: '#dc3c3c'
             });
             return;
         }
 
         const dataBr = dataEscolhida.split('-').reverse().join('/');
         const horario = _horarioDaAula(numeroAula);
-        const nomeTurno = turnoAtivo === 'eja' ? 'EJA (Noturno)' : 'Manhã Integral';
+        const nomeSala  = document.getElementById('select-sala').selectedOptions[0]?.textContent || 'Sala selecionada';
+        const nomeTurma = document.getElementById('select-turma').selectedOptions[0]?.textContent || 'Turma selecionada';
+        const diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+        const [anoStr, mesStr, diaStr] = dataEscolhida.split('-');
+        const dtObj = new Date(Number(anoStr), Number(mesStr) - 1, Number(diaStr));
+        const diaSemanaExtenso = diasSemana[dtObj.getDay()] || '';
+        const nomeTurno = turnoAtivo === 'eja' ? '🌙 EJA (Noturno)' : '☀️ Manhã Integral';
+
         const confirmacao = await Swal.fire({
-            title: 'Confirmar reserva?',
-            html: `Aula ${numeroAula} (${horario.inicio} às ${horario.fim})<br>Turno: <strong>${nomeTurno}</strong><br>Data: <strong>${dataBr}</strong>`,
+            title: 'Confirmar Reserva?',
+            html: `
+                <div style="text-align: left; background: #faf5f0; border: 1px solid #ebd9c8; border-radius: 12px; padding: 14px 16px; margin-top: 10px; font-size: 0.88rem; line-height: 1.6; color: #362a21;">
+                    <div style="margin-bottom: 6px;">📍 <strong>Local:</strong> ${nomeSala}</div>
+                    <div style="margin-bottom: 6px;">👥 <strong>Turma:</strong> ${nomeTurma}</div>
+                    <div style="margin-bottom: 6px;">⏰ <strong>Horário:</strong> Aula ${numeroAula}ª (${horario.inicio} às ${horario.fim})</div>
+                    <div style="margin-bottom: 6px;">⏳ <strong>Turno:</strong> ${nomeTurno}</div>
+                    <div>📅 <strong>Data:</strong> ${diaSemanaExtenso}, ${dataBr}</div>
+                </div>
+            `,
             icon: 'question',
-            showCancelButton: true, confirmButtonColor: '#7c3aed', cancelButtonColor: '#9ca3af',
-            confirmButtonText: 'Sim, agendar!', cancelButtonText: 'Cancelar'
+            showCancelButton: true,
+            confirmButtonColor: '#dc3c3c',
+            cancelButtonColor: '#9ca3af',
+            confirmButtonText: 'Sim, confirmar reserva!',
+            cancelButtonText: 'Revisar'
         });
         if (!confirmacao.isConfirmed) return;
 
@@ -1310,19 +1366,15 @@ window.agendarAula = async function(numeroAula) {
         }]);
 
         if (error) {
-            // P0002 = trigger check_aula_nao_iniciada no banco: a aula já
-            // começou de acordo com a hora real do servidor (não a do
-            // navegador). É a trava definitiva, mesmo que o relógio do
-            // aparelho de quem está agendando esteja errado ou adiantado.
+            // P0002 = trigger check_aula_nao_iniciada no banco
             if (error.code === 'P0002') {
-                Swal.fire({ icon: 'info', title: 'Horário encerrado', text: 'Essa aula já começou e não pode mais ser reservada.', confirmButtonColor: '#7c3aed' });
+                Swal.fire({ icon: 'info', title: 'Horário encerrado', text: 'Essa aula já começou e não pode mais ser reservada.', confirmButtonColor: '#dc3c3c' });
                 buscarAulas();
             } else {
-                Swal.fire({ icon: 'error', title: 'Vaga indisponível', text: 'Pode ter sido preenchida agora mesmo.', confirmButtonColor: '#7c3aed' });
+                Swal.fire({ icon: 'error', title: 'Vaga indisponível', text: 'Pode ter sido preenchida agora mesmo.', confirmButtonColor: '#dc3c3c' });
             }
         } else {
-            const nomeSala = document.getElementById('select-sala').selectedOptions[0]?.textContent || 'uma sala';
-            Swal.fire({ icon: 'success', title: 'Agendado!', text: 'Sua reserva foi confirmada. 🎉', confirmButtonColor: '#059669', timer: 2000, showConfirmButton: false });
+            Swal.fire({ icon: 'success', title: 'Agendado com sucesso!', text: 'Sua reserva foi confirmada. 🎉', confirmButtonColor: '#059669', timer: 2000, showConfirmButton: false });
             buscarAulas();
             carregarHistorico();
             enviarNotificacao('📅 Novo agendamento', `${professorLogado.nome} reservou ${nomeSala} — Aula ${numeroAula} em ${dataBr}.`, 'coordenacao');
@@ -1330,70 +1382,149 @@ window.agendarAula = async function(numeroAula) {
         }
     } catch (err) {
         console.error('Erro ao agendar aula:', err);
-        Swal.fire({ icon: 'error', title: 'Erro de conexão', text: 'Não foi possível completar o agendamento. Tente novamente.', confirmButtonColor: '#7c3aed' });
+        Swal.fire({ icon: 'error', title: 'Erro de conexão', text: 'Não foi possível completar o agendamento. Tente novamente.', confirmButtonColor: '#dc3c3c' });
     }
 }
 
 // ============================================================
-//  HISTÓRICO
+//  HISTÓRICO COM ABAS (PRÓXIMAS vs ANTERIORES)
 // ============================================================
+
+let _abaHistoricoAtiva = 'proximas';
+
+window.alternarAbaHistorico = function(aba) {
+    if (_abaHistoricoAtiva === aba) return;
+    _abaHistoricoAtiva = aba;
+    const tabProximas = document.getElementById('tab-hist-proximas');
+    const tabAnteriores = document.getElementById('tab-hist-anteriores');
+    const subtitulo = document.getElementById('subtitulo-minhas-aulas');
+
+    if (tabProximas && tabAnteriores) {
+        if (aba === 'proximas') {
+            tabProximas.classList.add('ativo');
+            tabProximas.setAttribute('aria-selected', 'true');
+            tabAnteriores.classList.remove('ativo');
+            tabAnteriores.setAttribute('aria-selected', 'false');
+            if (subtitulo) subtitulo.textContent = 'Aulas ativas e futuras';
+        } else {
+            tabAnteriores.classList.add('ativo');
+            tabAnteriores.setAttribute('aria-selected', 'true');
+            tabProximas.classList.remove('ativo');
+            tabProximas.setAttribute('aria-selected', 'false');
+            if (subtitulo) subtitulo.textContent = 'Histórico de aulas passadas';
+        }
+    }
+    carregarHistorico();
+};
 
 window.carregarHistorico = async function() {
     if (!professorLogado) return;
     const listaHtml = document.getElementById('historico-lista');
     if (!listaHtml) return;
-    listaHtml.innerHTML = '<div class="minhas-aulas-vazio">Carregando...</div>';
+    listaHtml.innerHTML = '<div class="minhas-aulas-vazio">Carregando agendamentos...</div>';
 
-    const hoje = new Date();
-    const hojeIso = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+    const agoraSp = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+    const hojeIso = `${agoraSp.getFullYear()}-${String(agoraSp.getMonth()+1).padStart(2,'0')}-${String(agoraSp.getDate()).padStart(2,'0')}`;
 
-    const { data, error } = await supabase
-        .from('agendamentos')
-        .select('id, data, aula_numero, salas(nome), turmas(nome)')
-        .eq('professor_id', professorLogado.id)
-        .gte('data', hojeIso)
-        .order('data', { ascending: true });
+    try {
+        // Atualiza contadores em segundo plano para as duas abas
+        Promise.all([
+            supabase.from('agendamentos').select('*', { count: 'exact', head: true }).eq('professor_id', professorLogado.id).gte('data', hojeIso),
+            supabase.from('agendamentos').select('*', { count: 'exact', head: true }).eq('professor_id', professorLogado.id).lt('data', hojeIso)
+        ]).then(([resProx, resAnt]) => {
+            const badgeProx = document.getElementById('badge-cont-proximas');
+            const badgeAnt = document.getElementById('badge-cont-anteriores');
+            if (badgeProx && resProx) badgeProx.textContent = resProx.count || 0;
+            if (badgeAnt && resAnt) badgeAnt.textContent = resAnt.count || 0;
+        }).catch(e => console.warn('Erro ao carregar contagens do histórico:', e));
 
-    if (error) { listaHtml.innerHTML = '<div class="minhas-aulas-vazio">Erro ao carregar.</div>'; return; }
-    if (!data || data.length === 0) { listaHtml.innerHTML = '<div class="minhas-aulas-vazio">Nenhum agendamento ativo a partir de hoje.</div>'; return; }
+        let query = supabase
+            .from('agendamentos')
+            .select('id, data, aula_numero, salas(nome), turmas(nome)')
+            .eq('professor_id', professorLogado.id);
 
-    listaHtml.innerHTML = '';
-    data.forEach(item => {
-        const dataBr    = item.data.split('-').reverse().join('/');
-        const nomeSala  = item.salas?.nome  || 'Sala removida';
-        const nomeTurma = item.turmas?.nome || 'Turma removida';
-        const turnoItem = detectarTurnoTurma(nomeTurma);
-        const horario   = _horarioDaAula(item.aula_numero, turnoItem);
-        const badgeTurno = turnoItem === 'eja' ? '🌙 EJA' : '☀️ Manhã';
+        if (_abaHistoricoAtiva === 'proximas') {
+            query = query.gte('data', hojeIso).order('data', { ascending: true }).order('aula_numero', { ascending: true });
+        } else {
+            query = query.lt('data', hojeIso).order('data', { ascending: false }).order('aula_numero', { ascending: false });
+        }
 
-        const div = document.createElement('div');
-        div.classList.add('historico-item');
+        const { data, error } = await query;
+        if (error) throw error;
 
-        const info = document.createElement('div');
-        info.className = 'historico-info';
+        if (!data || data.length === 0) {
+            const msg = _abaHistoricoAtiva === 'proximas'
+                ? 'Nenhum agendamento ativo a partir de hoje.'
+                : 'Nenhum agendamento anterior encontrado no histórico.';
+            listaHtml.innerHTML = `
+                <div class="stitch-empty-card" style="padding: 34px 16px; text-align: center;">
+                    <div style="font-size: 2.2rem; margin-bottom: 8px;">📅</div>
+                    <div style="font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; color: var(--cal-ink, #2e231c);">Tudo em ordem</div>
+                    <p class="stitch-empty-text" style="margin: 0;">${msg}</p>
+                </div>
+            `;
+            return;
+        }
 
-        const titulo    = document.createElement('strong');
-        titulo.textContent = `${nomeSala} — Aula ${item.aula_numero}ª (${horario.inicio}–${horario.fim})`;  // textContent: sem XSS
+        listaHtml.innerHTML = '';
+        data.forEach(item => {
+            const dataBr    = item.data.split('-').reverse().join('/');
+            const nomeSala  = item.salas?.nome  || 'Sala removida';
+            const nomeTurma = item.turmas?.nome || 'Turma removida';
+            const turnoItem = detectarTurnoTurma(nomeTurma);
+            const horario   = _horarioDaAula(item.aula_numero, turnoItem);
+            const badgeTurno = turnoItem === 'eja' ? '🌙 EJA' : '☀️ Manhã';
 
-        const meta = document.createElement('span');
-        meta.textContent = `${badgeTurno} · ${dataBr} · Turma ${nomeTurma}`;
+            const div = document.createElement('div');
+            div.classList.add('historico-item');
 
-        info.appendChild(titulo);
-        info.appendChild(meta);
+            const info = document.createElement('div');
+            info.className = 'historico-info';
 
-        const btn = document.createElement('button');
-        btn.className = 'btn-cancelar';
-        btn.textContent = 'Cancelar';
-        // Closure: dados nunca vão para atributo HTML
-        btn.addEventListener('click', () =>
-            cancelarAgendamento(item.id, nomeSala, item.aula_numero, dataBr)
-        );
+            const titulo = document.createElement('strong');
+            titulo.textContent = `${nomeSala} — Aula ${item.aula_numero}ª (${horario.inicio}–${horario.fim}) `;
 
-        div.appendChild(info);
-        div.appendChild(btn);
-        listaHtml.appendChild(div);
-    });
-}
+            // Badge de status
+            let statusClass = 'status-futura';
+            let statusTexto = '📅 Agendada';
+            if (item.data === hojeIso) {
+                statusClass = 'status-hoje';
+                statusTexto = '☀️ Hoje';
+            } else if (item.data < hojeIso) {
+                statusClass = 'status-passada';
+                statusTexto = '✓ Concluída';
+            }
+
+            const statusBadge = document.createElement('span');
+            statusBadge.className = `badge-status-reserva ${statusClass}`;
+            statusBadge.textContent = statusTexto;
+            titulo.appendChild(statusBadge);
+
+            const meta = document.createElement('span');
+            meta.textContent = `${badgeTurno} · ${dataBr} · Turma ${nomeTurma}`;
+
+            info.appendChild(titulo);
+            info.appendChild(meta);
+            div.appendChild(info);
+
+            // Permite cancelar somente aulas de hoje ou futuras
+            if (item.data >= hojeIso) {
+                const btn = document.createElement('button');
+                btn.className = 'btn-cancelar';
+                btn.textContent = 'Cancelar';
+                btn.addEventListener('click', () =>
+                    cancelarAgendamento(item.id, nomeSala, item.aula_numero, dataBr)
+                );
+                div.appendChild(btn);
+            }
+
+            listaHtml.appendChild(div);
+        });
+    } catch (err) {
+        console.error("Erro ao carregar histórico:", err);
+        listaHtml.innerHTML = '<div class="minhas-aulas-vazio">Erro ao carregar agendamentos. Tente novamente.</div>';
+    }
+};
 
 // Chamado via addEventListener em carregarHistorico — não precisa ser window.*
 async function cancelarAgendamento(id, nomeSala, numeroAula, dataBr) {

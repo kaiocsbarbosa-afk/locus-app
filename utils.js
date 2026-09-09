@@ -15,16 +15,24 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
     console.warn('Locus: Credenciais do Supabase não encontradas. Certifique-se de configurar o arquivo env.js (consulte env.example.js).')
 }
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: {
-        // Persiste a sessão JWT no localStorage automaticamente
-        persistSession: true,
-        // Renova o token automaticamente antes de expirar
-        autoRefreshToken: true,
-        // Detecta sessão na URL (útil para magic links futuros)
-        detectSessionInUrl: false,
-    }
-})
+export const supabase = (SUPABASE_URL && SUPABASE_KEY)
+    ? createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: {
+            // Persiste a sessão JWT no localStorage automaticamente
+            persistSession: true,
+            // Renova o token automaticamente antes de expirar
+            autoRefreshToken: true,
+            // Detecta sessão na URL (útil para magic links futuros)
+            detectSessionInUrl: false,
+        }
+    })
+    : createClient('https://placeholder.supabase.co', 'placeholder-key', {
+        auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false,
+        }
+    });
 
 // ------------------------------------------------------------
 // Gerenciamento de Turnos (Manhã Integral x EJA Noturno)
@@ -46,15 +54,32 @@ export const GRADE_HORARIOS_EJA = {
     4: { inicioMinutos: 20 * 60 + 50,  fimMinutos: 21 * 60 + 40, inicio: '20:50', fim: '21:40' },
 };
 
+export function detectarTurnoHorarioAtual() {
+    try {
+        const agoraSp = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+        const hora = agoraSp.getHours();
+        const minutos = agoraSp.getMinutes();
+        const tempoEmMinutos = hora * 60 + minutos;
+        // A partir das 17:30 (1050 minutos) ativa automaticamente o EJA Noturno
+        return tempoEmMinutos >= 1050 ? 'eja' : 'manha';
+    } catch (_) {
+        return 'manha';
+    }
+}
+
 export function getTurnoAtivo() {
-    return localStorage.getItem('locus_turno') || 'manha'
+    const salvo = localStorage.getItem('locus_turno');
+    if (salvo === 'manha' || salvo === 'eja') {
+        return salvo;
+    }
+    return detectarTurnoHorarioAtual();
 }
 
 export function setTurnoAtivo(turno) {
-    const turnoNormalizado = turno === 'eja' ? 'eja' : 'manha'
-    localStorage.setItem('locus_turno', turnoNormalizado)
-    window.dispatchEvent(new CustomEvent('locus:turno_alterado', { detail: { turno: turnoNormalizado } }))
-    return turnoNormalizado
+    const turnoNormalizado = turno === 'eja' ? 'eja' : 'manha';
+    localStorage.setItem('locus_turno', turnoNormalizado);
+    window.dispatchEvent(new CustomEvent('locus:turno_alterado', { detail: { turno: turnoNormalizado } }));
+    return turnoNormalizado;
 }
 
 export function obterTotalAulasTurno(turno = getTurnoAtivo()) {

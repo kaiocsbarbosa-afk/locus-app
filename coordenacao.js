@@ -576,7 +576,13 @@ window.carregarRelatorioGeral = async function() {
     dadosAtuaisParaExportar = agendamentosFiltrados
 
     if (agendamentosFiltrados.length === 0) {
-        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Nenhum agendamento encontrado para os filtros selecionados.</td></tr>`
+        tabela.innerHTML = `<tr><td colspan="6" class="tabela-vazio-container">
+            <div class="tabela-vazio-wrap">
+                <span class="tabela-vazio-icon">📅</span>
+                <div class="tabela-vazio-titulo">Nenhuma reserva encontrada</div>
+                <div class="tabela-vazio-sub">Não há agendamentos cadastrados para os filtros selecionados.</div>
+            </div>
+        </td></tr>`
         return
     }
 
@@ -587,9 +593,10 @@ window.carregarRelatorioGeral = async function() {
 
         // Monta via DOM para evitar XSS com dados do banco
         const tdData = document.createElement('td')
-        const strong = document.createElement('strong')
-        strong.textContent = dataBr
-        tdData.appendChild(strong)
+        const dataSpan = document.createElement('span')
+        dataSpan.className = 'data-tabela-pill'
+        dataSpan.textContent = dataBr
+        tdData.appendChild(dataSpan)
 
         const turnoItem = detectarTurnoTurma(item.turmas?.nome)
         const horario = obterHorarioAula(item.aula_numero, turnoItem)
@@ -597,23 +604,40 @@ window.carregarRelatorioGeral = async function() {
 
         const tdAula = document.createElement('td')
         const badge = document.createElement('span')
-        badge.className = 'badge-aula'
+        badge.className = `badge-aula badge-turno-${turnoItem === 'eja' ? 'eja' : 'manha'}`
         badge.textContent = `${badgeTurno} · Aula ${item.aula_numero}ª (${horario.inicio}–${horario.fim})`
         tdAula.appendChild(badge)
 
         const tdSala = document.createElement('td')
-        tdSala.textContent = item.salas?.nome || 'Não informada'
+        const badgeSala = document.createElement('span')
+        badgeSala.className = 'badge-sala-tabela'
+        badgeSala.textContent = `📍 ${item.salas?.nome || 'Não informada'}`
+        tdSala.appendChild(badgeSala)
 
         const tdProf = document.createElement('td')
-        tdProf.textContent = `Prof. ${item.professores?.nome || 'Desconhecido'}`
+        const wrapProf = document.createElement('div')
+        wrapProf.className = 'tabela-prof-wrap'
+        const avatarProf = document.createElement('div')
+        avatarProf.className = 'tabela-prof-avatar'
+        const profNome = item.professores?.nome || 'Desconhecido'
+        avatarProf.textContent = profNome.split(' ').map(p => p[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'P'
+        const spanProf = document.createElement('span')
+        spanProf.className = 'tabela-prof-nome'
+        spanProf.textContent = `Prof. ${profNome}`
+        wrapProf.appendChild(avatarProf)
+        wrapProf.appendChild(spanProf)
+        tdProf.appendChild(wrapProf)
 
         const tdTurma = document.createElement('td')
-        tdTurma.textContent = item.turmas?.nome || 'Geral'
+        const badgeTurma = document.createElement('span')
+        badgeTurma.className = 'badge-turma-tabela'
+        badgeTurma.textContent = `👥 ${item.turmas?.nome || 'Geral'}`
+        tdTurma.appendChild(badgeTurma)
 
         const tdAcao = document.createElement('td')
         const btnRevogar = document.createElement('button')
         btnRevogar.className = 'btn-revogar'
-        btnRevogar.textContent = 'Cancelar'
+        btnRevogar.innerHTML = '<span>✕</span> Cancelar'
         const nomeSala   = item.salas?.nome || ''
         const numAula    = item.aula_numero
         const profId     = item.professor_id

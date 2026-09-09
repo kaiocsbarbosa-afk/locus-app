@@ -780,6 +780,355 @@
     .professor-card-btn-editar:active { background: rgba(220,60,60,.28); transform: scale(.88); }
     .professor-card-expansivel { display: none; }
     .professor-card-expansivel.aberto { display: block; }
+
+    /* ══ REFINAMENTO VISUAL ELEGANTE DO DASHBOARD E TABELA ══ */
+    
+    /* Card Resumo */
+    .card-mini {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px 24px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+        position: relative;
+        overflow: hidden;
+        transition: transform .2s, border-color .2s, box-shadow .2s;
+    }
+    .card-mini:hover {
+        border-color: var(--purple);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    }
+    .card-mini-inner {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .card-mini-icone {
+        width: 50px;
+        height: 50px;
+        border-radius: 13px;
+        background: rgba(220, 60, 60, 0.1);
+        border: 1px solid rgba(220, 60, 60, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.45rem;
+        flex-shrink: 0;
+    }
+    .card-mini-dados {
+        display: flex;
+        flex-direction: column;
+    }
+    .card-mini-dados span {
+        font-size: 2.1rem;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        line-height: 1.1;
+    }
+    .card-mini-dados label {
+        font-size: .82rem;
+        font-weight: 500;
+        margin-top: 3px;
+    }
+
+    /* Topo da Tabela */
+    .tabela-topo-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .tabela-titulo-wrap {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .tabela-secao-icone {
+        width: 42px;
+        height: 42px;
+        border-radius: 12px;
+        background: rgba(220, 60, 60, 0.1);
+        border: 1px solid rgba(220, 60, 60, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    .tabela-secao-titulo {
+        font-size: 1.18rem;
+        font-weight: 800;
+        letter-spacing: -.3px;
+        margin: 0;
+    }
+    .tabela-secao-sub {
+        font-size: .78rem;
+        margin-top: 2px;
+    }
+
+    /* Container de Filtros */
+    .tabela-larga {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 24px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    }
+    .filtros-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px;
+        align-items: flex-end;
+        margin-bottom: 14px;
+    }
+    .filtro-item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .filtro-item label {
+        font-size: .74rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .filtro-item input,
+    .filtro-item select {
+        width: 100%;
+        padding: 10px 13px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: .86rem;
+        font-family: 'Poppins', sans-serif;
+        outline: none;
+        transition: border-color .2s, box-shadow .2s;
+    }
+    .filtro-item input:focus,
+    .filtro-item select:focus {
+        border-color: var(--purple);
+        box-shadow: 0 0 0 3px var(--purple-glow);
+    }
+
+    /* Botão Baixar CSV */
+    .btn-baixar-csv {
+        height: 40px;
+        padding: 0 16px;
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        border-radius: 10px;
+        color: #065f46;
+        font-size: .82rem;
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        white-space: nowrap;
+        transition: all .18s;
+        box-shadow: 0 2px 6px rgba(16, 185, 129, 0.1);
+    }
+    .btn-baixar-csv:hover {
+        background: #059669;
+        border-color: #059669;
+        color: #fff;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+    }
+    .btn-baixar-csv:active { transform: scale(.97); }
+
+    /* Botão Limpar Filtros */
+    .filtros-acoes {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 16px;
+    }
+    .btn-limpar-filtros {
+        background: transparent;
+        border: 1px solid var(--border);
+        padding: 6px 14px;
+        border-radius: 9px;
+        font-size: .75rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: all .18s;
+    }
+    .btn-limpar-filtros:hover {
+        border-color: rgba(220, 60, 60, 0.4);
+        background: rgba(220, 60, 60, 0.08);
+        color: var(--red);
+    }
+
+    /* Tabela Responsiva e Células */
+    .table-responsive {
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: .86rem;
+    }
+    th {
+        font-size: .74rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+        text-align: left;
+    }
+    td {
+        padding: 13px 18px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: middle;
+        transition: background .15s;
+    }
+    tr:last-child td {
+        border-bottom: none;
+    }
+    tbody tr:hover td {
+        background: rgba(220, 60, 60, 0.03);
+    }
+
+    /* Elementos das Células */
+    .data-tabela-pill {
+        font-weight: 700;
+        font-size: .85rem;
+        white-space: nowrap;
+    }
+    .badge-aula {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: .75rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .badge-aula.badge-turno-manha {
+        background: #fef9c3;
+        color: #854d0e;
+        border: 1px solid #fde047;
+    }
+    .badge-aula.badge-turno-eja {
+        background: #f3e8ff;
+        color: #6b21a8;
+        border: 1px solid #d8b4fe;
+    }
+    .badge-sala-tabela {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1d4ed8;
+        padding: 4px 9px;
+        border-radius: 7px;
+        font-size: .76rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .tabela-prof-wrap {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+    }
+    .tabela-prof-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #dc3c3c, #96272a);
+        color: #fff;
+        font-size: .68rem;
+        font-weight: 800;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .tabela-prof-nome {
+        font-weight: 600;
+        font-size: .85rem;
+        white-space: nowrap;
+    }
+    .badge-turma-tabela {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(220, 60, 60, 0.08);
+        border: 1px solid rgba(220, 60, 60, 0.22);
+        color: #b91c1c;
+        padding: 4px 9px;
+        border-radius: 7px;
+        font-size: .76rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .btn-revogar {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: #fff0f0;
+        border: 1px solid #fecaca;
+        color: #dc2626;
+        padding: 6px 12px;
+        border-radius: 8px;
+        font-size: .75rem;
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: all .18s;
+        white-space: nowrap;
+    }
+    .btn-revogar:hover {
+        background: #dc2626;
+        color: #fff;
+        border-color: #dc2626;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+        transform: translateY(-1px);
+    }
+    .btn-revogar:active { transform: scale(.95); }
+
+    /* Estado Vazio da Tabela */
+    .tabela-vazio-container {
+        text-align: center;
+        padding: 46px 20px !important;
+    }
+    .tabela-vazio-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        max-width: 340px;
+        margin: 0 auto;
+    }
+    .tabela-vazio-icon {
+        font-size: 2.2rem;
+        margin-bottom: 10px;
+        opacity: .6;
+    }
+    .tabela-vazio-titulo {
+        font-size: .96rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+    .tabela-vazio-sub {
+        font-size: .79rem;
+        line-height: 1.4;
+        opacity: .75;
+    }
     </style>
     <link rel="stylesheet" href="./cal-inspired.css">
 </head>
@@ -854,8 +1203,13 @@
         <!-- Resumo -->
         <div class="resumo-cards">
             <div class="card-mini">
-                <span id="qtd-total">0</span>
-                <label>Reservas no filtro atual</label>
+                <div class="card-mini-inner">
+                    <div class="card-mini-icone">📊</div>
+                    <div class="card-mini-dados">
+                        <span id="qtd-total">0</span>
+                        <label>Reservas encontradas</label>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -922,33 +1276,43 @@
 
         <!-- Tabela de agendamentos -->
         <div class="tabela-larga">
+            <div class="tabela-topo-header">
+                <div class="tabela-titulo-wrap">
+                    <div class="tabela-secao-icone">📋</div>
+                    <div>
+                        <h2 class="tabela-secao-titulo">Agendamentos de Salas</h2>
+                        <div class="tabela-secao-sub">Consulte, filtre e gerencie as reservas cadastradas</div>
+                    </div>
+                </div>
+                <button class="btn-baixar-csv" onclick="baixarRelatorioCSV()" title="Baixar relatório em formato CSV compatível com Excel">
+                    <span>📥</span> Baixar Planilha (CSV)
+                </button>
+            </div>
+
             <div class="filtros-container">
                 <div class="filtro-item">
-                    <label>Data</label>
+                    <label>📅 Data</label>
                     <input type="date" id="filtroData">
                 </div>
                 <div class="filtro-item">
-                    <label>Sala</label>
+                    <label>📍 Sala</label>
                     <select id="filtroSala">
                         <option value="">Todas as salas</option>
                     </select>
                 </div>
                 <div class="filtro-item">
-                    <label>Professor</label>
+                    <label>👨‍🏫 Professor</label>
                     <select id="filtroProfessor">
-                        <option value="">Todos</option>
+                        <option value="">Todos os professores</option>
                     </select>
                 </div>
                 <div class="filtro-item">
-                    <label>Turno</label>
+                    <label>⏳ Turno</label>
                     <select id="filtroTurno">
                         <option value="">Todos os turnos</option>
                         <option value="manha">☀️ Manhã Integral</option>
                         <option value="eja">🌙 EJA Noturno</option>
                     </select>
-                </div>
-                <div class="filtros-botoes-exportar">
-                    <button class="btn-baixar-csv" onclick="baixarRelatorioCSV()" title="Baixar relatório em formato CSV compatível com Excel">📥 Baixar Planilha (CSV)</button>
                 </div>
             </div>
             <div class="filtros-acoes">
@@ -958,18 +1322,22 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Data</th>
-                            <th>Aula</th>
-                            <th>Local</th>
-                            <th>Professor</th>
-                            <th>Turma</th>
+                            <th>📅 Data</th>
+                            <th>⏰ Aula / Horário</th>
+                            <th>📍 Sala</th>
+                            <th>👨‍🏫 Professor</th>
+                            <th>👥 Turma</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
                     <tbody id="listaAgendamentos">
                         <tr>
-                            <td colspan="6" style="text-align:center; padding:40px; color:var(--txt3);">
-                                Selecione uma data para ver os agendamentos.
+                            <td colspan="6" class="tabela-vazio-container">
+                                <div class="tabela-vazio-wrap">
+                                    <span class="tabela-vazio-icon">📅</span>
+                                    <div class="tabela-vazio-titulo">Carregando agendamentos...</div>
+                                    <div class="tabela-vazio-sub">Aguarde um momento enquanto os dados são consultados.</div>
+                                </div>
                             </td>
                         </tr>
                     </tbody>

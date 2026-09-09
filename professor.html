@@ -8,6 +8,7 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <meta name="theme-color" content="#dc3c3c">
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Locus">
     <link rel="icon" href="./icon-96.png" type="image/png">
@@ -1980,6 +1981,151 @@
             flex-shrink: 0;
             margin-left: 4px;
         }
+
+        /* ── SELETOR SEGMENTADO DE TURNO (AGENDAR) ───────── */
+        .stitch-turno-segmented-container {
+            margin-bottom: 12px;
+            width: 100%;
+        }
+        .stitch-turno-segmented {
+            display: flex;
+            background: var(--cal-soft, #f4ede4);
+            padding: 4px;
+            border-radius: 14px;
+            gap: 4px;
+            border: 1px solid var(--cal-line, #e8ded2);
+        }
+        .stitch-turno-seg-btn {
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: var(--cal-muted, #7a6250);
+            font-size: .84rem;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all .2s cubic-bezier(.16, 1, .3, 1);
+            touch-action: manipulation;
+        }
+        .stitch-turno-seg-btn:active {
+            transform: scale(.98);
+        }
+        .stitch-turno-seg-btn.ativo {
+            background: var(--cal-paper, #ffffff);
+            color: var(--cal-ink, #2e231c);
+            box-shadow: 0 2px 8px rgba(46, 35, 28, 0.08);
+            font-weight: 700;
+        }
+        .stitch-turno-seg-btn .seg-badge {
+            font-size: .7rem;
+            padding: 2px 7px;
+            border-radius: 6px;
+            background: rgba(122, 98, 80, 0.1);
+            color: var(--cal-muted, #7a6250);
+            font-weight: 600;
+        }
+        .stitch-turno-seg-btn.ativo .seg-badge {
+            background: rgba(220, 60, 60, 0.12);
+            color: #dc3c3c;
+        }
+
+        /* ── DESTAQUE SUAVE NO CONTAINER DA TURMA ───────── */
+        .stitch-select-card.destaque-aviso {
+            border-color: #dc3c3c !important;
+            box-shadow: 0 0 0 3px rgba(220, 60, 60, 0.25) !important;
+            animation: shakeAviso .45s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes shakeAviso {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-6px); }
+            40% { transform: translateX(6px); }
+            60% { transform: translateX(-4px); }
+            80% { transform: translateX(4px); }
+        }
+
+        /* ── ABAS DO HISTÓRICO (MINHAS AULAS) ────────────── */
+        .historico-tabs-container {
+            margin-bottom: 14px;
+            width: 100%;
+        }
+        .historico-tabs {
+            display: flex;
+            background: var(--cal-soft, #f4ede4);
+            padding: 4px;
+            border-radius: 14px;
+            gap: 4px;
+            border: 1px solid var(--cal-line, #e8ded2);
+        }
+        .historico-tab {
+            flex: 1;
+            padding: 9px 12px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: var(--cal-muted, #7a6250);
+            font-size: .83rem;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            transition: all .2s;
+            touch-action: manipulation;
+        }
+        .historico-tab.ativo {
+            background: var(--cal-paper, #ffffff);
+            color: var(--cal-ink, #2e231c);
+            box-shadow: 0 2px 8px rgba(46, 35, 28, 0.08);
+            font-weight: 700;
+        }
+        .historico-tab .tab-badge {
+            font-size: .7rem;
+            padding: 2px 7px;
+            border-radius: 6px;
+            background: rgba(122, 98, 80, 0.1);
+            color: var(--cal-muted, #7a6250);
+            font-weight: 700;
+        }
+        .historico-tab.ativo .tab-badge {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        /* ── BADGES DE STATUS NO HISTÓRICO ──────────────── */
+        .badge-status-reserva {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: .72rem;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 6px;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        .badge-status-reserva.status-hoje {
+            background: #fef9c3;
+            color: #854d0e;
+            border: 1px solid #fde047;
+        }
+        .badge-status-reserva.status-futura {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .badge-status-reserva.status-passada {
+            background: #f3f4f6;
+            color: #4b5563;
+            border: 1px solid #e5e7eb;
+        }
     </style>
     <link rel="stylesheet" href="./cal-inspired.css">
 </head>
@@ -2104,7 +2250,7 @@
         <!-- Footer -->
         <div class="login-footer">
             © 2026 Locus · Todos os direitos reservados<br>
-            Primeiro acesso? <a href="cadasto.html">Solicitar acesso</a>
+            Primeiro acesso? <a href="cadastro.html">Solicitar acesso</a>
         </div>
 
     </div>
@@ -2132,6 +2278,20 @@
 
     <!-- ── TELA 1: AGENDAR ── -->
     <div id="tela-agendar" class="tela">
+
+        <!-- Seletor Segmentado de Turno -->
+        <div class="stitch-turno-segmented-container">
+            <div class="stitch-turno-segmented" role="tablist" aria-label="Seleção de Turno">
+                <button type="button" class="stitch-turno-seg-btn ativo" id="seg-turno-manha" onclick="selecionarTurnoSegmented('manha')" role="tab" aria-selected="true">
+                    <span>☀️ Manhã Integral</span>
+                    <span class="seg-badge">7 aulas</span>
+                </button>
+                <button type="button" class="stitch-turno-seg-btn" id="seg-turno-eja" onclick="selecionarTurnoSegmented('eja')" role="tab" aria-selected="false">
+                    <span>🌙 EJA Noturno</span>
+                    <span class="seg-badge">4 aulas</span>
+                </button>
+            </div>
+        </div>
 
         <!-- 3 Selector Cards Grid -->
         <div class="stitch-selectors-grid">
@@ -2284,9 +2444,24 @@
         <div class="stitch-section-header">
             <div class="stitch-section-title-wrap">
                 <span class="stitch-section-title">Meus Agendamentos</span>
-                <span class="stitch-section-subtitle">Reservas a partir de hoje</span>
+                <span class="stitch-section-subtitle" id="subtitulo-minhas-aulas">Aulas ativas e futuras</span>
             </div>
         </div>
+
+        <!-- Abas do Histórico -->
+        <div class="historico-tabs-container">
+            <div class="historico-tabs" role="tablist" aria-label="Filtro de Histórico">
+                <button type="button" class="historico-tab ativo" id="tab-hist-proximas" onclick="alternarAbaHistorico('proximas')" role="tab" aria-selected="true">
+                    <span>📅 Próximas</span>
+                    <span id="badge-cont-proximas" class="tab-badge">0</span>
+                </button>
+                <button type="button" class="historico-tab" id="tab-hist-anteriores" onclick="alternarAbaHistorico('anteriores')" role="tab" aria-selected="false">
+                    <span>📜 Anteriores</span>
+                    <span id="badge-cont-anteriores" class="tab-badge">0</span>
+                </button>
+            </div>
+        </div>
+
         <div id="historico-lista">
             <div class="stitch-empty-card">
                 <div class="stitch-empty-art">
