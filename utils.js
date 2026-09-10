@@ -26,13 +26,23 @@ export const supabase = (SUPABASE_URL && SUPABASE_KEY)
             detectSessionInUrl: false,
         }
     })
-    : createClient('https://placeholder.supabase.co', 'placeholder-key', {
-        auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-            detectSessionInUrl: false,
-        }
-    });
+    : (() => {
+        const dummyClient = createClient('https://placeholder.supabase.co', 'placeholder-key', {
+            auth: {
+                persistSession: false,
+                autoRefreshToken: false,
+                detectSessionInUrl: false,
+            }
+        });
+        // Desativa conexão Realtime do cliente placeholder para evitar erros recorrentes de net::ERR_NAME_NOT_RESOLVED
+        const noopChannel = {
+            on: function() { return this; },
+            subscribe: function() { return this; },
+            unsubscribe: function() { return Promise.resolve(); }
+        };
+        dummyClient.channel = () => noopChannel;
+        return dummyClient;
+    })();
 
 // ------------------------------------------------------------
 // Gerenciamento de Turnos (Manhã Integral x EJA Noturno)
@@ -216,4 +226,75 @@ export function formatarData(dataObj) {
     const mes = String(dataObj.getMonth() + 1).padStart(2, '0');
     const dia = String(dataObj.getDate()).padStart(2, '0');
     return `${ano}-${mes}-${dia}`;
+}
+
+// ------------------------------------------------------------
+// Monitor de Conexão Online/Offline
+// ------------------------------------------------------------
+export function configurarMonitorConexao() {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    let banner = document.getElementById('locus-offline-banner');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'locus-offline-banner';
+        banner.style.cssText = `
+            position: fixed;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-120px);
+            z-index: 999999;
+            padding: 8px 18px;
+            border-radius: 50px;
+            font-size: 0.84rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+            transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+            opacity: 0;
+            pointer-events: none;
+            font-family: inherit;
+        `;
+        document.body.appendChild(banner);
+    }
+
+    let hideTimer = null;
+
+    function exibirStatus(online) {
+        clearTimeout(hideTimer);
+        if (!online) {
+            banner.style.background = '#dc3c3c';
+            banner.style.color = '#ffffff';
+            banner.innerHTML = `<span>📡</span> Modo Offline — Sem conexão com a internet`;
+            banner.style.opacity = '1';
+            banner.style.transform = 'translateX(-50%) translateY(0)';
+        } else {
+            banner.style.background = '#059669';
+            banner.style.color = '#ffffff';
+            banner.innerHTML = `<span>⚡</span> Conexão restabelecida!`;
+            banner.style.opacity = '1';
+            banner.style.transform = 'translateX(-50%) translateY(0)';
+            hideTimer = setTimeout(() => {
+                banner.style.opacity = '0';
+                banner.style.transform = 'translateX(-50%) translateY(-120px)';
+            }, 2500);
+        }
+    }
+
+    window.addEventListener('offline', () => exibirStatus(false));
+    window.addEventListener('online', () => exibirStatus(true));
+
+    if (!navigator.onLine) {
+        exibirStatus(false);
+    }
+}
+
+if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', configurarMonitorConexao);
+    } else {
+        configurarMonitorConexao();
+    }
 }

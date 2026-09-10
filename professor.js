@@ -444,12 +444,29 @@ window.fazerLogin = async function() {
     try {
         const emailFicticio = `prof-${profId}@locus.interno`;
 
-        const { data, error } = await supabase.auth.signInWithPassword({
+        // 1. Tenta login com o formato de senha do Locus (locus_PIN, >= 6 caracteres)
+        let authResult = await supabase.auth.signInWithPassword({
             email: emailFicticio,
-            password: pin
+            password: `locus_${pin}`
         });
 
-        if (error || !data.session) {
+        // 2. Fallback: se falhar, tenta com o PIN puro (legado / ativado via Edge Function)
+        if (authResult.error || !authResult.data?.session) {
+            const authLegado = await supabase.auth.signInWithPassword({
+                email: emailFicticio,
+                password: pin
+            });
+
+            if (!authLegado.error && authLegado.data?.session) {
+                authResult = authLegado;
+                // Migra silenciosamente a senha para o padrão com 6+ caracteres para permitir futuras alterações
+                supabase.auth.updateUser({ password: `locus_${pin}` }).catch(() => {});
+            }
+        }
+
+        const { data, error } = authResult;
+
+        if (error || !data?.session) {
             if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
             const isRateLimit = error?.message?.includes('rate limit');
             const mensagem = isRateLimit
@@ -825,8 +842,10 @@ window.abrirModalAlterarPin = async function() {
     });
 
     try {
+        // Atualiza a senha no Supabase Auth usando o padrão de 6+ caracteres (locus_PIN).
+        // Isso atende à política nativa de senhas do Supabase (mínimo 6 chars) de forma 100% transparente para o professor.
         const { data, error } = await supabase.auth.updateUser({
-            password: novoPin
+            password: `locus_${novoPin}`
         });
 
         if (error) throw error;
@@ -1370,8 +1389,12 @@ window.agendarAula = async function(numeroAula) {
             if (error.code === 'P0002') {
                 Swal.fire({ icon: 'info', title: 'Horário encerrado', text: 'Essa aula já começou e não pode mais ser reservada.', confirmButtonColor: '#dc3c3c' });
                 buscarAulas();
+            } else if (error.code === '23505') {
+                Swal.fire({ icon: 'error', title: 'Horário já reservado!', text: 'Outro professor acabou de reservar este horário ou sala.', confirmButtonColor: '#dc3c3c' });
+                buscarAulas();
             } else {
                 Swal.fire({ icon: 'error', title: 'Vaga indisponível', text: 'Pode ter sido preenchida agora mesmo.', confirmButtonColor: '#dc3c3c' });
+                buscarAulas();
             }
         } else {
             Swal.fire({ icon: 'success', title: 'Agendado com sucesso!', text: 'Sua reserva foi confirmada. 🎉', confirmButtonColor: '#059669', timer: 2000, showConfirmButton: false });

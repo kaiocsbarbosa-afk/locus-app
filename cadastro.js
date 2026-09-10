@@ -1,6 +1,6 @@
 /* cadastro.js — professor envia solicitação de acesso */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-import { carregarPreferenciaModo, COORD_EMAIL } from './utils.js'
+import { carregarPreferenciaModo, COORD_EMAIL, supabase as authClient } from './utils.js'
 import { enviarNotificacao } from './push.js'
 
 const SUPABASE_URL = window.__ENV__?.SUPABASE_URL || ''
@@ -9,13 +9,21 @@ const SUPABASE_KEY = window.__ENV__?.SUPABASE_KEY || ''
 // Cliente estritamente anônimo para cadastro/solicitação.
 // Nunca herda tokens de sessão do localStorage (ex: coordenador ou professor logado em outra aba),
 // prevenindo o erro HTTP 403 (RLS policy violation em solicitacoes_acesso para papel authenticated).
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false
-    }
-});
+const supabase = (SUPABASE_URL && SUPABASE_KEY)
+    ? createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+        }
+    })
+    : createClient('https://placeholder.supabase.co', 'placeholder-key', {
+        auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+            detectSessionInUrl: false
+        }
+    });
 
 const DISCIPLINAS_PADRAO = [
     'Análise e Desenvolvimento de Sistemas',
@@ -94,7 +102,12 @@ function verificarSessaoExistente() {
                 window.location.href = isCoord ? 'coordenacao.html' : 'professor.html';
             });
 
-            btnSairSessao?.addEventListener('click', () => {
+            btnSairSessao?.addEventListener('click', async () => {
+                try {
+                    await authClient.auth.signOut();
+                } catch (err) {
+                    console.warn('Erro ao deslogar:', err);
+                }
                 localStorage.removeItem(chaveAuth);
                 banner.style.display = 'none';
                 Swal.fire({

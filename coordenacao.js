@@ -1,5 +1,5 @@
 /* coordenacao.js — autenticação via Supabase Auth */
-import { supabase, registrarServiceWorker, dispararAlerta, detectarTurnoTurma, obterHorarioAula } from './utils.js'
+import { supabase, registrarServiceWorker, dispararAlerta, detectarTurnoTurma, obterHorarioAula, formatarData } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 window.addEventListener('error', function(e) {
@@ -194,7 +194,7 @@ function mostrarDashboard() {
 
     const hoje = new Date()
     const inputData = document.getElementById('filtroData')
-    if (inputData) inputData.value = hoje.toISOString().split('T')[0]
+    if (inputData) inputData.value = formatarData(hoje)
 
     // Carrega dados dos filtros (requerem sessão ativa para professores completos)
     carregarSalasNoFiltro()
@@ -773,7 +773,7 @@ window.baixarRelatorioCSV = async function() {
         const filtroData = document.getElementById('filtroData')?.value
         const filtroTurno = document.getElementById('filtroTurno')?.value
         const sufixoTurno = filtroTurno ? `-${filtroTurno}` : ''
-        const sufixoData  = filtroData || new Date().toISOString().split('T')[0]
+        const sufixoData  = filtroData || formatarData(new Date())
         const nomeArquivo = `locus-agendamentos${sufixoTurno}-${sufixoData}.csv`
 
         const url = URL.createObjectURL(blob)
