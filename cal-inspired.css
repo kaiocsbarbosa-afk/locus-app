@@ -1396,7 +1396,7 @@ body:has(#secao-login-coord) .header-painel {
 body:has(#secao-login-coord) .header-nav-coord {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
 }
 body:has(#secao-login-coord) .header-nav-item {
     padding: 7px 16px;
@@ -1406,22 +1406,50 @@ body:has(#secao-login-coord) .header-nav-item {
     color: var(--cal-muted);
     text-decoration: none;
     white-space: nowrap;
-    transition: background .15s, color .15s;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background .15s, color .15s, transform .1s;
 }
-body:has(#secao-login-coord) a.header-nav-item:hover {
+body:has(#secao-login-coord) .header-nav-item:hover {
     background: var(--cal-soft);
     color: var(--cal-ink);
 }
 body:has(#secao-login-coord) .header-nav-item.ativo {
     background: var(--cal-amber-soft);
     color: var(--cal-ink);
+    font-weight: 700;
 }
 body:has(#secao-login-coord) .header-nav-item.desabilitado {
     opacity: .4;
     cursor: default;
 }
 @media (max-width: 780px) {
-    body:has(#secao-login-coord) .header-nav-coord { display: none; }
+    body:has(#secao-login-coord) .header-painel {
+        flex-wrap: wrap;
+        padding: 10px 12px;
+        gap: 8px;
+    }
+    body:has(#secao-login-coord) .header-nav-coord {
+        order: 3;
+        width: 100%;
+        overflow-x: auto;
+        padding: 4px 0;
+        gap: 4px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    body:has(#secao-login-coord) .header-nav-coord::-webkit-scrollbar {
+        display: none;
+    }
+    body:has(#secao-login-coord) .header-nav-item {
+        padding: 6px 12px;
+        font-size: .78rem;
+    }
 }
 
 body:has(#secao-login-coord) .btn-header,

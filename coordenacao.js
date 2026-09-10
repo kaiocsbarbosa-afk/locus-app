@@ -214,6 +214,11 @@ function mostrarDashboard() {
     carregarRelatorioGeral()
     atualizarBadgePendentes()
     verificarStatusNotificacoes()
+
+    // Pré-carrega métricas e listas para navegação imediata entre as abas
+    carregarListaProfessores()
+    carregarListaTurmas()
+    carregarListaSalas()
 }
 
 // ============================================================
@@ -319,17 +324,22 @@ async function carregarDisciplinasNoPreCadastro() {
 
 async function atualizarBadgePendentes() {
     const badge = document.getElementById('badge-pendentes')
-    if (!badge) return
+    const badgeNav = document.getElementById('badge-nav-professores')
+    const qtdSolicitacoes = document.getElementById('qtd-solicitacoes-total')
     try {
         const { count } = await supabase
             .from('solicitacoes_acesso')
             .select('*', { count: 'exact', head: true })
             .eq('status', 'pendente')
-        if (count > 0) {
-            badge.textContent = count
-            badge.style.display = 'inline'
+        const total = count || 0
+        if (total > 0) {
+            if (badge) { badge.textContent = total; badge.style.display = 'inline-flex'; }
+            if (badgeNav) { badgeNav.textContent = total; badgeNav.style.display = 'inline-flex'; }
+            if (qtdSolicitacoes) qtdSolicitacoes.textContent = total
         } else {
-            badge.style.display = 'none'
+            if (badge) badge.style.display = 'none'
+            if (badgeNav) badgeNav.style.display = 'none'
+            if (qtdSolicitacoes) qtdSolicitacoes.textContent = '0'
         }
     } catch (e) { /* silencioso */ }
 }
@@ -337,6 +347,8 @@ async function atualizarBadgePendentes() {
 async function carregarSolicitacoes() {
     const lista = document.getElementById('lista-solicitacoes')
     const badge = document.getElementById('badge-pendentes')
+    const badgeNav = document.getElementById('badge-nav-professores')
+    const qtdSolicitacoes = document.getElementById('qtd-solicitacoes-total')
     if (!lista) return
 
     lista.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>'
@@ -350,13 +362,21 @@ async function carregarSolicitacoes() {
 
         if (error) throw error
 
+        const total = data?.length || 0
         if (badge) {
-            if (data?.length) {
-                badge.textContent = data.length
-                badge.style.display = 'inline'
+            if (total > 0) {
+                badge.textContent = total
+                badge.style.display = 'inline-flex'
             } else {
                 badge.style.display = 'none'
             }
+        }
+        if (badgeNav) {
+            badgeNav.textContent = total
+            badgeNav.style.display = total > 0 ? 'inline-flex' : 'none'
+        }
+        if (qtdSolicitacoes) {
+            qtdSolicitacoes.textContent = total
         }
 
         if (!data || data.length === 0) {
@@ -789,89 +809,124 @@ window.baixarRelatorioCSV = async function() {
 }
 
 // ============================================================
-//  GERENCIAR SALAS E TURMAS
+//  SISTEMA DE ABAS PRINCIPAIS & GERENCIAMENTO
 // ============================================================
 
-let gerenciamentoCarregado = false
+let cacheProfessores = []
+let cacheTurmas = []
+let cacheSalas = []
+let disciplinasCache = []
 
-window.alternarGerenciamento = function(event) {
-    const conteudo = document.getElementById('conteudo-gerenciar')
-    const toggle   = event.currentTarget
-    conteudo.classList.toggle('hidden')
-    toggle.classList.toggle('aberto')
-    if (!conteudo.classList.contains('hidden') && !gerenciamentoCarregado) {
-        gerenciamentoCarregado = true
-        carregarListaSalas()
+window.mudarAbaPrincipal = function(aba) {
+    const abas = ['reservas', 'professores', 'salas-turmas']
+    abas.forEach(a => {
+        const btn = document.getElementById(`nav-aba-${a}`)
+        const painel = document.getElementById(`painel-aba-${a}`)
+        if (btn) btn.classList.toggle('ativo', a === aba)
+        if (painel) painel.classList.toggle('oculto', a !== aba)
+    })
+
+    if (aba === 'professores') {
+        carregarSolicitacoes()
+        carregarListaProfessores()
+    } else if (aba === 'salas-turmas') {
         carregarListaTurmas()
+        carregarListaSalas()
+    } else if (aba === 'reservas') {
+        carregarRelatorioGeral()
     }
 }
 
+window.alternarSubTab = function(sub) {
+    const btnTurmas = document.getElementById('subtab-turmas-btn')
+    const btnSalas = document.getElementById('subtab-salas-btn')
+    const painelTurmas = document.getElementById('subpainel-turmas')
+    const painelSalas = document.getElementById('subpainel-salas')
+
+    if (sub === 'turmas') {
+        btnTurmas?.classList.add('ativa')
+        btnSalas?.classList.remove('ativa')
+        painelTurmas?.classList.remove('oculto')
+        painelSalas?.classList.add('oculto')
+    } else {
+        btnTurmas?.classList.remove('ativa')
+        btnSalas?.classList.add('ativa')
+        painelTurmas?.classList.add('oculto')
+        painelSalas?.classList.remove('oculto')
+    }
+}
+window.alternarTabSalasTurmas = window.alternarSubTab
+window.alternarTabGerenciar = function(aba) { window.alternarSubTab(aba) }
+window.alternarGerenciamento = function() { window.mudarAbaPrincipal('salas-turmas') }
+window.alternarGerenciamentoProfessores = function() { window.mudarAbaPrincipal('professores') }
+
+// ------------------------------------------------------------
+//  GERENCIAR SALAS
+// ------------------------------------------------------------
 async function carregarListaSalas() {
     const container = document.getElementById('lista-salas')
-    container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>'
+    if (!container) return
+    container.innerHTML = '<div class="gerenciar-vazio">Carregando salas...</div>'
+
     const { data: salas, error } = await supabase.from('salas').select('id, nome').order('nome', { ascending: true })
     if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar salas.</div>'; return }
-    if (!salas || salas.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhuma sala cadastrada ainda.</div>'; return }
+    
+    cacheSalas = salas || []
+    const qtdEl = document.getElementById('qtd-salas-total')
+    if (qtdEl) qtdEl.textContent = cacheSalas.length
+
+    renderizarListaSalas(cacheSalas)
+}
+
+function renderizarListaSalas(salas, isFiltrado = false) {
+    const container = document.getElementById('lista-salas')
+    if (!container) return
+
+    if (!salas || salas.length === 0) {
+        container.innerHTML = `<div class="gerenciar-vazio">${isFiltrado ? 'Nenhuma sala encontrada para esta busca.' : 'Nenhuma sala cadastrada ainda.'}</div>`
+        return
+    }
 
     container.innerHTML = ''
     salas.forEach((sala, i) => {
         const div = document.createElement('div')
-        div.classList.add('gerenciar-item')
-        div.style.animationDelay = `${i * 0.04}s`
+        div.className = 'item-card-moderno'
+        div.style.animationDelay = `${i * 0.03}s`
+
+        const info = document.createElement('div')
+        info.className = 'item-card-info'
 
         const icone = document.createElement('div')
-        icone.className = 'gerenciar-item-icone sala'
+        icone.className = 'item-card-icone sala'
         icone.textContent = '🏫'
 
-        const span = document.createElement('span')
-        span.className = 'gerenciar-item-nome'
-        span.textContent = sala.nome
+        const detalhes = document.createElement('div')
+        detalhes.className = 'item-card-detalhes'
 
-        const btn = document.createElement('button')
-        btn.className = 'gerenciar-del'
-        btn.title = 'Excluir sala'
-        btn.textContent = '🗑'
-        btn.addEventListener('click', () => window.excluirSala(sala.id, sala.nome))
+        const nome = document.createElement('div')
+        nome.className = 'item-card-nome'
+        nome.textContent = sala.nome
 
-        div.appendChild(icone)
-        div.appendChild(span)
-        div.appendChild(btn)
+        detalhes.appendChild(nome)
+        info.appendChild(icone)
+        info.appendChild(detalhes)
+
+        const btnDel = document.createElement('button')
+        btnDel.className = 'btn-item-del'
+        btnDel.title = `Excluir sala ${sala.nome}`
+        btnDel.textContent = '🗑'
+        btnDel.addEventListener('click', () => window.excluirSala(sala.id, sala.nome))
+
+        div.appendChild(info)
+        div.appendChild(btnDel)
         container.appendChild(div)
     })
 }
 
-async function carregarListaTurmas() {
-    const container = document.getElementById('lista-turmas')
-    container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>'
-    const { data: turmas, error } = await supabase.from('turmas').select('id, nome').order('nome', { ascending: true })
-    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar turmas.</div>'; return }
-    if (!turmas || turmas.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhuma turma cadastrada ainda.</div>'; return }
-
-    container.innerHTML = ''
-    turmas.forEach((turma, i) => {
-        const div = document.createElement('div')
-        div.classList.add('gerenciar-item')
-        div.style.animationDelay = `${i * 0.04}s`
-
-        const icone = document.createElement('div')
-        icone.className = 'gerenciar-item-icone turma'
-        icone.textContent = '👥'
-
-        const span = document.createElement('span')
-        span.className = 'gerenciar-item-nome'
-        span.textContent = turma.nome
-
-        const btn = document.createElement('button')
-        btn.className = 'gerenciar-del'
-        btn.title = 'Excluir turma'
-        btn.textContent = '🗑'
-        btn.addEventListener('click', () => window.excluirTurma(turma.id, turma.nome))
-
-        div.appendChild(icone)
-        div.appendChild(span)
-        div.appendChild(btn)
-        container.appendChild(div)
-    })
+window.filtrarSalas = function(termo) {
+    termo = (termo || '').toLowerCase().trim()
+    const filtradas = cacheSalas.filter(s => s.nome && s.nome.toLowerCase().includes(termo))
+    renderizarListaSalas(filtradas, termo !== '')
 }
 
 window.adicionarSala = async function() {
@@ -885,18 +940,6 @@ window.adicionarSala = async function() {
     input.value = ''
     carregarListaSalas()
     carregarSalasNoFiltro()
-}
-
-window.adicionarTurma = async function() {
-    if (!await exigirAuth()) return
-    const input = document.getElementById('nova-turma-nome')
-    const nome  = input.value.trim()
-    if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Digite o nome da turma.', confirmButtonColor: 'var(--cor-primaria)' }); return }
-    // RLS: turmas_insert_coord
-    const { error } = await supabase.from('turmas').insert([{ nome }])
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a turma.', confirmButtonColor: 'var(--cor-perigo)' }); return }
-    input.value = ''
-    carregarListaTurmas()
 }
 
 window.excluirSala = async function(id, nome) {
@@ -916,6 +959,102 @@ window.excluirSala = async function(id, nome) {
     carregarSalasNoFiltro()
 }
 
+// ------------------------------------------------------------
+//  GERENCIAR TURMAS
+// ------------------------------------------------------------
+async function carregarListaTurmas() {
+    const container = document.getElementById('lista-turmas')
+    if (!container) return
+    container.innerHTML = '<div class="gerenciar-vazio">Carregando turmas...</div>'
+
+    const { data: turmas, error } = await supabase.from('turmas').select('id, nome').order('nome', { ascending: true })
+    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar turmas.</div>'; return }
+    
+    cacheTurmas = turmas || []
+    const qtdEl = document.getElementById('qtd-turmas-total')
+    if (qtdEl) qtdEl.textContent = cacheTurmas.length
+
+    renderizarListaTurmas(cacheTurmas)
+}
+
+function renderizarListaTurmas(turmas, isFiltrado = false) {
+    const container = document.getElementById('lista-turmas')
+    if (!container) return
+
+    if (!turmas || turmas.length === 0) {
+        container.innerHTML = `<div class="gerenciar-vazio">${isFiltrado ? 'Nenhuma turma encontrada para esta busca.' : 'Nenhuma turma cadastrada ainda.'}</div>`
+        return
+    }
+
+    container.innerHTML = ''
+    turmas.forEach((turma, i) => {
+        const div = document.createElement('div')
+        div.className = 'item-card-moderno'
+        div.style.animationDelay = `${i * 0.03}s`
+
+        const info = document.createElement('div')
+        info.className = 'item-card-info'
+
+        const icone = document.createElement('div')
+        icone.className = 'item-card-icone turma'
+        icone.textContent = '👥'
+
+        const detalhes = document.createElement('div')
+        detalhes.className = 'item-card-detalhes'
+
+        const nome = document.createElement('div')
+        nome.className = 'item-card-nome'
+        nome.textContent = turma.nome
+
+        // Detecção automática de turno
+        const turno = detectarTurnoTurma(turma.nome)
+        const tagTurno = document.createElement('span')
+        if (turno === 'manha') {
+            tagTurno.className = 'badge-turno-tag manha'
+            tagTurno.textContent = '☀️ Manhã'
+        } else if (turno === 'eja') {
+            tagTurno.className = 'badge-turno-tag eja'
+            tagTurno.textContent = '🌙 EJA'
+        } else {
+            tagTurno.className = 'badge-turno-tag geral'
+            tagTurno.textContent = '📚 Geral'
+        }
+
+        detalhes.appendChild(nome)
+        detalhes.appendChild(tagTurno)
+        info.appendChild(icone)
+        info.appendChild(detalhes)
+
+        const btnDel = document.createElement('button')
+        btnDel.className = 'btn-item-del'
+        btnDel.title = `Excluir turma ${turma.nome}`
+        btnDel.textContent = '🗑'
+        btnDel.addEventListener('click', () => window.excluirTurma(turma.id, turma.nome))
+
+        div.appendChild(info)
+        div.appendChild(btnDel)
+        container.appendChild(div)
+    })
+}
+
+window.filtrarTurmas = function(termo) {
+    termo = (termo || '').toLowerCase().trim()
+    const filtradas = cacheTurmas.filter(t => t.nome && t.nome.toLowerCase().includes(termo))
+    renderizarListaTurmas(filtradas, termo !== '')
+}
+
+window.adicionarTurma = async function() {
+    if (!await exigirAuth()) return
+    const input = document.getElementById('nova-turma-nome')
+    const nome  = input.value.trim()
+    if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'Digite o nome da turma.', confirmButtonColor: 'var(--cor-primaria)' }); return }
+    // RLS: turmas_insert_coord
+    const { error } = await supabase.from('turmas').insert([{ nome }])
+    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível adicionar a turma.', confirmButtonColor: 'var(--cor-perigo)' }); return }
+    input.value = ''
+    carregarListaTurmas()
+}
+
 window.excluirTurma = async function(id, nome) {
     if (!await exigirAuth()) return
     const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('turma_id', id).limit(1)
@@ -932,27 +1071,9 @@ window.excluirTurma = async function(id, nome) {
     carregarListaTurmas()
 }
 
-// ============================================================
+// ------------------------------------------------------------
 //  GERENCIAR PROFESSORES
-// ============================================================
-
-let gerenciamentoProfessoresCarregado = false
-let disciplinasCache = []
-
-window.alternarGerenciamentoProfessores = function(event) {
-    const conteudo = document.getElementById('conteudo-gerenciar-professores')
-    const toggle   = event.currentTarget
-    conteudo.classList.toggle('hidden')
-    toggle.classList.toggle('aberto')
-    if (!conteudo.classList.contains('hidden')) {
-        carregarSolicitacoes()
-        if (!gerenciamentoProfessoresCarregado) {
-            gerenciamentoProfessoresCarregado = true
-            carregarListaProfessores()
-        }
-    }
-}
-
+// ------------------------------------------------------------
 async function obterDisciplinasCache() {
     if (disciplinasCache.length > 0) return disciplinasCache
     const { data, error } = await supabase.from('disciplinas').select('id, nome').order('nome', { ascending: true })
@@ -962,7 +1083,8 @@ async function obterDisciplinasCache() {
 
 async function carregarListaProfessores() {
     const container = document.getElementById('lista-professores')
-    container.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>'
+    if (!container) return
+    container.innerHTML = '<div class="gerenciar-vazio">Carregando professores...</div>'
 
     const [{ data: professores, error }, disciplinas] = await Promise.all([
         supabase.from('professores').select('id, nome, disciplina, auth_user_id').order('nome', { ascending: true }),
@@ -970,7 +1092,23 @@ async function carregarListaProfessores() {
     ])
 
     if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar professores.</div>'; return }
-    if (!professores || professores.length === 0) { container.innerHTML = '<div class="gerenciar-vazio">Nenhum professor cadastrado.</div>'; return }
+    
+    cacheProfessores = professores || []
+    const ativosCount = cacheProfessores.filter(p => p.auth_user_id !== null && p.auth_user_id !== '').length
+    const qtdProfEl = document.getElementById('qtd-professores-total')
+    if (qtdProfEl) qtdProfEl.textContent = ativosCount
+
+    renderizarListaProfessores(cacheProfessores, disciplinas)
+}
+
+function renderizarListaProfessores(professores, disciplinas = disciplinasCache, isFiltrado = false) {
+    const container = document.getElementById('lista-professores')
+    if (!container) return
+
+    if (!professores || professores.length === 0) {
+        container.innerHTML = `<div class="gerenciar-vazio">${isFiltrado ? 'Nenhum professor encontrado com esse filtro.' : 'Nenhum professor cadastrado ainda.'}</div>`
+        return
+    }
 
     container.innerHTML = ''
     professores.forEach((prof, i) => {
@@ -979,10 +1117,10 @@ async function carregarListaProfessores() {
 
         const div = document.createElement('div')
         div.classList.add('professor-card')
-        div.style.animationDelay = `${i * 0.05}s`
+        div.style.animationDelay = `${i * 0.04}s`
 
         // Monta seletor de disciplinas via DOM
-        const selectOpts = disciplinas.map(d => {
+        const selectOpts = (disciplinas || []).map(d => {
             const opt = document.createElement('option')
             opt.value = d.nome
             opt.textContent = d.nome
@@ -990,8 +1128,6 @@ async function carregarListaProfessores() {
             return opt
         })
 
-        // prof.id é UUID (sem caracteres HTML), temAcesso é boolean — seguros para interpolação.
-        // iniciais, nome e disciplina vêm do banco → preenchidos via textContent abaixo.
         const statusClasse = temAcesso ? 'ativo' : 'pendente'
         const statusTexto  = temAcesso ? '✓ Ativo' : '⏳ Pendente'
         div.innerHTML = `
@@ -1018,7 +1154,6 @@ async function carregarListaProfessores() {
                 </div>
             </div>`
 
-        // Dados do banco sempre via textContent — nunca interpolados no innerHTML
         div.querySelector('.professor-card-avatar').textContent = iniciais
         div.querySelector('.professor-nome').textContent = prof.nome
         div.querySelector('.professor-disciplina').textContent = prof.disciplina || 'Sem disciplina'
@@ -1028,7 +1163,6 @@ async function carregarListaProfessores() {
         const select = div.querySelector(`#edit-disciplina-${prof.id}`)
         selectOpts.forEach(opt => select.appendChild(opt.cloneNode(true)))
 
-        // Event listeners (sem onclick no HTML)
         div.querySelector(`#btn-edit-${prof.id}`)
             .addEventListener('click', () => window.toggleEditarProfessor(prof.id))
 
@@ -1047,6 +1181,15 @@ async function carregarListaProfessores() {
     })
 }
 
+window.filtrarProfessores = function(termo) {
+    termo = (termo || '').toLowerCase().trim()
+    const filtrados = cacheProfessores.filter(p => 
+        (p.nome && p.nome.toLowerCase().includes(termo)) ||
+        (p.disciplina && p.disciplina.toLowerCase().includes(termo))
+    )
+    renderizarListaProfessores(filtrados, disciplinasCache, termo !== '')
+}
+
 window.toggleEditarProfessor = function(id) {
     const exp = document.getElementById(`exp-${id}`)
     const btn = document.getElementById(`btn-edit-${id}`)
@@ -1061,25 +1204,6 @@ window.toggleEditarProfessor = function(id) {
         exp.classList.add('aberto')
         btn.textContent = '✕'
         exp.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    }
-}
-
-window.alternarTabGerenciar = function(aba) {
-    const painelSalas  = document.getElementById('painel-salas')
-    const painelTurmas = document.getElementById('painel-turmas')
-    const tabSalas     = document.getElementById('tab-salas')
-    const tabTurmas    = document.getElementById('tab-turmas')
-
-    if (aba === 'salas') {
-        painelSalas.classList.remove('oculto')
-        painelTurmas.classList.add('oculto')
-        tabSalas.classList.add('ativa')
-        tabTurmas.classList.remove('ativa')
-    } else {
-        painelSalas.classList.add('oculto')
-        painelTurmas.classList.remove('oculto')
-        tabSalas.classList.remove('ativa')
-        tabTurmas.classList.add('ativa')
     }
 }
 

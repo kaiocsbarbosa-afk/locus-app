@@ -340,6 +340,18 @@
     <!-- Card principal -->
     <div class="card">
 
+        <!-- Aviso de Sessão Ativa (se usuário já estiver conectado neste browser) -->
+        <div id="aviso-sessao-ativa" style="display:none; flex-direction:column; gap:8px; background:rgba(220,60,60,0.12); border:1px solid rgba(220,60,60,0.3); border-radius:12px; padding:12px 14px; margin-bottom:16px; font-size:0.8rem;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span>⚠️</span>
+                <span id="txt-sessao-ativa" style="color:#ffb4b0; font-weight:500;">Você já possui uma sessão ativa neste aparelho.</span>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:4px;">
+                <button type="button" id="btn-ir-painel-sessao" style="flex:1; padding:6px 10px; font-size:0.75rem; border-radius:8px; border:none; background:#dc3c3c; color:#fff; font-weight:600; cursor:pointer;">Ir para o sistema</button>
+                <button type="button" id="btn-sair-sessao" style="flex:1; padding:6px 10px; font-size:0.75rem; border-radius:8px; border:1px solid rgba(240,238,255,0.2); background:rgba(255,255,255,0.06); color:#f0eeff; font-weight:600; cursor:pointer;">Sair da conta</button>
+            </div>
+        </div>
+
         <!-- Formulário -->
         <div id="tela-form">
             <div class="card-titulo">Criar meu perfil</div>

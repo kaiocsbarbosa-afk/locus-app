@@ -1129,6 +1129,380 @@
         line-height: 1.4;
         opacity: .75;
     }
+
+    /* ══ SISTEMA DE ABAS PRINCIPAIS DA COORDENAÇÃO ═══════════ */
+    .painel-aba-principal {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        animation: entrar-card 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .painel-aba-principal.oculto {
+        display: none !important;
+    }
+
+    /* Cabeçalho estilizado de cada seção de aba */
+    .secao-aba-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px 22px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
+    .secao-aba-info {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+    .secao-aba-icone {
+        width: 46px;
+        height: 46px;
+        border-radius: 13px;
+        background: rgba(220, 60, 60, 0.1);
+        border: 1px solid rgba(220, 60, 60, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.35rem;
+        flex-shrink: 0;
+    }
+    .secao-aba-titulo {
+        font-size: 1.12rem;
+        font-weight: 800;
+        color: var(--txt);
+        letter-spacing: -0.3px;
+    }
+    .secao-aba-sub {
+        font-size: 0.78rem;
+        color: var(--txt3);
+        margin-top: 2px;
+    }
+    .secao-aba-metricas {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .metrica-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: var(--surface2, rgba(220, 60, 60, 0.06));
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 7px 14px;
+        font-size: 0.79rem;
+        font-weight: 600;
+        color: var(--txt2);
+    }
+    .metrica-chip strong {
+        font-size: 1.05rem;
+        color: var(--txt);
+        font-weight: 800;
+    }
+
+    /* Barra de ferramentas e busca */
+    .barra-ferramentas {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .busca-input-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 220px;
+    }
+    .busca-input-wrap .busca-icone {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.88rem;
+        color: var(--txt3);
+        pointer-events: none;
+    }
+    .busca-input-wrap input {
+        width: 100%;
+        padding: 10px 16px 10px 40px;
+        border-radius: 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--txt);
+        font-size: 0.84rem;
+        font-family: 'Poppins', sans-serif;
+        outline: none;
+        transition: border-color .2s, box-shadow .2s;
+    }
+    .busca-input-wrap input:focus {
+        border-color: var(--purple);
+        box-shadow: 0 0 0 3px var(--purple-dim);
+    }
+
+    /* Blocos de gestão */
+    .bloco-gestao-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .bloco-gestao-header {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+    }
+    .bloco-gestao-titulo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.96rem;
+        font-weight: 700;
+        color: var(--txt);
+    }
+    .bloco-gestao-sub {
+        font-size: 0.76rem;
+        color: var(--txt3);
+    }
+    .badge-pendentes-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #f59e0b;
+        color: #fff;
+        font-size: 0.7rem;
+        font-weight: 800;
+        padding: 2px 8px;
+        border-radius: 20px;
+    }
+
+    /* Sub-tabs para Salas & Turmas */
+    .subtabs-salas-turmas {
+        display: flex;
+        gap: 8px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        padding: 6px;
+        border-radius: 14px;
+        width: fit-content;
+        max-width: 100%;
+        overflow-x: auto;
+    }
+    .subtab-btn {
+        padding: 8px 18px;
+        border-radius: 10px;
+        font-size: 0.84rem;
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        background: transparent;
+        border: none;
+        color: var(--txt2);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: all .18s ease;
+    }
+    .subtab-btn:hover {
+        color: var(--txt);
+        background: rgba(220, 60, 60, 0.06);
+    }
+    .subtab-btn.ativa {
+        background: rgba(220, 60, 60, 0.14);
+        color: var(--purple);
+        box-shadow: 0 2px 8px rgba(220, 60, 60, 0.12);
+    }
+    .subpainel-conteudo {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        animation: entrar-card 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .subpainel-conteudo.oculto {
+        display: none !important;
+    }
+
+    /* Formulários e grid de Turmas & Salas */
+    .gestao-add-wrap {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+    .gerenciar-add-inline {
+        display: flex;
+        gap: 8px;
+        flex: 1;
+        min-width: 280px;
+    }
+    .gerenciar-add-inline input {
+        flex: 1;
+        padding: 10px 14px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--txt);
+        font-size: 0.84rem;
+        font-family: 'Poppins', sans-serif;
+        outline: none;
+        transition: border-color .2s, box-shadow .2s;
+    }
+    .gerenciar-add-inline input:focus {
+        border-color: var(--purple);
+        box-shadow: 0 0 0 3px var(--purple-dim);
+    }
+    .btn-adicionar-novo {
+        padding: 10px 18px;
+        background: var(--purple);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        white-space: nowrap;
+        box-shadow: 0 4px 14px rgba(220, 60, 60, 0.25);
+        transition: opacity .18s, transform .12s, box-shadow .18s;
+    }
+    .btn-adicionar-novo:hover {
+        opacity: .95;
+        box-shadow: 0 6px 18px rgba(220, 60, 60, 0.35);
+    }
+    .btn-adicionar-novo:active {
+        transform: scale(0.96);
+    }
+
+    /* Grids Modernos */
+    .turmas-grid, .salas-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 12px;
+    }
+    .item-card-moderno {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 13px 15px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        transition: transform .18s, border-color .18s, box-shadow .18s;
+        animation: entrar-card .25s cubic-bezier(.34, 1.56, .64, 1) both;
+    }
+    .item-card-moderno:hover {
+        transform: translateY(-2px);
+        border-color: rgba(220, 60, 60, 0.35);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+    }
+    .item-card-info {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 0;
+        flex: 1;
+    }
+    .item-card-icone {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.05rem;
+        flex-shrink: 0;
+    }
+    .item-card-icone.turma {
+        background: rgba(220, 60, 60, 0.1);
+        color: var(--purple);
+    }
+    .item-card-icone.sala {
+        background: rgba(59, 130, 246, 0.1);
+        color: #2563eb;
+    }
+    .item-card-detalhes {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        gap: 2px;
+    }
+    .item-card-nome {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: var(--txt);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .badge-turno-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        padding: 2px 7px;
+        border-radius: 6px;
+        font-size: 0.68rem;
+        font-weight: 700;
+        width: fit-content;
+    }
+    .badge-turno-tag.manha {
+        background: #fef9c3;
+        color: #854d0e;
+        border: 1px solid #fde047;
+    }
+    .badge-turno-tag.eja {
+        background: #f3e8ff;
+        color: #6b21a8;
+        border: 1px solid #d8b4fe;
+    }
+    .badge-turno-tag.geral {
+        background: rgba(220, 60, 60, 0.08);
+        color: var(--purple);
+        border: 1px solid rgba(220, 60, 60, 0.18);
+    }
+    .btn-item-del {
+        background: none;
+        border: 1px solid transparent;
+        color: var(--txt3);
+        cursor: pointer;
+        font-size: 0.9rem;
+        padding: 6px 8px;
+        border-radius: 8px;
+        transition: all .18s;
+        flex-shrink: 0;
+    }
+    .btn-item-del:hover {
+        color: #ef4444;
+        background: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.2);
+    }
+    .btn-item-del:active {
+        transform: scale(0.92);
+    }
+
+    .badge-nav-contador {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: #ef4444;
+        color: #ffffff;
+        font-size: 0.68rem;
+        font-weight: 800;
+        padding: 1px 6px;
+        border-radius: 10px;
+        margin-left: 4px;
+        line-height: 1.2;
+    }
     </style>
     <link rel="stylesheet" href="./cal-inspired.css">
 </head>
@@ -1166,18 +1540,19 @@
 
     <!-- Header fixo -->
     <div class="header-painel">
-        <div class="header-logo">
+        <a href="index.html" class="header-logo" title="Voltar ao início" style="text-decoration: none; color: inherit;">
             <img class="header-logo-icon" src="./logo-icon.png" alt="Locus">
             <div class="header-logo-info">
                 <div class="titulo">Locus</div>
                 <div class="sub">Painel da Coordenação</div>
             </div>
-        </div>
+        </a>
         <nav class="header-nav-coord" aria-label="Navegação do painel">
-            <a href="index.html" class="header-nav-item">Início</a>
-            <span class="header-nav-item ativo" aria-current="page">Reservas</span>
-            <span class="header-nav-item desabilitado" aria-disabled="true" title="Em breve">Professores</span>
-            <span class="header-nav-item desabilitado" aria-disabled="true" title="Em breve">Salas</span>
+            <button class="header-nav-item ativo" id="nav-aba-reservas" onclick="mudarAbaPrincipal('reservas')">📋 Reservas</button>
+            <button class="header-nav-item" id="nav-aba-professores" onclick="mudarAbaPrincipal('professores')">
+                👨‍🏫 Professores <span id="badge-nav-professores" class="badge-nav-contador" style="display:none;">0</span>
+            </button>
+            <button class="header-nav-item" id="nav-aba-salas-turmas" onclick="mudarAbaPrincipal('salas-turmas')">🏫 Salas & Turmas</button>
         </nav>
         <div class="header-acoes">
             <button class="btn-header btn-sair" onclick="sairPainel()">Sair</button>
@@ -1200,148 +1575,219 @@
             <span>🔔</span> Notificações ativas — você será avisada sobre novas solicitações
         </div>
 
-        <!-- Resumo -->
-        <div class="resumo-cards">
-            <div class="card-mini">
-                <div class="card-mini-inner">
-                    <div class="card-mini-icone">📊</div>
-                    <div class="card-mini-dados">
-                        <span id="qtd-total">0</span>
-                        <label>Reservas encontradas</label>
+        <!-- ══ ABA 1: RESERVAS ══════════════════════════════════ -->
+        <div id="painel-aba-reservas" class="painel-aba-principal">
+            <!-- Resumo -->
+            <div class="resumo-cards">
+                <div class="card-mini">
+                    <div class="card-mini-inner">
+                        <div class="card-mini-icone">📊</div>
+                        <div class="card-mini-dados">
+                            <span id="qtd-total">0</span>
+                            <label>Reservas encontradas</label>
+                        </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Tabela de agendamentos -->
+            <div class="tabela-larga">
+                <div class="tabela-topo-header">
+                    <div class="tabela-titulo-wrap">
+                        <div class="tabela-secao-icone">📋</div>
+                        <div>
+                            <h2 class="tabela-secao-titulo">Agendamentos de Salas</h2>
+                            <div class="tabela-secao-sub">Consulte, filtre e gerencie as reservas cadastradas</div>
+                        </div>
+                    </div>
+                    <button class="btn-baixar-csv" onclick="baixarRelatorioCSV()" title="Baixar relatório em formato CSV compatível com Excel">
+                        <span>📥</span> Baixar Planilha (CSV)
+                    </button>
+                </div>
+
+                <div class="filtros-container">
+                    <div class="filtro-item">
+                        <label>📅 Data</label>
+                        <input type="date" id="filtroData">
+                    </div>
+                    <div class="filtro-item">
+                        <label>📍 Sala</label>
+                        <select id="filtroSala">
+                            <option value="">Todas as salas</option>
+                        </select>
+                    </div>
+                    <div class="filtro-item">
+                        <label>👨‍🏫 Professor</label>
+                        <select id="filtroProfessor">
+                            <option value="">Todos os professores</option>
+                        </select>
+                    </div>
+                    <div class="filtro-item">
+                        <label>⏳ Turno</label>
+                        <select id="filtroTurno">
+                            <option value="">Todos os turnos</option>
+                            <option value="manha">☀️ Manhã Integral</option>
+                            <option value="eja">🌙 EJA Noturno</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filtros-acoes">
+                    <button class="btn-limpar-filtros" onclick="limparFiltros()">✕ Limpar filtros</button>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>📅 Data</th>
+                                <th>⏰ Aula / Horário</th>
+                                <th>📍 Sala</th>
+                                <th>👨‍🏫 Professor</th>
+                                <th>👥 Turma</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="listaAgendamentos">
+                            <tr>
+                                <td colspan="6" class="tabela-vazio-container">
+                                    <div class="tabela-vazio-wrap">
+                                        <span class="tabela-vazio-icon">📅</span>
+                                        <div class="tabela-vazio-titulo">Carregando agendamentos...</div>
+                                        <div class="tabela-vazio-sub">Aguarde um momento enquanto os dados são consultados.</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- Professores / Solicitações -->
-        <div class="card-gerenciar">
-            <button class="card-gerenciar-toggle" onclick="alternarGerenciamentoProfessores(event)">
-                <span>Professores <span id="badge-pendentes"></span></span>
-                <span class="toggle-icon" id="icone-gerenciar-professores">▾</span>
-            </button>
-
-            <div id="conteudo-gerenciar-professores" class="card-gerenciar-conteudo hidden">
-                <div class="separador-gerenciar"><span>Solicitações pendentes</span></div>
-                <div id="lista-solicitacoes">
-                    <div class="gerenciar-vazio">Carregando...</div>
-                </div>
-                <div class="separador-gerenciar"><span>Professores com acesso ativo</span></div>
-                <div class="gerenciar-lista-professores" id="lista-professores">
-                    <div class="gerenciar-vazio">Carregando...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Salas e turmas -->
-        <div class="card-gerenciar">
-            <button class="card-gerenciar-toggle" onclick="alternarGerenciamento(event)">
-                <span>Salas e turmas</span>
-                <span class="toggle-icon" id="icone-gerenciar">▾</span>
-            </button>
-
-            <div id="conteudo-gerenciar" class="card-gerenciar-conteudo hidden">
-
-                <!-- Tabs Salas / Turmas -->
-                <div class="gerenciar-tabs">
-                    <button class="gerenciar-tab ativa" id="tab-salas"   onclick="alternarTabGerenciar('salas')">🏫 Salas</button>
-                    <button class="gerenciar-tab"       id="tab-turmas"  onclick="alternarTabGerenciar('turmas')">👥 Turmas</button>
-                </div>
-
-                <!-- Painel Salas -->
-                <div id="painel-salas" class="gerenciar-painel">
-                    <div class="gerenciar-add">
-                        <input type="text" id="nova-sala-nome" placeholder="Nome da sala..." autocomplete="off"
-                               onkeydown="if(event.key==='Enter') adicionarSala()">
-                        <button class="gerenciar-add-btn" onclick="adicionarSala()">+ Adicionar</button>
-                    </div>
-                    <div class="gerenciar-lista" id="lista-salas">
-                        <div class="gerenciar-vazio">Carregando...</div>
-                    </div>
-                </div>
-
-                <!-- Painel Turmas -->
-                <div id="painel-turmas" class="gerenciar-painel oculto">
-                    <div class="gerenciar-add">
-                        <input type="text" id="nova-turma-nome" placeholder="Nome da turma..." autocomplete="off"
-                               onkeydown="if(event.key==='Enter') adicionarTurma()">
-                        <button class="gerenciar-add-btn" onclick="adicionarTurma()">+ Adicionar</button>
-                    </div>
-                    <div class="gerenciar-lista" id="lista-turmas">
-                        <div class="gerenciar-vazio">Carregando...</div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- Tabela de agendamentos -->
-        <div class="tabela-larga">
-            <div class="tabela-topo-header">
-                <div class="tabela-titulo-wrap">
-                    <div class="tabela-secao-icone">📋</div>
+        <!-- ══ ABA 2: PROFESSORES ═══════════════════════════════ -->
+        <div id="painel-aba-professores" class="painel-aba-principal oculto">
+            <!-- Header da Seção Professores -->
+            <div class="secao-aba-header">
+                <div class="secao-aba-info">
+                    <div class="secao-aba-icone">👨‍🏫</div>
                     <div>
-                        <h2 class="tabela-secao-titulo">Agendamentos de Salas</h2>
-                        <div class="tabela-secao-sub">Consulte, filtre e gerencie as reservas cadastradas</div>
+                        <h2 class="secao-aba-titulo">Gestão de Professores</h2>
+                        <div class="secao-aba-sub">Acompanhe solicitações de novos acessos e gerencie o corpo docente</div>
                     </div>
                 </div>
-                <button class="btn-baixar-csv" onclick="baixarRelatorioCSV()" title="Baixar relatório em formato CSV compatível com Excel">
-                    <span>📥</span> Baixar Planilha (CSV)
+                <div class="secao-aba-metricas">
+                    <div class="metrica-chip">
+                        <span>Professores ativos:</span>
+                        <strong id="qtd-professores-total">0</strong>
+                    </div>
+                    <div class="metrica-chip">
+                        <span>Solicitações:</span>
+                        <strong id="qtd-solicitacoes-total" style="color:#f59e0b;">0</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barra de Busca de Professores -->
+            <div class="barra-ferramentas">
+                <div class="busca-input-wrap">
+                    <span class="busca-icone">🔍</span>
+                    <input type="text" id="busca-professores" placeholder="Buscar por nome ou disciplina..." oninput="filtrarProfessores(this.value)">
+                </div>
+            </div>
+
+            <!-- Solicitações Pendentes -->
+            <div class="bloco-gestao-card" id="bloco-solicitacoes">
+                <div class="bloco-gestao-header">
+                    <div class="bloco-gestao-titulo">
+                        <span>⏳ Solicitações pendentes</span>
+                        <span class="badge-pendentes-chip" id="badge-pendentes">0</span>
+                    </div>
+                    <div class="bloco-gestao-sub">Aprove ou rejeite o cadastro de novos professores</div>
+                </div>
+                <div id="lista-solicitacoes">
+                    <div class="gerenciar-vazio">Carregando solicitações...</div>
+                </div>
+            </div>
+
+            <!-- Professores com Acesso Ativo -->
+            <div class="bloco-gestao-card">
+                <div class="bloco-gestao-header">
+                    <div class="bloco-gestao-titulo">
+                        <span>👥 Professores cadastrados</span>
+                    </div>
+                    <div class="bloco-gestao-sub">Edite dados, redefina senhas ou remova acessos</div>
+                </div>
+                <div class="gerenciar-lista-professores" id="lista-professores">
+                    <div class="gerenciar-vazio">Carregando professores...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══ ABA 3: SALAS & TURMAS ════════════════════════════ -->
+        <div id="painel-aba-salas-turmas" class="painel-aba-principal oculto">
+            <!-- Header da Seção Salas & Turmas -->
+            <div class="secao-aba-header">
+                <div class="secao-aba-info">
+                    <div class="secao-aba-icone">🏫</div>
+                    <div>
+                        <h2 class="secao-aba-titulo">Salas e Turmas</h2>
+                        <div class="secao-aba-sub">Cadastre e administre os espaços de aula e as turmas escolares</div>
+                    </div>
+                </div>
+                <div class="secao-aba-metricas">
+                    <div class="metrica-chip">
+                        <span>Turmas:</span>
+                        <strong id="qtd-turmas-total">0</strong>
+                    </div>
+                    <div class="metrica-chip">
+                        <span>Salas:</span>
+                        <strong id="qtd-salas-total">0</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sub-tabs Salas / Turmas -->
+            <div class="subtabs-salas-turmas">
+                <button class="subtab-btn ativa" id="subtab-turmas-btn" onclick="alternarSubTab('turmas')">
+                    👥 Turmas Escolares
+                </button>
+                <button class="subtab-btn" id="subtab-salas-btn" onclick="alternarSubTab('salas')">
+                    🏫 Salas e Ambientes
                 </button>
             </div>
 
-            <div class="filtros-container">
-                <div class="filtro-item">
-                    <label>📅 Data</label>
-                    <input type="date" id="filtroData">
+            <!-- Painel Sub-Aba Turmas -->
+            <div id="subpainel-turmas" class="subpainel-conteudo">
+                <div class="gestao-add-wrap">
+                    <div class="busca-input-wrap">
+                        <span class="busca-icone">🔍</span>
+                        <input type="text" id="busca-turmas" placeholder="Buscar turma..." oninput="filtrarTurmas(this.value)">
+                    </div>
+                    <div class="gerenciar-add-inline">
+                        <input type="text" id="nova-turma-nome" placeholder="Nome da nova turma (ex: 1º A, 3º C EJA)..." autocomplete="off"
+                               onkeydown="if(event.key==='Enter') adicionarTurma()">
+                        <button class="btn-adicionar-novo" onclick="adicionarTurma()">+ Adicionar Turma</button>
+                    </div>
                 </div>
-                <div class="filtro-item">
-                    <label>📍 Sala</label>
-                    <select id="filtroSala">
-                        <option value="">Todas as salas</option>
-                    </select>
-                </div>
-                <div class="filtro-item">
-                    <label>👨‍🏫 Professor</label>
-                    <select id="filtroProfessor">
-                        <option value="">Todos os professores</option>
-                    </select>
-                </div>
-                <div class="filtro-item">
-                    <label>⏳ Turno</label>
-                    <select id="filtroTurno">
-                        <option value="">Todos os turnos</option>
-                        <option value="manha">☀️ Manhã Integral</option>
-                        <option value="eja">🌙 EJA Noturno</option>
-                    </select>
+                <div class="turmas-grid" id="lista-turmas">
+                    <div class="gerenciar-vazio">Carregando turmas...</div>
                 </div>
             </div>
-            <div class="filtros-acoes">
-                <button class="btn-limpar-filtros" onclick="limparFiltros()">✕ Limpar filtros</button>
-            </div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>📅 Data</th>
-                            <th>⏰ Aula / Horário</th>
-                            <th>📍 Sala</th>
-                            <th>👨‍🏫 Professor</th>
-                            <th>👥 Turma</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="listaAgendamentos">
-                        <tr>
-                            <td colspan="6" class="tabela-vazio-container">
-                                <div class="tabela-vazio-wrap">
-                                    <span class="tabela-vazio-icon">📅</span>
-                                    <div class="tabela-vazio-titulo">Carregando agendamentos...</div>
-                                    <div class="tabela-vazio-sub">Aguarde um momento enquanto os dados são consultados.</div>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+
+            <!-- Painel Sub-Aba Salas -->
+            <div id="subpainel-salas" class="subpainel-conteudo oculto">
+                <div class="gestao-add-wrap">
+                    <div class="busca-input-wrap">
+                        <span class="busca-icone">🔍</span>
+                        <input type="text" id="busca-salas" placeholder="Buscar sala ou laboratório..." oninput="filtrarSalas(this.value)">
+                    </div>
+                    <div class="gerenciar-add-inline">
+                        <input type="text" id="nova-sala-nome" placeholder="Nome da sala (ex: Lab Info 1, Sala de Vídeo)..." autocomplete="off"
+                               onkeydown="if(event.key==='Enter') adicionarSala()">
+                        <button class="btn-adicionar-novo" onclick="adicionarSala()">+ Adicionar Sala</button>
+                    </div>
+                </div>
+                <div class="salas-grid" id="lista-salas">
+                    <div class="gerenciar-vazio">Carregando salas...</div>
+                </div>
             </div>
         </div>
 
