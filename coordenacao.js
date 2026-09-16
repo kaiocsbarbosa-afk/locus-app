@@ -1323,8 +1323,8 @@ supabase
     .channel('mudancas-professores-coord')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'professores' }, async () => {
         if (!await estaAutenticado()) return
-        const conteudo = document.getElementById('conteudo-gerenciar-professores')
-        if (conteudo && !conteudo.classList.contains('hidden')) {
+        const painel = document.getElementById('painel-aba-professores')
+        if (painel && !painel.classList.contains('oculto')) {
             carregarSolicitacoes()
             carregarListaProfessores()
         }
@@ -1336,8 +1336,8 @@ supabase
     .channel('mudancas-solicitacoes-coord')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitacoes_acesso' }, async () => {
         if (!await estaAutenticado()) return
-        const conteudo = document.getElementById('conteudo-gerenciar-professores')
-        if (conteudo && !conteudo.classList.contains('hidden')) {
+        const painel = document.getElementById('painel-aba-professores')
+        if (painel && !painel.classList.contains('oculto')) {
             carregarSolicitacoes()
         }
         atualizarBadgePendentes()

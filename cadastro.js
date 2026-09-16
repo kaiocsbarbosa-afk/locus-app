@@ -3,8 +3,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 import { carregarPreferenciaModo, COORD_EMAIL, supabase as authClient } from './utils.js'
 import { enviarNotificacao } from './push.js'
 
-const SUPABASE_URL = window.__ENV__?.SUPABASE_URL || ''
-const SUPABASE_KEY = window.__ENV__?.SUPABASE_KEY || ''
+const SUPABASE_URL = window.__ENV__?.SUPABASE_URL || 'https://ixhuqbfzwkobhrvlzwgm.supabase.co'
+const SUPABASE_KEY = window.__ENV__?.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84'
 
 // Cliente estritamente anônimo para cadastro/solicitação.
 // Nunca herda tokens de sessão do localStorage (ex: coordenador ou professor logado em outra aba),
@@ -58,8 +58,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('pin-wrapper')
         ?.addEventListener('click', () => document.getElementById('pin-input-cad')?.focus());
 
+    const inputNome = document.getElementById('input-nome');
+    inputNome?.addEventListener('blur', () => {
+        if (inputNome.value) inputNome.value = formatarNomeProprio(inputNome.value);
+    });
+
     // Facilita preenchimento com navegação por teclado
-    document.getElementById('input-nome')?.addEventListener('keydown', (e) => {
+    inputNome?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
             document.getElementById('input-disciplina')?.focus();
@@ -73,6 +78,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+function formatarNomeProprio(str) {
+    if (!str) return '';
+    const minusculas = ['de', 'da', 'do', 'dos', 'das', 'e'];
+    return str
+        .trim()
+        .replace(/\s+/g, ' ')
+        .split(' ')
+        .map((p, idx) => {
+            const pLower = p.toLowerCase();
+            if (idx > 0 && minusculas.includes(pLower)) return pLower;
+            return pLower.charAt(0).toUpperCase() + pLower.slice(1);
+        })
+        .join(' ');
+}
 
 // ── VERIFICAÇÃO DE SESSÃO EXISTENTE NO NAVEGADOR ───────────
 function verificarSessaoExistente() {
@@ -187,7 +207,8 @@ async function carregarDisciplinas() {
 
 // ── ENVIAR SOLICITAÇÃO ────────────────────────────────────
 async function enviarSolicitacao() {
-    const nome       = document.getElementById('input-nome').value.trim();
+    const nomeBruto  = document.getElementById('input-nome').value.trim();
+    const nome       = formatarNomeProprio(nomeBruto);
     const disciplina = document.getElementById('input-disciplina').value;
     const pin        = document.getElementById('pin-input-cad').value.replace(/\D/g, '').slice(0, 4);
 

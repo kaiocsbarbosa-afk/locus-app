@@ -431,7 +431,7 @@ window.fazerLogin = async function() {
 
     if (!profId) {
         limparPin();
-        return Swal.fire({ icon: 'warning', title: 'Selecione seu nome', text: 'Escolha seu nome na lista antes de continuar.', confirmButtonColor: '#7c3aed' });
+        return Swal.fire({ icon: 'warning', title: 'Selecione seu nome', text: 'Escolha seu nome na lista antes de continuar.', confirmButtonColor: '#dc3c3c' });
     }
 
     if (pin.length < 4) {
@@ -599,7 +599,7 @@ window.ativarNotifPrimeiroLogin = async function() {
     if (sucesso) {
         Swal.fire({ icon: 'success', title: '🔔 Tudo pronto!', text: 'Você receberá lembretes antes das suas aulas.', confirmButtonColor: '#059669', timer: 2800, showConfirmButton: false });
     } else if (Notification.permission === 'denied') {
-        Swal.fire({ icon: 'info', title: 'Notificações bloqueadas', text: 'Você pode ativar depois em Configurações do navegador → Notificações → Locus.', confirmButtonColor: '#7c3aed' });
+        Swal.fire({ icon: 'info', title: 'Notificações bloqueadas', text: 'Você pode ativar depois em Configurações do navegador → Notificações → Locus.', confirmButtonColor: '#dc3c3c' });
     }
     atualizarStatusNotificacoes();
 }
@@ -628,7 +628,7 @@ window.ativarNotifBanner = async function() {
         if (btnBanner) { btnBanner.textContent = 'Permitir'; btnBanner.disabled = false; }
         if (Notification.permission === 'denied') {
             if (banner) banner.style.display = 'none'; // esconde se negou definitivamente
-            Swal.fire({ icon: 'info', title: 'Notificações bloqueadas', text: 'Para ativar, vá em Configurações do navegador → Notificações → Locus → Permitir.', confirmButtonColor: '#7c3aed' });
+            Swal.fire({ icon: 'info', title: 'Notificações bloqueadas', text: 'Para ativar, vá em Configurações do navegador → Notificações → Locus → Permitir.', confirmButtonColor: '#dc3c3c' });
         }
     }
 
@@ -895,7 +895,7 @@ function atualizarStatusNotificacoes() {
 
 window.gerenciarNotificacoes = async function() {
     if (Notification?.permission === 'denied') {
-        Swal.fire({ icon: 'info', title: 'Notificações bloqueadas', text: 'Vá em Configurações do navegador → Notificações → Locus e permita.', confirmButtonColor: '#7c3aed' });
+        Swal.fire({ icon: 'info', title: 'Notificações bloqueadas', text: 'Vá em Configurações do navegador → Notificações → Locus e permita.', confirmButtonColor: '#dc3c3c' });
         return;
     }
     const btn = document.getElementById('btn-notif');
@@ -904,7 +904,7 @@ window.gerenciarNotificacoes = async function() {
     if (sucesso) {
         Swal.fire({ icon: 'success', title: 'Notificações ativas!', text: 'Você receberá lembretes 5 minutos antes de cada aula.', confirmButtonColor: '#059669', timer: 2500, showConfirmButton: false });
     } else {
-        Swal.fire({ icon: 'warning', title: 'Permissão necessária', text: 'Permita as notificações quando o navegador perguntar.', confirmButtonColor: '#7c3aed' });
+        Swal.fire({ icon: 'warning', title: 'Permissão necessária', text: 'Permita as notificações quando o navegador perguntar.', confirmButtonColor: '#dc3c3c' });
     }
     if (btn) btn.disabled = false;
     atualizarStatusNotificacoes();
@@ -973,13 +973,11 @@ function _limitesAgendamento() {
 
     const diaSemana = hoje.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
 
-    // Se hoje for Sábado (6) ou Domingo (0), a semana letiva atual encerrou.
-    // As reservas para a próxima semana abrem exclusivamente na Segunda-feira às 00:00 (Brasília).
-    let bloqueadoFimDeSemana = false;
     let minData, maxData, segundaSemana, sextaSemana;
 
     if (diaSemana === 0 || diaSemana === 6) {
-        bloqueadoFimDeSemana = true;
+        // No fim de semana (Sábado ou Domingo), o agendamento já fica liberado
+        // para a próxima semana letiva (Segunda a Sexta subsequentes).
         const diasAteProximaSegunda = diaSemana === 0 ? 1 : 2;
         segundaSemana = new Date(hoje);
         segundaSemana.setDate(hoje.getDate() + diasAteProximaSegunda);
@@ -1001,12 +999,11 @@ function _limitesAgendamento() {
         maxData = new Date(sextaSemana);
     }
 
-    return { minData, maxData, segundaSemana, sextaSemana, bloqueadoFimDeSemana };
+    return { minData, maxData, segundaSemana, sextaSemana, bloqueadoFimDeSemana: false };
 }
 
 function _dataEstaNaSemanaAtual(dataIso) {
-    const { minData, maxData, bloqueadoFimDeSemana } = _limitesAgendamento();
-    if (bloqueadoFimDeSemana) return false;
+    const { minData, maxData } = _limitesAgendamento();
 
     const fmt = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const minIso = fmt(minData);
@@ -1507,15 +1504,34 @@ window.carregarHistorico = async function() {
             const titulo = document.createElement('strong');
             titulo.textContent = `${nomeSala} — Aula ${item.aula_numero}ª (${horario.inicio}–${horario.fim}) `;
 
-            // Badge de status
+            // Badge de status e elegibilidade para cancelamento
             let statusClass = 'status-futura';
             let statusTexto = '📅 Agendada';
-            if (item.data === hojeIso) {
-                statusClass = 'status-hoje';
-                statusTexto = '☀️ Hoje';
-            } else if (item.data < hojeIso) {
+            let podeCancelar = false;
+
+            if (item.data > hojeIso) {
+                statusClass = 'status-futura';
+                statusTexto = '📅 Agendada';
+                podeCancelar = true;
+            } else if (item.data === hojeIso) {
+                const minutosAgora = agoraSp.getHours() * 60 + agoraSp.getMinutes();
+                if (minutosAgora < horario.inicioMinutos) {
+                    statusClass = 'status-hoje';
+                    statusTexto = '☀️ Hoje';
+                    podeCancelar = true;
+                } else if (minutosAgora < horario.fimMinutos) {
+                    statusClass = 'status-hoje';
+                    statusTexto = '⏳ Em andamento';
+                    podeCancelar = false;
+                } else {
+                    statusClass = 'status-passada';
+                    statusTexto = '✓ Concluída';
+                    podeCancelar = false;
+                }
+            } else {
                 statusClass = 'status-passada';
                 statusTexto = '✓ Concluída';
+                podeCancelar = false;
             }
 
             const statusBadge = document.createElement('span');
@@ -1530,13 +1546,13 @@ window.carregarHistorico = async function() {
             info.appendChild(meta);
             div.appendChild(info);
 
-            // Permite cancelar somente aulas de hoje ou futuras
-            if (item.data >= hojeIso) {
+            // Permite cancelar somente aulas futuras ou de hoje que ainda não iniciaram
+            if (podeCancelar) {
                 const btn = document.createElement('button');
                 btn.className = 'btn-cancelar';
                 btn.textContent = 'Cancelar';
                 btn.addEventListener('click', () =>
-                    cancelarAgendamento(item.id, nomeSala, item.aula_numero, dataBr)
+                    cancelarAgendamento(item.id, nomeSala, item.aula_numero, dataBr, item.data, horario.inicioMinutos)
                 );
                 div.appendChild(btn);
             }
@@ -1550,7 +1566,21 @@ window.carregarHistorico = async function() {
 };
 
 // Chamado via addEventListener em carregarHistorico — não precisa ser window.*
-async function cancelarAgendamento(id, nomeSala, numeroAula, dataBr) {
+async function cancelarAgendamento(id, nomeSala, numeroAula, dataBr, dataIso, inicioMinutos) {
+    if (dataIso) {
+        const agoraSp = _getAgoraBrasilia();
+        const hojeIso = `${agoraSp.getFullYear()}-${String(agoraSp.getMonth()+1).padStart(2,'0')}-${String(agoraSp.getDate()).padStart(2,'0')}`;
+        const minutosAgora = agoraSp.getHours() * 60 + agoraSp.getMinutes();
+        if (dataIso < hojeIso || (dataIso === hojeIso && minutosAgora >= inicioMinutos)) {
+            return Swal.fire({
+                icon: 'warning',
+                title: 'Horário já iniciado',
+                text: 'Esta aula já iniciou ou foi encerrada e não pode mais ser cancelada.',
+                confirmButtonColor: '#dc3c3c'
+            });
+        }
+    }
+
     const confirmacao = await Swal.fire({
         title: 'Cancelar reserva?', text: 'Tem certeza que deseja cancelar esta reserva?', icon: 'warning',
         showCancelButton: true, confirmButtonColor: '#dc2626', cancelButtonColor: '#9ca3af',
@@ -1568,7 +1598,7 @@ async function cancelarAgendamento(id, nomeSala, numeroAula, dataBr) {
         carregarHistorico();
     } catch (err) {
         console.error('Erro ao cancelar agendamento:', err);
-        Swal.fire({ icon: 'error', title: 'Erro!', text: 'Não foi possível cancelar. Tente novamente.', confirmButtonColor: '#7c3aed' });
+        Swal.fire({ icon: 'error', title: 'Erro!', text: 'Não foi possível cancelar. Tente novamente.', confirmButtonColor: '#dc3c3c' });
     }
 }
 
@@ -1627,7 +1657,7 @@ window.abrirSeletorLocalSemana = async function() {
     }
 
     if (Object.keys(opcoes).length === 0) {
-        Swal.fire({ icon: 'info', title: 'Sem locais cadastrados', text: 'Nenhuma sala foi cadastrada ainda.', confirmButtonColor: '#7c3aed' });
+        Swal.fire({ icon: 'info', title: 'Sem locais cadastrados', text: 'Nenhuma sala foi cadastrada ainda.', confirmButtonColor: '#dc3c3c' });
         return;
     }
 
@@ -1638,7 +1668,7 @@ window.abrirSeletorLocalSemana = async function() {
         inputValue: _semSalaId || '',
         inputPlaceholder: 'Selecione um local...',
         confirmButtonText: 'Ver semana',
-        confirmButtonColor: '#7c3aed',
+        confirmButtonColor: '#dc3c3c',
         showCancelButton: true,
         cancelButtonText: 'Cancelar'
     });
@@ -1878,7 +1908,7 @@ supabase
         if (id !== professorLogado.id) return;
 
         if (payload.eventType === 'DELETE') {
-            await Swal.fire({ icon: 'warning', title: 'Acesso removido', text: 'Sua conta foi removida pela coordenação.', confirmButtonColor: '#7c3aed', allowOutsideClick: false });
+            await Swal.fire({ icon: 'warning', title: 'Acesso removido', text: 'Sua conta foi removida pela coordenação.', confirmButtonColor: '#dc3c3c', allowOutsideClick: false });
             await supabase.auth.signOut();
             window.location.href = 'professor.html';
             return;
@@ -1887,7 +1917,7 @@ supabase
         if (payload.eventType === 'UPDATE') {
             const acessoRevogado = payload.new?.auth_user_id === null;
             if (acessoRevogado) {
-                await Swal.fire({ icon: 'info', title: 'Acesso redefinido', text: 'Crie um novo PIN para continuar.', confirmButtonColor: '#7c3aed', allowOutsideClick: false });
+                await Swal.fire({ icon: 'info', title: 'Acesso redefinido', text: 'Crie um novo PIN para continuar.', confirmButtonColor: '#dc3c3c', allowOutsideClick: false });
                 await supabase.auth.signOut();
                 window.location.href = 'cadastro.html';
                 return;
