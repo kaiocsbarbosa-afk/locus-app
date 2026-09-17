@@ -1245,6 +1245,588 @@
         box-shadow: 0 0 0 3px var(--purple-dim);
     }
 
+    /* ══════════════════════════════════════════════════════════
+       GESTÃO DE PROFESSORES - DESIGN MODERNO & REFINADO
+       ══════════════════════════════════════════════════════════ */
+
+    /* Grid de Métricas KPI no topo */
+    .prof-metricas-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+    .prof-metrica-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        position: relative;
+    }
+    .prof-metrica-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+        border-color: var(--border2);
+    }
+    .prof-metrica-icone {
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    .prof-metrica-info {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+    }
+    .prof-metrica-valor {
+        font-size: 1.45rem;
+        font-weight: 800;
+        color: var(--txt);
+        line-height: 1.1;
+        font-family: 'Poppins', sans-serif;
+    }
+    .prof-metrica-rotulo {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--txt3);
+        margin-top: 3px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .prof-metrica-badge-alerta {
+        margin-left: auto;
+        padding: 3px 8px;
+        border-radius: 20px;
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+        font-size: 0.68rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    /* Deck de Controle / Toolbar Integrado */
+    .painel-prof-toolbar {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 16px 20px;
+        margin-bottom: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    }
+    .toolbar-linha-busca {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .busca-prof-input-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 240px;
+    }
+    .busca-prof-input-wrap .busca-icone {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.92rem;
+        color: var(--txt3);
+        pointer-events: none;
+    }
+    .busca-prof-input-wrap input {
+        width: 100%;
+        padding: 11px 16px 11px 42px;
+        border-radius: 12px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--txt);
+        font-size: 0.85rem;
+        font-family: 'Poppins', sans-serif;
+        outline: none;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+    }
+    .busca-prof-input-wrap input:focus {
+        border-color: var(--cor-primaria, #dc3c3c);
+        box-shadow: 0 0 0 3px rgba(220, 60, 60, 0.12);
+        background: var(--surface);
+    }
+    .filtro-disc-select-wrap select {
+        padding: 11px 16px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--txt);
+        font-size: 0.82rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        outline: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    .filtro-disc-select-wrap select:focus {
+        border-color: var(--cor-primaria, #dc3c3c);
+        background: var(--surface);
+    }
+    .btn-novo-professor {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 20px;
+        background: linear-gradient(135deg, var(--cor-primaria, #dc3c3c), #b91c1c);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        font-size: 0.84rem;
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        white-space: nowrap;
+        box-shadow: 0 4px 16px rgba(220, 60, 60, 0.3);
+        transition: all 0.2s ease;
+    }
+    .btn-novo-professor:hover {
+        opacity: 0.94;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(220, 60, 60, 0.4);
+    }
+    .btn-novo-professor:active {
+        transform: scale(0.97);
+    }
+
+    /* Linha de Segmentação e Contador */
+    .toolbar-linha-status {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding-top: 12px;
+        border-top: 1px dashed var(--border);
+    }
+    .status-segment-group {
+        display: inline-flex;
+        background: var(--surface2);
+        padding: 4px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        gap: 4px;
+    }
+    .status-segment-btn {
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 0.77rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        background: transparent;
+        border: none;
+        color: var(--txt2);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.15s ease;
+    }
+    .status-segment-btn:hover {
+        color: var(--txt);
+    }
+    .status-segment-btn.ativo {
+        background: var(--surface);
+        color: var(--txt);
+        font-weight: 700;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    }
+    .segment-badge {
+        padding: 1px 6px;
+        border-radius: 10px;
+        font-size: 0.68rem;
+        font-weight: 800;
+        background: rgba(0, 0, 0, 0.08);
+    }
+    .status-segment-btn.ativo .segment-badge {
+        background: rgba(220, 60, 60, 0.12);
+        color: var(--cor-primaria, #dc3c3c);
+    }
+
+    /* Grid Responsivo de Professores (2-3 Colunas) */
+    .gerenciar-lista-professores {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 16px;
+    }
+    @media (max-width: 640px) {
+        .gerenciar-lista-professores {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Card do Professor - Modern Card Layout */
+    .professor-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.02);
+        position: relative;
+    }
+    .professor-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+        border-color: var(--border2);
+    }
+    .professor-card-topo {
+        padding: 18px 18px 14px;
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+    }
+    .avatar-wrapper {
+        position: relative;
+        flex-shrink: 0;
+    }
+    .professor-card-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.96rem;
+        font-weight: 800;
+        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        border: 1.5px solid rgba(255, 255, 255, 0.2);
+    }
+    .avatar-status-dot {
+        position: absolute;
+        bottom: -2px;
+        right: -2px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2.5px solid var(--surface);
+        box-sizing: border-box;
+    }
+    .avatar-status-dot.ativo { background: #22c55e; }
+    .avatar-status-dot.pendente { background: #eab308; }
+
+    .professor-card-info {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .professor-nome {
+        font-size: 0.96rem;
+        font-weight: 700;
+        color: var(--txt);
+        line-height: 1.3;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .professor-card-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-top: 2px;
+    }
+    .badge-disciplina-pill {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--txt2);
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        padding: 2px 8px;
+        border-radius: 8px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 160px;
+    }
+    .badge-reservas-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: #2563eb;
+        background: rgba(37, 99, 235, 0.08);
+        border: 1px solid rgba(37, 99, 235, 0.2);
+        padding: 2px 8px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .badge-reservas-pill:hover {
+        background: rgba(37, 99, 235, 0.16);
+        transform: translateX(1px);
+    }
+
+    /* Rodapé do Card com Ações Limpas */
+    .professor-card-footer {
+        padding: 12px 18px;
+        background: rgba(0, 0, 0, 0.02);
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .status-pill-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .status-pill-badge.ativo {
+        background: rgba(34, 197, 94, 0.12);
+        border: 1px solid rgba(34, 197, 94, 0.25);
+        color: #16a34a;
+    }
+    .status-pill-badge.pendente {
+        background: rgba(234, 179, 8, 0.12);
+        border: 1px solid rgba(234, 179, 8, 0.25);
+        color: #ca8a04;
+    }
+    .card-acoes-botoes {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .btn-card-pin {
+        padding: 6px 12px;
+        border-radius: 9px;
+        font-size: 0.77rem;
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--txt);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.15s ease;
+    }
+    .btn-card-pin:hover {
+        background: var(--surface2);
+        transform: translateY(-1px);
+        border-color: var(--border2);
+    }
+    .btn-card-pin.destaque {
+        background: rgba(245, 158, 11, 0.12);
+        border-color: rgba(245, 158, 11, 0.3);
+        color: #d97706;
+    }
+    .btn-card-pin.destaque:hover {
+        background: rgba(245, 158, 11, 0.22);
+    }
+    .btn-card-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--txt2);
+        cursor: pointer;
+        font-size: 0.82rem;
+        transition: all 0.15s ease;
+    }
+    .btn-card-icon:hover {
+        background: var(--surface2);
+        color: var(--txt);
+        transform: translateY(-1px);
+    }
+    .btn-card-icon.danger {
+        color: #f87171;
+    }
+    .btn-card-icon.danger:hover {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.25);
+    }
+
+    /* Drawer de Edição no Card */
+    .professor-card-expansivel {
+        display: none;
+        padding: 14px 18px;
+        background: var(--surface2);
+        border-top: 1px solid var(--border);
+        animation: fadeIn 0.2s ease-out;
+    }
+    .professor-card-expansivel.aberto {
+        display: block;
+    }
+    .edicao-campos-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .edicao-campo label {
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--txt3);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        display: block;
+        margin-bottom: 4px;
+    }
+    .edicao-campo input,
+    .edicao-campo select {
+        width: 100%;
+        padding: 9px 12px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--txt);
+        font-size: 0.83rem;
+        font-family: 'Poppins', sans-serif;
+        outline: none;
+        box-sizing: border-box;
+    }
+    .edicao-botoes {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* Badge PIN na Solicitação */
+    .badge-solicitacao-pin-wrap {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: 8px;
+        font-size: 0.75rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        padding: 2px 7px;
+        border-radius: 6px;
+    }
+    .btn-ver-pin-sol {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        font-size: 0.8rem;
+        line-height: 1;
+    }
+
+    /* Modal customizado SweetAlert para PIN e Gestão */
+    .modal-pin-wrapper {
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-top: 8px;
+        font-family: 'Poppins', sans-serif;
+    }
+    .modal-pin-bloco {
+        background: rgba(125, 125, 125, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .modal-pin-titulo {
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: var(--txt);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .modal-pin-sub {
+        font-size: 0.74rem;
+        color: var(--txt3);
+        line-height: 1.4;
+    }
+    .modal-pin-input-linha {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .modal-pin-input {
+        width: 140px;
+        letter-spacing: 0.25em;
+        text-align: center;
+        font-size: 1.25rem;
+        font-weight: 800;
+        padding: 8px 10px;
+        border-radius: 10px;
+        border: 2px solid var(--cor-primaria, #dc3c3c);
+        background: var(--surface);
+        color: var(--txt);
+        font-family: monospace;
+        outline: none;
+    }
+    .modal-pin-btn-random {
+        padding: 9px 12px;
+        border-radius: 10px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--txt);
+        font-size: 0.78rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: background 0.15s;
+    }
+    .modal-pin-btn-random:hover {
+        background: var(--border);
+    }
+    .modal-copiar-box {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: var(--surface2);
+        border: 1px dashed var(--border);
+        padding: 12px 16px;
+        border-radius: 10px;
+        margin-top: 10px;
+    }
+    .badge-pin-display {
+        font-family: monospace;
+        font-size: 1.4rem;
+        font-weight: 800;
+        letter-spacing: 0.25em;
+        color: var(--cor-primaria, #dc3c3c);
+    }
+
     /* Blocos de gestão */
     .bloco-gestao-card {
         background: var(--surface);
@@ -1664,61 +2246,112 @@
 
         <!-- ══ ABA 2: PROFESSORES ═══════════════════════════════ -->
         <div id="painel-aba-professores" class="painel-aba-principal oculto">
+            
             <!-- Header da Seção Professores -->
             <div class="secao-aba-header">
                 <div class="secao-aba-info">
                     <div class="secao-aba-icone">👨‍🏫</div>
                     <div>
                         <h2 class="secao-aba-titulo">Gestão de Professores</h2>
-                        <div class="secao-aba-sub">Acompanhe solicitações de novos acessos e gerencie o corpo docente</div>
-                    </div>
-                </div>
-                <div class="secao-aba-metricas">
-                    <div class="metrica-chip">
-                        <span>Professores ativos:</span>
-                        <strong id="qtd-professores-total">0</strong>
-                    </div>
-                    <div class="metrica-chip">
-                        <span>Solicitações:</span>
-                        <strong id="qtd-solicitacoes-total" style="color:#f59e0b;">0</strong>
+                        <div class="secao-aba-sub">Administre o corpo docente, aprove cadastros e redefina credenciais de acesso</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Barra de Busca de Professores -->
-            <div class="barra-ferramentas">
-                <div class="busca-input-wrap">
-                    <span class="busca-icone">🔍</span>
-                    <input type="text" id="busca-professores" placeholder="Buscar por nome ou disciplina..." oninput="filtrarProfessores(this.value)">
+            <!-- Grid de Indicadores KPI da Gestão de Docentes -->
+            <div class="prof-metricas-grid">
+                <div class="prof-metrica-card">
+                    <div class="prof-metrica-icone" style="background: rgba(99, 102, 241, 0.12); color: #6366f1;">👥</div>
+                    <div class="prof-metrica-info">
+                        <span class="prof-metrica-valor" id="kpi-prof-total">0</span>
+                        <span class="prof-metrica-rotulo">Total Docentes</span>
+                    </div>
+                </div>
+                <div class="prof-metrica-card">
+                    <div class="prof-metrica-icone" style="background: rgba(34, 197, 94, 0.12); color: #22c55e;">🟢</div>
+                    <div class="prof-metrica-info">
+                        <span class="prof-metrica-valor" id="kpi-prof-ativos">0</span>
+                        <span class="prof-metrica-rotulo">Acessos Ativos</span>
+                    </div>
+                </div>
+                <div class="prof-metrica-card">
+                    <div class="prof-metrica-icone" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">🟡</div>
+                    <div class="prof-metrica-info">
+                        <span class="prof-metrica-valor" id="kpi-prof-pendentes">0</span>
+                        <span class="prof-metrica-rotulo">Sem PIN / Pendentes</span>
+                    </div>
+                </div>
+                <div class="prof-metrica-card" id="kpi-card-solicitacoes" onclick="document.getElementById('bloco-solicitacoes')?.scrollIntoView({behavior:'smooth'})" style="cursor:pointer;" title="Clique para ver solicitações">
+                    <div class="prof-metrica-icone" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">⏳</div>
+                    <div class="prof-metrica-info">
+                        <span class="prof-metrica-valor" id="kpi-prof-solicitacoes">0</span>
+                        <span class="prof-metrica-rotulo">Solicitações</span>
+                    </div>
+                    <div class="prof-metrica-badge-alerta" id="kpi-badge-alerta" style="display:none;">Atenção</div>
                 </div>
             </div>
 
-            <!-- Solicitações Pendentes -->
+            <!-- Deck de Controle e Filtros -->
+            <div class="painel-prof-toolbar">
+                <div class="toolbar-linha-busca">
+                    <div class="busca-prof-input-wrap">
+                        <span class="busca-icone">🔍</span>
+                        <input type="text" id="busca-professores" placeholder="Buscar por nome ou disciplina..." oninput="window.aplicarFiltrosProfessores()">
+                    </div>
+                    <div class="filtro-disc-select-wrap">
+                        <select id="filtro-disciplina-professores" onchange="window.aplicarFiltrosProfessores()">
+                            <option value="">Todas as disciplinas</option>
+                        </select>
+                    </div>
+                    <button class="btn-novo-professor" onclick="window.abrirModalNovoProfessor()" title="Cadastrar novo professor diretamente">
+                        <span>➕</span> Novo Professor
+                    </button>
+                </div>
+                <div class="toolbar-linha-status">
+                    <div class="status-segment-group">
+                        <button class="status-segment-btn ativo" id="chip-status-todos" onclick="window.filtrarStatusProfessores('todos')">
+                            Todos <span class="segment-badge" id="chip-count-todos">0</span>
+                        </button>
+                        <button class="status-segment-btn" id="chip-status-ativos" onclick="window.filtrarStatusProfessores('ativos')">
+                            🟢 Com PIN <span class="segment-badge" id="chip-count-ativos">0</span>
+                        </button>
+                        <button class="status-segment-btn" id="chip-status-pendentes" onclick="window.filtrarStatusProfessores('pendentes')">
+                            🟡 Sem PIN <span class="segment-badge" id="chip-count-pendentes">0</span>
+                        </button>
+                    </div>
+                    <div class="contador-professores-filtrados" id="contador-professores-filtrados">
+                        <!-- Atualizado via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Solicitações Pendentes (Alert Box) -->
             <div class="bloco-gestao-card" id="bloco-solicitacoes">
                 <div class="bloco-gestao-header">
                     <div class="bloco-gestao-titulo">
-                        <span>⏳ Solicitações pendentes</span>
+                        <span>⏳ Solicitações Pendentes de Acesso</span>
                         <span class="badge-pendentes-chip" id="badge-pendentes">0</span>
                     </div>
-                    <div class="bloco-gestao-sub">Aprove ou rejeite o cadastro de novos professores</div>
+                    <div class="bloco-gestao-sub">Revise e aprove novos professores para liberar o acesso ao sistema</div>
                 </div>
                 <div id="lista-solicitacoes">
                     <div class="gerenciar-vazio">Carregando solicitações...</div>
                 </div>
             </div>
 
-            <!-- Professores com Acesso Ativo -->
-            <div class="bloco-gestao-card">
+            <!-- Corpo Docente (Grid de Cards) -->
+            <div class="bloco-gestao-card" id="bloco-docentes">
                 <div class="bloco-gestao-header">
                     <div class="bloco-gestao-titulo">
-                        <span>👥 Professores cadastrados</span>
+                        <span>👥 Corpo Docente Cadastrado</span>
                     </div>
-                    <div class="bloco-gestao-sub">Edite dados, redefina senhas ou remova acessos</div>
+                    <div class="bloco-gestao-sub">Gerencie credenciais PIN, edite dados e monitore o status de cada professor</div>
                 </div>
                 <div class="gerenciar-lista-professores" id="lista-professores">
                     <div class="gerenciar-vazio">Carregando professores...</div>
                 </div>
             </div>
+
         </div>
 
         <!-- ══ ABA 3: SALAS & TURMAS ════════════════════════════ -->

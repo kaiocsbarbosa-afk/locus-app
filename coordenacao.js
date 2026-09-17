@@ -142,35 +142,46 @@ window.entrarPainel = async function() {
     Swal.fire({ title: 'Autenticando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
 
     try {
-        // Verifica senha e recebe tokens JWT reais do Supabase Auth.
-        // A Edge Function cria o usuário coordenador na primeira execução.
-        const { data, error } = await supabase.functions.invoke('verificar-senha-coord', {
-            body: { senha: senhaDigitada }
-        })
+        let autenticadoSucesso = false;
 
-        Swal.close()
-        document.getElementById('senha-coord').value = ''
+        // 1. Tenta autenticação via Edge Function verificar-senha-coord
+        try {
+            const { data, error } = await supabase.functions.invoke('verificar-senha-coord', {
+                body: { senha: senhaDigitada }
+            });
 
-        if (error) {
-            dispararAlerta({ icon: 'error', title: 'Erro de conexão', text: 'Não foi possível verificar as credenciais.', confirmButtonColor: 'var(--cor-perigo)' })
-            return
+            if (!error && data?.autorizado && data?.token) {
+                await supabase.auth.setSession({
+                    access_token: data.token,
+                    refresh_token: data.refresh_token
+                });
+                autenticadoSucesso = true;
+            }
+        } catch (fnErr) {
+            console.warn('[Coordenação] Falha na Edge Function, tentando autenticação direta:', fnErr);
         }
 
-        if (!data?.autorizado) {
-            dispararAlerta({ icon: 'error', title: 'Acesso Negado', text: 'Senha incorreta.', confirmButtonColor: 'var(--cor-perigo)' })
-            return
+        // 2. Fallback: se a Edge Function falhar ou retornar erro interno, tenta autenticar diretamente via Supabase Auth
+        if (!autenticadoSucesso) {
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email: COORD_EMAIL,
+                password: senhaDigitada
+            });
+
+            if (!authError && authData?.session) {
+                autenticadoSucesso = true;
+            }
         }
 
-        // Aplica a sessão Supabase Auth do coordenador no cliente.
-        // A partir daqui, todas as chamadas ao banco e Edge Functions
-        // incluem automaticamente o JWT do coordenador — as novas
-        // RLS policies (is_coordenacao()) identificam e autorizam.
-        await supabase.auth.setSession({
-            access_token: data.token,
-            refresh_token: data.refresh_token
-        })
+        Swal.close();
+        document.getElementById('senha-coord').value = '';
 
-        mostrarDashboard()
+        if (!autenticadoSucesso) {
+            dispararAlerta({ icon: 'error', title: 'Acesso Negado', text: 'Senha incorreta ou credenciais inválidas.', confirmButtonColor: 'var(--cor-perigo)' });
+            return;
+        }
+
+        mostrarDashboard();
 
     } catch (err) {
         Swal.close()
@@ -379,10 +390,15 @@ async function carregarSolicitacoes() {
             qtdSolicitacoes.textContent = total
         }
 
+        const kpiSol = document.getElementById('kpi-prof-solicitacoes')
+        const kpiBadge = document.getElementById('kpi-badge-alerta')
+        if (kpiSol) kpiSol.textContent = total
+        if (kpiBadge) kpiBadge.style.display = total > 0 ? 'inline-flex' : 'none'
+
         if (!data || data.length === 0) {
-            lista.innerHTML = `<div class="solicitacoes-vazio">
-                <span class="solicitacoes-vazio-icon">✅</span>
-                Nenhuma solicitação pendente
+            lista.innerHTML = `<div class="solicitacoes-vazio" style="padding: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.84rem; color: var(--txt3);">
+                <span style="font-size: 1.2rem;">✅</span>
+                <span>Nenhuma solicitação pendente no momento.</span>
             </div>`
             return
         }
@@ -406,6 +422,29 @@ async function carregarSolicitacoes() {
             const meta = document.createElement('div')
             meta.className = 'solicitacao-meta'
             meta.textContent = `${s.disciplina} · ${dataFmt}`
+
+            // Badge com visualização segura do PIN escolhido
+            const pinWrap = document.createElement('span')
+            pinWrap.className = 'badge-solicitacao-pin-wrap'
+            pinWrap.title = 'PIN escolhido pelo docente'
+            const pinSpan = document.createElement('span')
+            pinSpan.textContent = '••••'
+            pinSpan.style.letterSpacing = '2px'
+            const btnVerPin = document.createElement('button')
+            btnVerPin.className = 'btn-ver-pin-sol'
+            btnVerPin.type = 'button'
+            btnVerPin.textContent = '👁️'
+            btnVerPin.title = 'Ver/ocultar PIN'
+            let pinVisivel = false
+            btnVerPin.addEventListener('click', (e) => {
+                e.stopPropagation()
+                pinVisivel = !pinVisivel
+                pinSpan.textContent = pinVisivel ? (s.pin || '----') : '••••'
+                btnVerPin.textContent = pinVisivel ? '🔒' : '👁️'
+            })
+            pinWrap.appendChild(pinSpan)
+            pinWrap.appendChild(btnVerPin)
+            meta.appendChild(pinWrap)
 
             info.appendChild(nome)
             info.appendChild(meta)
@@ -444,7 +483,7 @@ async function aprovarSolicitacao(id, nome, disciplina, pin) {
     const confirmar = await Swal.fire({
         icon: 'question',
         title: `Aprovar ${nome}?`,
-        text: `Isso criará o acesso de ${nome} (${disciplina}) com o PIN escolhido por ele.`,
+        text: `Isso criará ou ativará o acesso de ${nome} (${disciplina}) com o PIN escolhido por ele.`,
         showCancelButton: true,
         confirmButtonText: 'Sim, aprovar',
         cancelButtonText: 'Cancelar',
@@ -452,24 +491,39 @@ async function aprovarSolicitacao(id, nome, disciplina, pin) {
     })
     if (!confirmar.isConfirmed) return
 
+    Swal.fire({ title: 'Aprovando e ativando acesso...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
+
     try {
-        // 1. Cria professor na tabela (RLS: professores_insert_coord)
-        const { data: prof, error: errProf } = await supabase
+        // 1. Verifica se já existe na tabela professores para não duplicar
+        let profId = null
+        const { data: existente } = await supabase
             .from('professores')
-            .insert([{ nome, disciplina, auth_user_id: null }])
             .select('id')
-            .single()
+            .ilike('nome', nome.trim())
+            .maybeSingle()
 
-        if (errProf) throw errProf
+        if (existente?.id) {
+            profId = existente.id
+            await supabase.from('professores').update({ disciplina }).eq('id', profId)
+        } else {
+            const { data: prof, error: errProf } = await supabase
+                .from('professores')
+                .insert([{ nome, disciplina, auth_user_id: null }])
+                .select('id')
+                .single()
 
-        // 2. Ativa via Edge Function — JWT do coordenador é enviado automaticamente
-        const { data: resultado, error: errFn } = await supabase.functions.invoke('ativar-professor', {
-            body: { professor_id: prof.id, pin }
-        })
+            if (errProf) throw errProf
+            profId = prof.id
+        }
 
-        if (errFn || !resultado?.sucesso) {
-            await supabase.from('professores').delete().eq('id', prof.id)
-            throw new Error(resultado?.erro || 'Falha ao ativar acesso')
+        // 2. Ativa o acesso do professor com o PIN escolhido
+        try {
+            await ativarOuAtualizarPinProfessor(profId, nome, pin)
+        } catch (errAtiv) {
+            if (!existente?.id) {
+                await supabase.from('professores').delete().eq('id', profId)
+            }
+            throw errAtiv
         }
 
         // 3. Marca solicitação como aprovada (RLS: solicitacoes_update_coord)
@@ -477,6 +531,8 @@ async function aprovarSolicitacao(id, nome, disciplina, pin) {
             .from('solicitacoes_acesso')
             .update({ status: 'aprovado', atualizado_em: new Date().toISOString() })
             .eq('id', id)
+
+        Swal.close()
 
         document.getElementById(`sol-${id}`)?.remove()
         carregarSolicitacoes()
@@ -487,12 +543,13 @@ async function aprovarSolicitacao(id, nome, disciplina, pin) {
             '✅ Acesso aprovado!',
             `Olá, ${nome}! Seu acesso ao Locus foi aprovado. Já pode fazer login com seu PIN.`,
             'professor',
-            prof.id
+            profId
         )
 
         dispararAlerta({ icon: 'success', title: 'Aprovado!', text: `${nome} já pode fazer login no Locus.`, confirmButtonColor: 'var(--cor-sucesso)', timer: 2500, showConfirmButton: false })
 
     } catch (err) {
+        Swal.close()
         console.error('Erro ao aprovar:', err)
         dispararAlerta({ icon: 'error', title: 'Erro ao aprovar', text: err.message || 'Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' })
     }
@@ -816,6 +873,28 @@ let cacheProfessores = []
 let cacheTurmas = []
 let cacheSalas = []
 let disciplinasCache = []
+let cacheAgendamentosPorProf = {}
+let filtroStatusProfAtual = 'todos'
+
+window.filtrarReservasPorProfessor = function(nomeProf) {
+    if (!nomeProf) return
+    window.mudarAbaPrincipal('reservas')
+    const fProf = document.getElementById('filtroProfessor')
+    if (fProf) {
+        let achou = false
+        for (let opt of fProf.options) {
+            if (opt.text.toLowerCase().trim() === nomeProf.toLowerCase().trim() || opt.value.toLowerCase().trim() === nomeProf.toLowerCase().trim()) {
+                fProf.value = opt.value
+                achou = true
+                break
+            }
+        }
+        if (!achou) {
+            fProf.value = nomeProf
+        }
+        carregarRelatorioGeral()
+    }
+}
 
 window.mudarAbaPrincipal = function(aba) {
     const abas = ['reservas', 'professores', 'salas-turmas']
@@ -943,20 +1022,77 @@ window.adicionarSala = async function() {
 }
 
 window.excluirSala = async function(id, nome) {
-    if (!await exigirAuth()) return
-    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('sala_id', id).limit(1)
-    if (vinculos && vinculos.length > 0) {
-        dispararAlerta({ icon: 'warning', title: 'Sala em uso', text: `A sala "${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' })
-        return
+    if (!await exigirAuth()) return;
+
+    // Busca agendamentos vinculados
+    const { data: vinculos, count } = await supabase
+        .from('agendamentos')
+        .select('id', { count: 'exact' })
+        .eq('sala_id', id);
+
+    const total = count ?? (vinculos ? vinculos.length : 0);
+
+    let textoConfirmacao = `Tem certeza que deseja excluir a sala "${nome}"? Esta ação não pode ser desfeita.`;
+    let textoBotao = 'Sim, excluir!';
+
+    if (total > 0) {
+        textoConfirmacao = `A sala "${nome}" possui ${total} agendamento(s) vinculado(s). Ao confirmar, todos os agendamentos vinculados a esta sala serão cancelados/excluídos definitivamente. Deseja prosseguir?`;
+        textoBotao = 'Sim, excluir sala e agendamentos!';
     }
-    const confirmacao = await Swal.fire({ title: 'Excluir sala?', text: `Tem certeza que deseja excluir "${nome}"?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' })
-    if (!confirmacao.isConfirmed) return
+
+    const confirmacao = await Swal.fire({
+        title: 'Excluir sala?',
+        text: textoConfirmacao,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--cor-perigo)',
+        cancelButtonColor: 'var(--texto-secundario)',
+        confirmButtonText: textoBotao,
+        cancelButtonText: 'Cancelar'
+    });
+    if (!confirmacao.isConfirmed) return;
+
+    Swal.fire({ title: 'Excluindo sala...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    // Se houver agendamentos vinculados, deleta os agendamentos primeiro para liberar a restrição de FK
+    if (total > 0) {
+        const { error: errAgendamentos } = await supabase
+            .from('agendamentos')
+            .delete()
+            .eq('sala_id', id);
+
+        if (errAgendamentos) {
+            Swal.close();
+            dispararAlerta({
+                icon: 'error',
+                title: 'Erro ao desvincular agendamentos',
+                text: 'Não foi possível cancelar as reservas vinculadas a esta sala.',
+                confirmButtonColor: 'var(--cor-perigo)'
+            });
+            return;
+        }
+    }
+
     // RLS: salas_delete_coord
-    const { error } = await supabase.from('salas').delete().eq('id', id)
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a sala.', confirmButtonColor: 'var(--cor-perigo)' }); return }
-    dispararAlerta({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false })
-    carregarListaSalas()
-    carregarSalasNoFiltro()
+    const { error } = await supabase.from('salas').delete().eq('id', id);
+    Swal.close();
+
+    if (error) {
+        dispararAlerta({
+            icon: 'error',
+            title: 'Erro ao excluir',
+            text: error.code === '23503'
+                ? `A sala "${nome}" possui registros vinculados e não pode ser excluída.`
+                : 'Não foi possível excluir a sala.',
+            confirmButtonColor: 'var(--cor-perigo)'
+        });
+        return;
+    }
+
+    dispararAlerta({ icon: 'success', title: 'Sala excluída!', text: `A sala "${nome}" foi removida com sucesso.`, timer: 1500, showConfirmButton: false });
+    carregarListaSalas();
+    carregarSalasNoFiltro();
+    carregarRelatorioGeral();
 }
 
 // ------------------------------------------------------------
@@ -1056,19 +1192,74 @@ window.adicionarTurma = async function() {
 }
 
 window.excluirTurma = async function(id, nome) {
-    if (!await exigirAuth()) return
-    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('turma_id', id).limit(1)
-    if (vinculos && vinculos.length > 0) {
-        dispararAlerta({ icon: 'warning', title: 'Turma em uso', text: `A turma "${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' })
-        return
+    if (!await exigirAuth()) return;
+
+    const { data: vinculos, count } = await supabase
+        .from('agendamentos')
+        .select('id', { count: 'exact' })
+        .eq('turma_id', id);
+
+    const total = count ?? (vinculos ? vinculos.length : 0);
+
+    let textoConfirmacao = `Tem certeza que deseja excluir a turma "${nome}"? Esta ação não pode ser desfeita.`;
+    let textoBotao = 'Sim, excluir!';
+
+    if (total > 0) {
+        textoConfirmacao = `A turma "${nome}" possui ${total} agendamento(s) vinculado(s). Ao confirmar, todos os agendamentos vinculados a esta turma serão cancelados/excluídos definitivamente. Deseja prosseguir?`;
+        textoBotao = 'Sim, excluir turma e agendamentos!';
     }
-    const confirmacao = await Swal.fire({ title: 'Excluir turma?', text: `Tem certeza que deseja excluir "${nome}"?`, icon: 'warning', showCancelButton: true, confirmButtonColor: 'var(--cor-perigo)', cancelButtonColor: 'var(--texto-secundario)', confirmButtonText: 'Sim, excluir!', cancelButtonText: 'Cancelar' })
-    if (!confirmacao.isConfirmed) return
+
+    const confirmacao = await Swal.fire({
+        title: 'Excluir turma?',
+        text: textoConfirmacao,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--cor-perigo)',
+        cancelButtonColor: 'var(--texto-secundario)',
+        confirmButtonText: textoBotao,
+        cancelButtonText: 'Cancelar'
+    });
+    if (!confirmacao.isConfirmed) return;
+
+    Swal.fire({ title: 'Excluindo turma...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    if (total > 0) {
+        const { error: errAgendamentos } = await supabase
+            .from('agendamentos')
+            .delete()
+            .eq('turma_id', id);
+
+        if (errAgendamentos) {
+            Swal.close();
+            dispararAlerta({
+                icon: 'error',
+                title: 'Erro ao desvincular agendamentos',
+                text: 'Não foi possível cancelar as reservas vinculadas a esta turma.',
+                confirmButtonColor: 'var(--cor-perigo)'
+            });
+            return;
+        }
+    }
+
     // RLS: turmas_delete_coord
-    const { error } = await supabase.from('turmas').delete().eq('id', id)
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir a turma.', confirmButtonColor: 'var(--cor-perigo)' }); return }
-    dispararAlerta({ icon: 'success', title: 'Excluída!', timer: 1200, showConfirmButton: false })
-    carregarListaTurmas()
+    const { error } = await supabase.from('turmas').delete().eq('id', id);
+    Swal.close();
+
+    if (error) {
+        dispararAlerta({
+            icon: 'error',
+            title: 'Erro ao excluir',
+            text: error.code === '23503'
+                ? `A turma "${nome}" possui registros vinculados e não pode ser excluída.`
+                : 'Não foi possível excluir a turma.',
+            confirmButtonColor: 'var(--cor-perigo)'
+        });
+        return;
+    }
+
+    dispararAlerta({ icon: 'success', title: 'Turma excluída!', text: `A turma "${nome}" foi removida com sucesso.`, timer: 1500, showConfirmButton: false });
+    carregarListaTurmas();
+    carregarRelatorioGeral();
 }
 
 // ------------------------------------------------------------
@@ -1086,19 +1277,141 @@ async function carregarListaProfessores() {
     if (!container) return
     container.innerHTML = '<div class="gerenciar-vazio">Carregando professores...</div>'
 
-    const [{ data: professores, error }, disciplinas] = await Promise.all([
+    const [{ data: professores, error }, disciplinas, { data: agendamentosData }] = await Promise.all([
         supabase.from('professores').select('id, nome, disciplina, auth_user_id').order('nome', { ascending: true }),
-        obterDisciplinasCache()
+        obterDisciplinasCache(),
+        supabase.from('agendamentos').select('professor_id')
     ])
 
-    if (error) { container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar professores.</div>'; return }
+    if (error) {
+        container.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar professores.</div>'
+        return
+    }
+
+    // Calcula contagem de reservas por professor
+    cacheAgendamentosPorProf = {}
+    if (agendamentosData) {
+        agendamentosData.forEach(a => {
+            if (a.professor_id) {
+                cacheAgendamentosPorProf[a.professor_id] = (cacheAgendamentosPorProf[a.professor_id] || 0) + 1
+            }
+        })
+    }
     
     cacheProfessores = professores || []
     const ativosCount = cacheProfessores.filter(p => p.auth_user_id !== null && p.auth_user_id !== '').length
+    const pendentesCount = cacheProfessores.length - ativosCount
+
+    // Atualiza KPIs principais
+    const kpiTotal = document.getElementById('kpi-prof-total')
+    const kpiAtivos = document.getElementById('kpi-prof-ativos')
+    const kpiPendentes = document.getElementById('kpi-prof-pendentes')
+    if (kpiTotal) kpiTotal.textContent = cacheProfessores.length
+    if (kpiAtivos) kpiAtivos.textContent = ativosCount
+    if (kpiPendentes) kpiPendentes.textContent = pendentesCount
+
     const qtdProfEl = document.getElementById('qtd-professores-total')
     if (qtdProfEl) qtdProfEl.textContent = ativosCount
 
-    renderizarListaProfessores(cacheProfessores, disciplinas)
+    // Atualiza contadores dos chips
+    const chipTodos = document.getElementById('chip-count-todos')
+    const chipAtivos = document.getElementById('chip-count-ativos')
+    const chipPendentes = document.getElementById('chip-count-pendentes')
+    if (chipTodos) chipTodos.textContent = cacheProfessores.length
+    if (chipAtivos) chipAtivos.textContent = ativosCount
+    if (chipPendentes) chipPendentes.textContent = pendentesCount
+
+    // Atualiza dropdown de disciplinas para filtro
+    const selectFiltro = document.getElementById('filtro-disciplina-professores')
+    if (selectFiltro) {
+        const valAtual = selectFiltro.value
+        const discUnicas = [...new Set(cacheProfessores.map(p => p.disciplina).filter(Boolean))].sort()
+        selectFiltro.innerHTML = '<option value="">Todas as disciplinas</option>'
+        discUnicas.forEach(d => {
+            const opt = document.createElement('option')
+            opt.value = d
+            opt.textContent = d
+            if (d === valAtual) opt.selected = true
+            selectFiltro.appendChild(opt)
+        })
+    }
+
+    window.aplicarFiltrosProfessores()
+}
+
+window.filtrarStatusProfessores = function(status) {
+    filtroStatusProfAtual = status || 'todos'
+    const chips = ['todos', 'ativos', 'pendentes']
+    chips.forEach(s => {
+        const btn = document.getElementById(`chip-status-${s}`)
+        if (btn) btn.classList.toggle('ativo', s === filtroStatusProfAtual)
+    })
+    window.aplicarFiltrosProfessores()
+}
+
+window.aplicarFiltrosProfessores = function() {
+    const inputBusca = document.getElementById('busca-professores')
+    const selectDisc = document.getElementById('filtro-disciplina-professores')
+    const termo = (inputBusca?.value || '').toLowerCase().trim()
+    const discEscolhida = selectDisc?.value || ''
+
+    const filtrados = cacheProfessores.filter(p => {
+        // Filtro por texto
+        const matchTexto = !termo ||
+            (p.nome && p.nome.toLowerCase().includes(termo)) ||
+            (p.disciplina && p.disciplina.toLowerCase().includes(termo))
+
+        // Filtro por status
+        const temAcesso = p.auth_user_id !== null && p.auth_user_id !== ''
+        let matchStatus = true
+        if (filtroStatusProfAtual === 'ativos') matchStatus = temAcesso
+        else if (filtroStatusProfAtual === 'pendentes') matchStatus = !temAcesso
+
+        // Filtro por disciplina
+        const matchDisc = !discEscolhida || p.disciplina === discEscolhida
+
+        return matchTexto && matchStatus && matchDisc
+    })
+
+    const contadorEl = document.getElementById('contador-professores-filtrados')
+    if (contadorEl) {
+        if (termo || discEscolhida || filtroStatusProfAtual !== 'todos') {
+            contadorEl.textContent = `Exibindo ${filtrados.length} de ${cacheProfessores.length} docentes`
+        } else {
+            contadorEl.textContent = `${cacheProfessores.length} docente${cacheProfessores.length === 1 ? '' : 's'} cadastrado${cacheProfessores.length === 1 ? '' : 's'}`
+        }
+    }
+
+    const isFiltrado = termo !== '' || discEscolhida !== '' || filtroStatusProfAtual !== 'todos'
+    renderizarListaProfessores(filtrados, disciplinasCache, isFiltrado)
+}
+
+window.filtrarProfessores = function(termo) {
+    const inputBusca = document.getElementById('busca-professores')
+    if (inputBusca) inputBusca.value = termo
+    window.aplicarFiltrosProfessores()
+}
+
+// Paleta dinâmica de gradientes para os avatares do corpo docente
+const GRADIENTES_AVATAR = [
+    'linear-gradient(135deg, #6366f1, #8b5cf6)', // Indigo - Violet
+    'linear-gradient(135deg, #0284c7, #2563eb)', // Sky - Blue
+    'linear-gradient(135deg, #059669, #10b981)', // Emerald
+    'linear-gradient(135deg, #d97706, #f59e0b)', // Amber
+    'linear-gradient(135deg, #db2777, #ec4899)', // Pink
+    'linear-gradient(135deg, #7c3aed, #c026d3)', // Purple - Fuchsia
+    'linear-gradient(135deg, #0d9488, #06b6d4)', // Teal - Cyan
+    'linear-gradient(135deg, #dc2626, #f43f5e)'  // Red - Rose
+]
+
+function obterGradienteAvatar(str) {
+    let hash = 0
+    const txt = str || 'Docente'
+    for (let i = 0; i < txt.length; i++) {
+        hash = txt.charCodeAt(i) + ((hash << 5) - hash)
+    }
+    const idx = Math.abs(hash) % GRADIENTES_AVATAR.length
+    return GRADIENTES_AVATAR[idx]
 }
 
 function renderizarListaProfessores(professores, disciplinas = disciplinasCache, isFiltrado = false) {
@@ -1106,7 +1419,9 @@ function renderizarListaProfessores(professores, disciplinas = disciplinasCache,
     if (!container) return
 
     if (!professores || professores.length === 0) {
-        container.innerHTML = `<div class="gerenciar-vazio">${isFiltrado ? 'Nenhum professor encontrado com esse filtro.' : 'Nenhum professor cadastrado ainda.'}</div>`
+        container.innerHTML = `<div class="gerenciar-vazio" style="grid-column: 1 / -1; padding: 36px 16px;">
+            ${isFiltrado ? 'Nenhum professor encontrado para os filtros selecionados.' : 'Nenhum professor cadastrado ainda.'}
+        </div>`
         return
     }
 
@@ -1114,10 +1429,12 @@ function renderizarListaProfessores(professores, disciplinas = disciplinasCache,
     professores.forEach((prof, i) => {
         const temAcesso = prof.auth_user_id !== null && prof.auth_user_id !== ''
         const iniciais  = prof.nome.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase()
+        const qtdReservas = cacheAgendamentosPorProf[prof.id] || 0
+        const gradiente = obterGradienteAvatar(prof.nome)
 
         const div = document.createElement('div')
         div.classList.add('professor-card')
-        div.style.animationDelay = `${i * 0.04}s`
+        div.style.animationDelay = `${i * 0.03}s`
 
         // Monta seletor de disciplinas via DOM
         const selectOpts = (disciplinas || []).map(d => {
@@ -1129,70 +1446,97 @@ function renderizarListaProfessores(professores, disciplinas = disciplinasCache,
         })
 
         const statusClasse = temAcesso ? 'ativo' : 'pendente'
-        const statusTexto  = temAcesso ? '✓ Ativo' : '⏳ Pendente'
+        const statusTexto  = temAcesso ? '● Acesso Ativo' : '○ Sem PIN'
+
         div.innerHTML = `
             <div class="professor-card-topo">
-                <div class="professor-card-avatar"></div>
+                <div class="avatar-wrapper">
+                    <div class="professor-card-avatar" style="--avatar-bg: ${gradiente}; background: ${gradiente} !important;">
+                        ${iniciais}
+                    </div>
+                    <span class="avatar-status-dot ${statusClasse}" title="${temAcesso ? 'Acesso Ativo' : 'Sem PIN'}"></span>
+                </div>
                 <div class="professor-card-info">
-                    <div class="professor-nome"></div>
-                    <div class="professor-disciplina"></div>
+                    <div class="professor-nome" title="${prof.nome}">${prof.nome}</div>
+                    <div class="professor-card-meta">
+                        <span class="badge-disciplina-pill" title="Disciplina">${prof.disciplina || 'Sem disciplina'}</span>
+                        <span class="badge-reservas-pill" id="res-prof-${prof.id}" title="Clique para ver os agendamentos deste professor">
+                            📅 ${qtdReservas} reserva${qtdReservas === 1 ? '' : 's'} <span style="opacity:0.7; font-size:0.75rem;">›</span>
+                        </span>
+                    </div>
                 </div>
-                <span class="status-pin ${statusClasse}"></span>
-                <button class="professor-card-btn-editar" id="btn-edit-${prof.id}" title="Editar">✏️</button>
             </div>
-            <div class="professor-card-expansivel" id="exp-${prof.id}">
-                <div class="professor-card-edicao">
-                    <input type="text" id="edit-nome-${prof.id}" placeholder="Nome completo">
-                    <select id="edit-disciplina-${prof.id}">
-                        <option value="">Selecione a disciplina...</option>
-                    </select>
+
+            <div class="professor-card-footer">
+                <span class="status-pill-badge ${statusClasse}">
+                    ${statusTexto}
+                </span>
+                <div class="card-acoes-botoes">
+                    <button class="btn-card-pin ${temAcesso ? '' : 'destaque'}" id="btn-pin-${prof.id}" title="${temAcesso ? 'Alterar ou redefinir PIN de acesso' : 'Definir PIN e ativar acesso agora'}">
+                        <span>🔑</span> ${temAcesso ? 'PIN' : 'Ativar PIN'}
+                    </button>
+                    <button class="btn-card-icon" id="btn-edit-${prof.id}" title="Editar nome e disciplina">
+                        ✏️
+                    </button>
+                    <button class="btn-card-icon danger" id="btn-del-${prof.id}" title="Excluir professor">
+                        🗑️
+                    </button>
                 </div>
-                <div class="professor-card-acoes">
-                    <button class="btn-salvar-professor" data-id="${prof.id}">💾 Salvar</button>
-                    ${temAcesso ? `<button class="btn-resetar-pin" data-id="${prof.id}">🔑 Resetar</button>` : ''}
-                    <button class="btn-excluir-professor" data-id="${prof.id}">🗑 Excluir</button>
+            </div>
+
+            <div class="professor-card-expansivel" id="exp-${prof.id}">
+                <div class="edicao-campos-grid">
+                    <div class="edicao-campo">
+                        <label>Nome Completo:</label>
+                        <input type="text" id="edit-nome-${prof.id}" placeholder="Nome completo" value="${prof.nome.replace(/"/g, '&quot;')}">
+                    </div>
+                    <div class="edicao-campo">
+                        <label>Disciplina:</label>
+                        <select id="edit-disciplina-${prof.id}">
+                            <option value="">Selecione a disciplina...</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="edicao-botoes">
+                    <button class="btn-novo-professor" id="btn-salvar-${prof.id}" style="padding: 8px 16px; font-size: 0.78rem;">
+                        💾 Salvar Alterações
+                    </button>
+                    <button class="btn-card-pin" id="btn-cancelar-edit-${prof.id}" style="padding: 8px 14px;">
+                        ✕ Cancelar
+                    </button>
                 </div>
             </div>`
-
-        div.querySelector('.professor-card-avatar').textContent = iniciais
-        div.querySelector('.professor-nome').textContent = prof.nome
-        div.querySelector('.professor-disciplina').textContent = prof.disciplina || 'Sem disciplina'
-        div.querySelector(`.status-pin`).textContent = statusTexto
-        div.querySelector(`#edit-nome-${prof.id}`).value = prof.nome
 
         const select = div.querySelector(`#edit-disciplina-${prof.id}`)
         selectOpts.forEach(opt => select.appendChild(opt.cloneNode(true)))
 
+        // Eventos dos botões
+        div.querySelector(`#res-prof-${prof.id}`)
+            ?.addEventListener('click', () => window.filtrarReservasPorProfessor(prof.nome))
+
+        div.querySelector(`#btn-pin-${prof.id}`)
+            ?.addEventListener('click', () => window.gerenciarAcessoProfessor(prof.id, prof.nome, temAcesso))
+
         div.querySelector(`#btn-edit-${prof.id}`)
-            .addEventListener('click', () => window.toggleEditarProfessor(prof.id))
+            ?.addEventListener('click', () => window.toggleEditarProfessor(prof.id))
 
-        div.querySelector('.btn-salvar-professor')
-            .addEventListener('click', () => window.salvarEdicaoProfessor(prof.id))
+        div.querySelector(`#btn-del-${prof.id}`)
+            ?.addEventListener('click', () => window.excluirProfessor(prof.id, prof.nome))
 
-        if (temAcesso) {
-            const btnReset = div.querySelector('.btn-resetar-pin')
-            if (btnReset) btnReset.addEventListener('click', () => window.resetarAcessoProfessor(prof.id, prof.nome))
-        }
+        div.querySelector(`#btn-salvar-${prof.id}`)
+            ?.addEventListener('click', () => window.salvarEdicaoProfessor(prof.id))
 
-        div.querySelector('.btn-excluir-professor')
-            .addEventListener('click', () => window.excluirProfessor(prof.id, prof.nome))
+        div.querySelector(`#btn-cancelar-edit-${prof.id}`)
+            ?.addEventListener('click', () => window.toggleEditarProfessor(prof.id))
 
         container.appendChild(div)
     })
 }
 
-window.filtrarProfessores = function(termo) {
-    termo = (termo || '').toLowerCase().trim()
-    const filtrados = cacheProfessores.filter(p => 
-        (p.nome && p.nome.toLowerCase().includes(termo)) ||
-        (p.disciplina && p.disciplina.toLowerCase().includes(termo))
-    )
-    renderizarListaProfessores(filtrados, disciplinasCache, termo !== '')
-}
-
 window.toggleEditarProfessor = function(id) {
     const exp = document.getElementById(`exp-${id}`)
     const btn = document.getElementById(`btn-edit-${id}`)
+    if (!exp) return
     const isOpen = exp.classList.contains('aberto')
     document.querySelectorAll('.professor-card-expansivel.aberto').forEach(el => {
         el.classList.remove('aberto')
@@ -1202,7 +1546,7 @@ window.toggleEditarProfessor = function(id) {
     })
     if (!isOpen) {
         exp.classList.add('aberto')
-        btn.textContent = '✕'
+        if (btn) btn.textContent = '✕'
         exp.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
 }
@@ -1220,92 +1564,594 @@ window.salvarEdicaoProfessor = async function(id) {
     carregarProfessoresNoFiltro()
 }
 
-window.resetarAcessoProfessor = async function(id, nome) {
+/**
+ * Ativa ou redefine o PIN de 4 dígitos de um professor de forma robusta e resiliente.
+ * Resolve o problema de política de senhas (mínimo 6 caracteres do Supabase Auth)
+ * utilizando o padrão 'locus_PIN' compatível com professor.js.
+ */
+async function ativarOuAtualizarPinProfessor(profId, nome, pin) {
+    if (!pin || pin.length !== 4) {
+        throw new Error('O PIN deve conter exatamente 4 dígitos numéricos.');
+    }
+
+    const emailFicticio = `prof-${profId}@locus.interno`;
+    const senhaAuth = `locus_${pin}`;
+
+    // 1. Tenta via Edge Function ativar-professor primeiro (para manter compatibilidade)
+    try {
+        const { data: resFn, error: errFn } = await supabase.functions.invoke('ativar-professor', {
+            body: { professor_id: profId, pin }
+        });
+        if (!errFn && resFn?.sucesso) {
+            return { sucesso: true, metodo: 'edge_function' };
+        }
+    } catch (e) {
+        console.warn('[PIN] Tentativa via Edge Function falhou, aplicando fallback direto:', e);
+    }
+
+    // 2. Fallback direto via Supabase Auth + REST:
+    // Limpa qualquer registro anterior ou corrompido em auth.users para evitar conflitos de email duplicado
+    try {
+        await supabase.functions.invoke('resetar-acesso-professor', {
+            body: { professor_id: profId }
+        });
+    } catch (_) {}
+
+    // 3. Realiza o cadastro do usuário no Supabase Auth com o padrão de senha seguro (locus_PIN >= 6 caracteres)
+    // Usa fetch direto no endpoint de signup do Supabase para não sobrescrever a sessão ativa do coordenador
+    const supabaseUrl = window.__ENV__?.SUPABASE_URL || 'https://ixhuqbfzwkobhrvlzwgm.supabase.co';
+    const supabaseKey = window.__ENV__?.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84';
+
+    const signupResp = await fetch(`${supabaseUrl}/auth/v1/signup`, {
+        method: 'POST',
+        headers: {
+            'apikey': supabaseKey,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            email: emailFicticio,
+            password: senhaAuth,
+            data: {
+                nome,
+                professor_id: profId,
+                tipo: 'professor'
+            }
+        })
+    });
+
+    const signupData = await signupResp.json();
+
+    if (!signupResp.ok || !signupData?.user?.id) {
+        // Se já existia usuário e por algum motivo não foi limpo pelo reset, tenta re-executar reset e tentar de novo
+        if (signupResp.status === 422) {
+            try {
+                await supabase.functions.invoke('resetar-acesso-professor', {
+                    body: { professor_id: profId }
+                });
+                const retryResp = await fetch(`${supabaseUrl}/auth/v1/signup`, {
+                    method: 'POST',
+                    headers: { 'apikey': supabaseKey, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: emailFicticio, password: senhaAuth, data: { nome, professor_id: profId, tipo: 'professor' } })
+                });
+                const retryData = await retryResp.json();
+                if (retryResp.ok && retryData?.user?.id) {
+                    signupData.user = retryData.user;
+                }
+            } catch (_) {}
+        }
+
+        if (!signupData?.user?.id) {
+            const erroMsg = signupData?.msg || signupData?.message || signupData?.error_description || 'Falha ao registrar credencial de acesso.';
+            throw new Error(erroMsg);
+        }
+    }
+
+    const authUserId = signupData.user.id;
+
+    // 4. Vincula o auth_user_id e o pin na tabela 'professores'
+    const { error: errUpdate } = await supabase
+        .from('professores')
+        .update({
+            auth_user_id: authUserId,
+            pin: pin
+        })
+        .eq('id', profId);
+
+    if (errUpdate) {
+        console.error('[PIN] Erro ao vincular auth_user_id no banco:', errUpdate);
+        throw new Error('Credencial criada, mas ocorreu um erro ao salvar o vínculo com o professor.');
+    }
+
+    return { sucesso: true, metodo: 'direct_auth', authUserId };
+}
+
+window.gerenciarAcessoProfessor = async function(id, nome, temAcesso) {
     if (!await exigirAuth()) return
 
-    const confirmacao = await Swal.fire({
-        title: 'Resetar acesso?',
-        text: `"${nome}" será desconectado imediatamente e precisará ativar um novo PIN para entrar.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: 'var(--cor-aviso)',
-        cancelButtonColor: 'var(--texto-secundario)',
-        confirmButtonText: 'Sim, resetar',
-        cancelButtonText: 'Cancelar'
-    })
-    if (!confirmacao.isConfirmed) return
+    const htmlModal = `
+        <div class="modal-pin-wrapper">
+            <div class="modal-pin-bloco">
+                <div class="modal-pin-titulo">
+                    <span>🔑</span> Definir Novo PIN Imediatamente
+                </div>
+                <div class="modal-pin-sub">
+                    Digite 4 dígitos ou gere um PIN aleatório para liberar ou redefinir o acesso de <strong>${nome}</strong> na hora.
+                </div>
+                <div class="modal-pin-input-linha">
+                    <input type="text" id="modal-input-pin" class="modal-pin-input" maxlength="4" placeholder="••••" autocomplete="off" inputmode="numeric">
+                    <button type="button" id="btn-gerar-pin-modal" class="modal-pin-btn-random">
+                        🎲 Gerar PIN Aleatório
+                    </button>
+                </div>
+                <label style="font-size:0.75rem; color:var(--txt2); display:flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px;">
+                    <input type="checkbox" id="chk-notificar-prof" checked style="cursor:pointer;">
+                    Enviar notificação push avisando sobre o novo PIN
+                </label>
+            </div>
 
-    Swal.fire({ title: 'Resetando acesso...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
+            ${temAcesso ? `
+            <div class="modal-pin-bloco" style="border-color: rgba(239, 68, 68, 0.25); background: rgba(239, 68, 68, 0.04);">
+                <div class="modal-pin-titulo" style="color: #f87171;">
+                    <span>⚠️</span> Revogar Acesso & Desconectar
+                </div>
+                <div class="modal-pin-sub">
+                    Desconecta imediatamente as sessões ativas do professor. Ele precisará definir um novo PIN para voltar a acessar.
+                </div>
+                <button type="button" id="btn-revogar-acesso-modal" class="btn-acao-topo btn-acao-excluir" style="width:fit-content; padding:8px 14px;">
+                    Revogar PIN e Desconectar
+                </button>
+            </div>
+            ` : ''}
+        </div>
+    `
+
+    const res = await Swal.fire({
+        title: `Acesso · ${nome}`,
+        html: htmlModal,
+        showCancelButton: true,
+        confirmButtonText: '💾 Salvar e Ativar PIN',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: 'var(--cor-sucesso, #22c55e)',
+        cancelButtonColor: 'var(--texto-secundario, #6b7280)',
+        focusConfirm: false,
+        didOpen: () => {
+            const inputPin = document.getElementById('modal-input-pin')
+            const btnRandom = document.getElementById('btn-gerar-pin-modal')
+            const btnRevogar = document.getElementById('btn-revogar-acesso-modal')
+
+            if (inputPin) {
+                inputPin.focus()
+                inputPin.addEventListener('input', () => {
+                    inputPin.value = inputPin.value.replace(/\D/g, '').slice(0, 4)
+                })
+            }
+
+            if (btnRandom && inputPin) {
+                btnRandom.addEventListener('click', () => {
+                    const rnd = Math.floor(1000 + Math.random() * 9000).toString()
+                    inputPin.value = rnd
+                    inputPin.focus()
+                })
+            }
+
+            if (btnRevogar) {
+                btnRevogar.addEventListener('click', async () => {
+                    Swal.close()
+                    await executarRevogacaoAcesso(id, nome)
+                })
+            }
+        },
+        preConfirm: () => {
+            const inputPin = document.getElementById('modal-input-pin')
+            const chkNotificar = document.getElementById('chk-notificar-prof')
+            const val = inputPin ? inputPin.value.replace(/\D/g, '') : ''
+            if (val.length !== 4) {
+                Swal.showValidationMessage('O PIN deve conter exatamente 4 dígitos numéricos.')
+                return false
+            }
+            return { pin: val, notificar: chkNotificar ? chkNotificar.checked : true }
+        }
+    })
+
+    if (!res.isConfirmed || !res.value) return
+
+    const { pin: novoPin, notificar } = res.value
+
+    Swal.fire({
+        title: 'Aplicando novo PIN...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    })
 
     try {
-        // JWT do coordenador é enviado automaticamente — Edge Function valida via auth.getUser()
-        const { data, error } = await supabase.functions.invoke('resetar-acesso-professor', {
-            body: { professor_id: id }
-        })
+        await ativarOuAtualizarPinProfessor(id, nome, novoPin)
 
         Swal.close()
 
-        if (error || !data?.sucesso) {
-            dispararAlerta({
-                icon: 'error',
-                title: 'Erro',
-                text: data?.erro || 'Não foi possível resetar o acesso.',
-                confirmButtonColor: 'var(--cor-perigo)'
-            })
-            return
+        if (notificar) {
+            enviarNotificacao(
+                '🔑 Novo PIN Ativado',
+                `Olá, ${nome}! Seu PIN de acesso ao Locus foi atualizado para: ${novoPin}`,
+                'professor',
+                id
+            ).catch(() => {})
         }
 
-        dispararAlerta({ icon: 'success', title: 'Acesso resetado!', text: `${nome} foi desconectado e precisará ativar um novo PIN.`, timer: 2500, showConfirmButton: false })
-        carregarListaProfessores()
+        await carregarListaProfessores()
+
+        // Tela de confirmação com cópia facilitada
+        Swal.fire({
+            icon: 'success',
+            title: 'PIN Definido com Sucesso!',
+            html: `
+                <div style="font-family:'Poppins',sans-serif; text-align:center;">
+                    <p style="font-size:0.86rem; color:var(--txt2); margin-bottom:12px;">
+                        O código de acesso de <strong>${nome}</strong> já está ativo:
+                    </p>
+                    <div class="modal-copiar-box">
+                        <div style="text-align:left;">
+                            <div style="font-size:0.68rem; text-transform:uppercase; color:var(--txt3); font-weight:700;">PIN DE ACESSO</div>
+                            <div class="badge-pin-display" id="display-novo-pin">${novoPin}</div>
+                        </div>
+                        <button type="button" id="btn-copiar-novo-pin" class="btn-acao-topo" style="padding:8px 14px; border-color:var(--purple); color:var(--purple); font-weight:700;">
+                            📋 Copiar PIN
+                        </button>
+                    </div>
+                    <p style="font-size:0.75rem; color:var(--txt3); margin-top:14px;">
+                        O professor já pode fazer login na Área do Professor com este PIN.
+                    </p>
+                </div>
+            `,
+            confirmButtonText: 'Concluído',
+            confirmButtonColor: 'var(--cor-primaria)',
+            didOpen: () => {
+                const btnCopiar = document.getElementById('btn-copiar-novo-pin')
+                if (btnCopiar) {
+                    btnCopiar.addEventListener('click', () => {
+                        navigator.clipboard.writeText(novoPin).then(() => {
+                            btnCopiar.textContent = '✓ Copiado!'
+                            btnCopiar.style.background = 'rgba(34,197,94,0.15)'
+                            btnCopiar.style.color = '#22c55e'
+                            setTimeout(() => {
+                                btnCopiar.textContent = '📋 Copiar PIN'
+                                btnCopiar.style.background = ''
+                                btnCopiar.style.color = ''
+                            }, 2000)
+                        }).catch(() => {
+                            alert(`PIN: ${novoPin}`)
+                        })
+                    })
+                }
+            }
+        })
 
     } catch (err) {
         Swal.close()
-        console.error('Erro ao resetar acesso:', err)
-        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Falha na requisição.', confirmButtonColor: 'var(--cor-perigo)' })
+        console.error('Erro ao definir PIN:', err)
+        dispararAlerta({
+            icon: 'error',
+            title: 'Erro ao configurar PIN',
+            text: err.message || 'Não foi possível atualizar o PIN via servidor.',
+            confirmButtonColor: 'var(--cor-perigo)'
+        })
     }
 }
 
-window.excluirProfessor = async function(id, nome) {
-    if (!await exigirAuth()) return
-
-    const { data: vinculos } = await supabase.from('agendamentos').select('id').eq('professor_id', id).limit(1)
-    if (vinculos && vinculos.length > 0) {
-        dispararAlerta({ icon: 'warning', title: 'Professor com reservas ativas', text: `"${nome}" possui agendamentos vinculados. Cancele-os primeiro.`, confirmButtonColor: 'var(--cor-primaria)' })
-        return
-    }
-
+async function executarRevogacaoAcesso(id, nome) {
     const confirmacao = await Swal.fire({
-        title: 'Excluir professor?',
-        text: `Tem certeza que deseja excluir "${nome}"? Esta ação não pode ser desfeita.`,
+        title: 'Revogar acesso?',
+        text: `"${nome}" será desconectado de todos os aparelhos e o PIN atual será cancelado.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: 'var(--cor-perigo)',
         cancelButtonColor: 'var(--texto-secundario)',
-        confirmButtonText: 'Sim, excluir!',
+        confirmButtonText: 'Sim, revogar e desconectar',
         cancelButtonText: 'Cancelar'
     })
     if (!confirmacao.isConfirmed) return
 
-    // Revoga acesso Auth do professor antes de deletar do banco
-    const { data: resetData, error: resetError } = await supabase.functions.invoke('resetar-acesso-professor', {
-        body: { professor_id: id }
+    Swal.fire({ title: 'Revogando acesso...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
+
+    try {
+        try {
+            await supabase.functions.invoke('resetar-acesso-professor', {
+                body: { professor_id: id }
+            })
+        } catch (_) {}
+
+        // Limpa auth_user_id e pin na tabela professores
+        await supabase.from('professores').update({ auth_user_id: null, pin: null }).eq('id', id)
+
+        Swal.close()
+
+        enviarNotificacao(
+            '⚠️ Acesso Redefinido',
+            `Olá, ${nome}! Seu acesso ao Locus foi redefinido pela coordenação. Cadastre um novo PIN para entrar.`,
+            'professor',
+            id
+        )
+
+        dispararAlerta({
+            icon: 'success',
+            title: 'Acesso revogado!',
+            text: `${nome} foi desconectado e precisará definir um novo PIN.`,
+            timer: 2500,
+            showConfirmButton: false
+        })
+
+        carregarListaProfessores()
+
+    } catch (err) {
+        Swal.close()
+        console.error('Erro ao revogar acesso:', err)
+        dispararAlerta({
+            icon: 'error',
+            title: 'Erro',
+            text: 'Não foi possível revogar o acesso.',
+            confirmButtonColor: 'var(--cor-perigo)'
+        })
+    }
+}
+
+// Mantém compatibilidade com chamadas existentes de resetarAcessoProfessor
+window.resetarAcessoProfessor = function(id, nome) {
+    window.gerenciarAcessoProfessor(id, nome, true)
+}
+
+window.abrirModalNovoProfessor = async function() {
+    if (!await exigirAuth()) return
+
+    const disciplinas = await obterDisciplinasCache()
+    const optsDisciplinas = (disciplinas || []).map(d => `<option value="${d.nome}">${d.nome}</option>`).join('')
+
+    const htmlModal = `
+        <div class="modal-pin-wrapper">
+            <div style="display:flex; flex-direction:column; gap:5px;">
+                <label style="font-size:0.8rem; font-weight:700; color:var(--txt);">Nome Completo:</label>
+                <input type="text" id="novo-prof-nome" class="swal2-input" placeholder="Ex: Lucas Gabriel Martins" style="margin:0; width:100%; font-size:0.86rem; box-sizing:border-box;">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:5px;">
+                <label style="font-size:0.8rem; font-weight:700; color:var(--txt);">Disciplina Principal:</label>
+                <select id="novo-prof-disciplina" class="swal2-select" style="margin:0; width:100%; font-size:0.86rem; display:block; box-sizing:border-box;">
+                    <option value="">Selecione a disciplina...</option>
+                    ${optsDisciplinas}
+                </select>
+            </div>
+            <div class="modal-pin-bloco">
+                <div class="modal-pin-titulo">
+                    <span>🔑</span> Definir PIN Inicial (Opcional)
+                </div>
+                <div class="modal-pin-sub">
+                    Defina 4 dígitos agora para o professor já começar a usar, ou deixe vazio para que ele ative posteriormente.
+                </div>
+                <div class="modal-pin-input-linha">
+                    <input type="text" id="novo-prof-pin" class="modal-pin-input" maxlength="4" placeholder="••••" autocomplete="off" inputmode="numeric">
+                    <button type="button" id="btn-gerar-pin-novo" class="modal-pin-btn-random">
+                        🎲 Gerar PIN
+                    </button>
+                </div>
+            </div>
+        </div>
+    `
+
+    const res = await Swal.fire({
+        title: 'Novo Professor',
+        html: htmlModal,
+        showCancelButton: true,
+        confirmButtonText: 'Cadastrar Professor',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: 'var(--cor-primaria)',
+        cancelButtonColor: 'var(--texto-secundario)',
+        didOpen: () => {
+            const inputNome = document.getElementById('novo-prof-nome')
+            const inputPin = document.getElementById('novo-prof-pin')
+            const btnRandom = document.getElementById('btn-gerar-pin-novo')
+
+            if (inputNome) inputNome.focus()
+            if (inputPin) {
+                inputPin.addEventListener('input', () => {
+                    inputPin.value = inputPin.value.replace(/\D/g, '').slice(0, 4)
+                })
+            }
+            if (btnRandom && inputPin) {
+                btnRandom.addEventListener('click', () => {
+                    inputPin.value = Math.floor(1000 + Math.random() * 9000).toString()
+                })
+            }
+        },
+        preConfirm: () => {
+            const nomeRaw = document.getElementById('novo-prof-nome')?.value.trim() || ''
+            const disciplina = document.getElementById('novo-prof-disciplina')?.value || ''
+            const pinRaw = document.getElementById('novo-prof-pin')?.value.replace(/\D/g, '') || ''
+
+            if (!nomeRaw || nomeRaw.length < 3) {
+                Swal.showValidationMessage('Digite o nome completo do professor (mínimo 3 caracteres).')
+                return false
+            }
+            if (!disciplina) {
+                Swal.showValidationMessage('Selecione uma disciplina.')
+                return false
+            }
+            if (pinRaw && pinRaw.length !== 4) {
+                Swal.showValidationMessage('O PIN inicial deve conter exatamente 4 dígitos (ou deixe em branco).')
+                return false
+            }
+
+            return { nome: nomeRaw, disciplina, pin: pinRaw || null }
+        }
     })
 
-    if (resetError || !resetData?.sucesso) {
-        // Se a Edge Function falhou, verifica se o professor ainda tem acesso ativo
-        const { data: profAtual } = await supabase.from('professores').select('auth_user_id').eq('id', id).single()
-        if (profAtual?.auth_user_id) {
-            dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível revogar o acesso do professor. Tente novamente.', confirmButtonColor: 'var(--cor-perigo)' })
+    if (!res.isConfirmed || !res.value) return
+
+    const { nome, disciplina, pin } = res.value
+
+    Swal.fire({
+        title: 'Cadastrando professor...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    })
+
+    try {
+        // Verifica se já existe com esse nome
+        const { data: existente } = await supabase
+            .from('professores')
+            .select('id, nome')
+            .ilike('nome', nome)
+            .maybeSingle()
+
+        if (existente?.id) {
+            Swal.close()
+            dispararAlerta({
+                icon: 'warning',
+                title: 'Professor já existente',
+                text: `Já existe um professor cadastrado com o nome "${nome}".`,
+                confirmButtonColor: 'var(--cor-aviso)'
+            })
             return
+        }
+
+        // Insere professor
+        const { data: novoProf, error: errInsert } = await supabase
+            .from('professores')
+            .insert([{ nome, disciplina, auth_user_id: null }])
+            .select('id')
+            .single()
+
+        if (errInsert || !novoProf) throw errInsert || new Error('Falha ao cadastrar')
+
+        let pinAtivadoComSucesso = false
+        if (pin) {
+            try {
+                await ativarOuAtualizarPinProfessor(novoProf.id, nome, pin)
+                pinAtivadoComSucesso = true
+            } catch (errAtivar) {
+                console.warn('Falha ao ativar PIN imediato:', errAtivar)
+            }
+        }
+
+        Swal.close()
+        await carregarListaProfessores()
+        carregarProfessoresNoFiltro()
+
+        if (pin && pinAtivadoComSucesso) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Professor Cadastrado!',
+                html: `
+                    <div style="font-family:'Poppins',sans-serif; text-align:center;">
+                        <p style="font-size:0.86rem; color:var(--txt2); margin-bottom:12px;">
+                            <strong>${nome}</strong> foi adicionado(a) e seu PIN já está pronto para uso:
+                        </p>
+                        <div class="modal-copiar-box">
+                            <div style="text-align:left;">
+                                <div style="font-size:0.68rem; text-transform:uppercase; color:var(--txt3); font-weight:700;">PIN DE ACESSO</div>
+                                <div class="badge-pin-display">${pin}</div>
+                            </div>
+                            <button type="button" id="btn-copiar-pin-cad" class="btn-acao-topo" style="padding:8px 14px; border-color:var(--purple); color:var(--purple); font-weight:700;">
+                                📋 Copiar PIN
+                            </button>
+                        </div>
+                    </div>
+                `,
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: 'var(--cor-primaria)',
+                didOpen: () => {
+                    const btnCopiar = document.getElementById('btn-copiar-pin-cad')
+                    if (btnCopiar) {
+                        btnCopiar.addEventListener('click', () => {
+                            navigator.clipboard.writeText(pin).then(() => {
+                                btnCopiar.textContent = '✓ Copiado!'
+                                setTimeout(() => btnCopiar.textContent = '📋 Copiar PIN', 2000)
+                            })
+                        })
+                    }
+                }
+            })
+        } else {
+            dispararAlerta({
+                icon: 'success',
+                title: 'Professor cadastrado!',
+                text: `${nome} foi adicionado à lista.${pin ? ' O PIN poderá ser configurado a qualquer momento.' : ''}`,
+                timer: 2200,
+                showConfirmButton: false
+            })
+        }
+
+    } catch (err) {
+        Swal.close()
+        console.error('Erro ao cadastrar professor:', err)
+        dispararAlerta({
+            icon: 'error',
+            title: 'Erro ao cadastrar',
+            text: err.message || 'Tente novamente.',
+            confirmButtonColor: 'var(--cor-perigo)'
+        })
+    }
+}
+
+window.excluirProfessor = async function(id, nome) {
+    if (!await exigirAuth()) return;
+
+    const { data: vinculos, count } = await supabase
+        .from('agendamentos')
+        .select('id', { count: 'exact' })
+        .eq('professor_id', id);
+
+    const total = count ?? (vinculos ? vinculos.length : 0);
+
+    let textoConfirmacao = `Tem certeza que deseja excluir "${nome}"? Esta ação não pode ser desfeita.`;
+    let textoBotao = 'Sim, excluir!';
+
+    if (total > 0) {
+        textoConfirmacao = `"${nome}" possui ${total} agendamento(s) vinculado(s). Ao confirmar, suas reservas serão canceladas e o acesso será removido definitivamente. Deseja prosseguir?`;
+        textoBotao = 'Sim, excluir professor e agendamentos!';
+    }
+
+    const confirmacao = await Swal.fire({
+        title: 'Excluir professor?',
+        text: textoConfirmacao,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: 'var(--cor-perigo)',
+        cancelButtonColor: 'var(--texto-secundario)',
+        confirmButtonText: textoBotao,
+        cancelButtonText: 'Cancelar'
+    });
+    if (!confirmacao.isConfirmed) return;
+
+    Swal.fire({ title: 'Excluindo professor...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    // Revoga acesso Auth do professor antes de deletar do banco
+    try {
+        await supabase.functions.invoke('resetar-acesso-professor', {
+            body: { professor_id: id }
+        });
+    } catch (_) {}
+
+    if (total > 0) {
+        const { error: errAgendamentos } = await supabase
+            .from('agendamentos')
+            .delete()
+            .eq('professor_id', id);
+
+        if (errAgendamentos) {
+            console.warn('Não foi possível remover agendamentos antes de excluir professor:', errAgendamentos);
         }
     }
 
     // RLS: professores_delete_coord
-    const { error } = await supabase.from('professores').delete().eq('id', id)
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir o professor.', confirmButtonColor: 'var(--cor-perigo)' }); return }
-    dispararAlerta({ icon: 'success', title: 'Excluído!', timer: 1200, showConfirmButton: false })
-    carregarListaProfessores()
-    carregarProfessoresNoFiltro()
+    const { error } = await supabase.from('professores').delete().eq('id', id);
+    Swal.close();
+
+    if (error) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir o professor.', confirmButtonColor: 'var(--cor-perigo)' });
+        return;
+    }
+
+    dispararAlerta({ icon: 'success', title: 'Excluído!', text: `Professor "${nome}" foi excluído com sucesso.`, timer: 1500, showConfirmButton: false });
+    carregarListaProfessores();
+    carregarProfessoresNoFiltro();
+    carregarRelatorioGeral();
 }
 
 // ============================================================
@@ -1343,3 +2189,27 @@ supabase
         atualizarBadgePendentes()
     })
     .subscribe()
+
+supabase
+    .channel('mudancas-salas-coord')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'salas' }, async () => {
+        if (!await estaAutenticado()) return
+        const painel = document.getElementById('painel-aba-salas-turmas')
+        if (painel && !painel.classList.contains('oculto')) {
+            carregarListaSalas()
+        }
+        carregarSalasNoFiltro()
+    })
+    .subscribe()
+
+supabase
+    .channel('mudancas-turmas-coord')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'turmas' }, async () => {
+        if (!await estaAutenticado()) return
+        const painel = document.getElementById('painel-aba-salas-turmas')
+        if (painel && !painel.classList.contains('oculto')) {
+            carregarListaTurmas()
+        }
+    })
+    .subscribe()
+

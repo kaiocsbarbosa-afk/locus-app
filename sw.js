@@ -1,5 +1,5 @@
 // IMPORTANTE: incremente CACHE_VERSION a cada deploy para forçar atualização
-const CACHE_VERSION = 'v24';
+const CACHE_VERSION = 'v25';
 const CACHE_NAME    = `locus-cache-${CACHE_VERSION}`;
 
 // Chave pública VAPID — necessária para renovar a subscription em pushsubscriptionchange
@@ -138,8 +138,8 @@ self.addEventListener('push', e => {
   e.waitUntil(
     self.registration.showNotification(dados.title, {
       body:      dados.body,
-      icon:      '/icon-192.png',
-      badge:     '/icon-notification.png',
+      icon:      './icon-192.png',
+      badge:     './icon-notification.png',
       vibrate:   [100, 50, 100],
       // URL passada pelo servidor — usada no notificationclick
       data:      { url: dados.url },

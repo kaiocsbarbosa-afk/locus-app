@@ -1336,9 +1336,10 @@ body:has(#secao-login-coord) .header-logo-icon {
 }
 
 body:has(#secao-login-coord) .professor-card-avatar {
-    background: var(--cal-ink);
-    border-color: var(--cal-ink);
-    box-shadow: 0 8px 18px rgba(17,17,17,.11);
+    background: var(--avatar-bg, var(--cal-ink));
+    border-color: transparent;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(17,17,17,.12);
 }
 
 body:has(#secao-login-coord) .login-logo-nome,

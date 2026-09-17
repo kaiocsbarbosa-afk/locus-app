@@ -360,6 +360,15 @@ function configurarPinBoxesGrande() {
         if (val.length === 4) fazerLogin();
     });
 
+    inputReal.addEventListener('paste', () => {
+        setTimeout(() => {
+            const val = inputReal.value.replace(/\D/g, '').slice(0, 4);
+            inputReal.value = val;
+            atualizarDots(val);
+            if (val.length === 4) fazerLogin();
+        }, 20);
+    });
+
     // Clique em qualquer lugar do wrapper foca o input
     document.querySelector('.pin-wrapper')?.addEventListener('click', () => inputReal.focus());
 }
@@ -496,6 +505,7 @@ window.fazerLogin = async function() {
 }
 
 window.fazerLogout = async function() {
+    clearTimeout(timerAtualizacaoHorario);
     // Zera todo o estado local para não vazar para a próxima sessão no mesmo dispositivo
     _profId     = null;
     _profNome   = null;
@@ -939,6 +949,7 @@ async function carregarTurmas() {
 
 async function carregarSalas() {
     const select = document.getElementById('select-sala');
+    if (!select) return;
     try {
         const { data, error } = await supabase.from('salas').select('id, nome').order('nome', { ascending: true });
         if (error) throw error;
@@ -1138,14 +1149,14 @@ function _inicioDaAula(dataIso, numeroAula, turno = turnoAtivo) {
 }
 
 // Uma reserva só pode ser feita antes do início da aula.
-function _aulaJaComecou(dataIso, numeroAula, agora = new Date(), turno = turnoAtivo) {
+function _aulaJaComecou(dataIso, numeroAula, agora = _getAgoraBrasilia(), turno = turnoAtivo) {
     return agora >= _inicioDaAula(dataIso, numeroAula, turno);
 }
 
 function _programarAtualizacaoDaGrade(dataIso) {
     clearTimeout(timerAtualizacaoHorario);
 
-    const agora = new Date();
+    const agora = _getAgoraBrasilia();
     const totalAulas = _totalAulasTurno();
     const proximosInicios = Array.from({ length: totalAulas }, (_, indice) =>
         _inicioDaAula(dataIso, indice + 1)
@@ -1924,6 +1935,32 @@ supabase
             }
             professorLogado = { ...professorLogado, ...payload.new };
             if (telaAtual === 'perfil') atualizarPerfil();
+        }
+    })
+    .subscribe();
+
+supabase
+    .channel('mudancas-salas-prof')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'salas' }, () => {
+        if (!professorLogado) return;
+        carregarSalas();
+        if (telaAtual === 'semana') { _semDados = null; _fetchESalvar(); }
+    })
+    .subscribe();
+
+supabase
+    .channel('mudancas-turmas-prof')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'turmas' }, () => {
+        if (!professorLogado) return;
+        carregarTurmas();
+    })
+    .subscribe();
+
+supabase
+    .channel('mudancas-professores-login')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'professores' }, () => {
+        if (!professorLogado) {
+            carregarListaNomesLogin();
         }
     })
     .subscribe();

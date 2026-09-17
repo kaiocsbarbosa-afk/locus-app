@@ -172,6 +172,13 @@ function configurarPin() {
         input.value = val;
         atualizar(val);
     });
+    input.addEventListener('paste', () => {
+        setTimeout(() => {
+            const val = input.value.replace(/\D/g, '').slice(0, 4);
+            input.value = val;
+            atualizar(val);
+        }, 20);
+    });
 }
 
 // ── DISCIPLINAS ───────────────────────────────────────────
