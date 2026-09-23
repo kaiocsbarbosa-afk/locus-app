@@ -1,5 +1,5 @@
 /* coordenacao.js — autenticação via Supabase Auth */
-import { supabase, registrarServiceWorker, dispararAlerta, detectarTurnoTurma, obterHorarioAula, formatarData } from './utils.js'
+import { supabase, registrarServiceWorker, dispararAlerta, detectarTurnoTurma, obterHorarioAula, formatarData, checarBloqueioLogin, registrarFalhaLogin, resetarTentativasLogin } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 window.addEventListener('error', function(e) {
@@ -121,6 +121,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 })
 
 window.entrarPainel = async function() {
+    const statusRL = checarBloqueioLogin('coord');
+    if (statusRL.bloqueado) {
+        dispararAlerta({
+            icon: 'error',
+            title: 'Acesso Temporariamente Bloqueado',
+            text: `Limite de 5 tentativas incorretas atingido. Por segurança, aguarde ${statusRL.segundosRestantes} segundos antes de tentar novamente.`,
+            confirmButtonColor: 'var(--cor-perigo)'
+        });
+        return;
+    }
+
     const { data: { session } } = await supabase.auth.getSession()
     if (session && session.user?.email !== COORD_EMAIL) {
         dispararAlerta({
@@ -177,10 +188,27 @@ window.entrarPainel = async function() {
         document.getElementById('senha-coord').value = '';
 
         if (!autenticadoSucesso) {
-            dispararAlerta({ icon: 'error', title: 'Acesso Negado', text: 'Senha incorreta ou credenciais inválidas.', confirmButtonColor: 'var(--cor-perigo)' });
+            const falhaRL = registrarFalhaLogin('coord');
+            if (falhaRL.bloqueado) {
+                dispararAlerta({
+                    icon: 'error',
+                    title: 'Bloqueio de Segurança Ativado',
+                    text: `Você errou a senha 5 vezes consecutivas. O acesso à coordenação foi bloqueado por 1 minuto (${falhaRL.segundosRestantes}s).`,
+                    confirmButtonColor: 'var(--cor-perigo)'
+                });
+            } else {
+                dispararAlerta({
+                    icon: 'error',
+                    title: 'Acesso Negado',
+                    text: `Senha incorreta. Tentativa ${falhaRL.tentativas} de 5.`,
+                    confirmButtonColor: 'var(--cor-perigo)'
+                });
+            }
             return;
         }
 
+        // Sucesso: zera o contador de tentativas
+        resetarTentativasLogin('coord');
         mostrarDashboard();
 
     } catch (err) {

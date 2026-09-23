@@ -694,6 +694,64 @@ body:has(#tela-login) #app-content {
     overflow-x: hidden;
 }
 
+/* ── LOGIN DO PROFESSOR: SEM BARRA DE ROLAGEM E SEM PADDING EXTRA ── */
+body.tela-login-ativa #app-content,
+body:has(#tela-login:not([style*="display: none"])) #app-content,
+body:not(:has(#app-header.visivel)):has(#tela-login) #app-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    gap: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    height: 100dvh !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+body.tela-login-ativa #app-content::-webkit-scrollbar,
+body:has(#tela-login:not([style*="display: none"])) #app-content::-webkit-scrollbar,
+body:not(:has(#app-header.visivel)):has(#tela-login) #app-content::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+body.tela-login-ativa #tela-login,
+body:has(#tela-login:not([style*="display: none"])) #tela-login,
+body:not(:has(#app-header.visivel)):has(#tela-login) #tela-login {
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+body.tela-login-ativa #tela-login::-webkit-scrollbar,
+body:has(#tela-login:not([style*="display: none"])) #tela-login::-webkit-scrollbar,
+body:not(:has(#app-header.visivel)):has(#tela-login) #tela-login::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+html:has(#tela-login:not([style*="display: none"])),
+body.tela-login-ativa,
+body:has(#tela-login:not([style*="display: none"])) {
+    overflow: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+html:has(#tela-login:not([style*="display: none"]))::-webkit-scrollbar,
+body.tela-login-ativa::-webkit-scrollbar,
+body:has(#tela-login:not([style*="display: none"]))::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+
 /* Screen Transitions */
 .tela {
     display: none;

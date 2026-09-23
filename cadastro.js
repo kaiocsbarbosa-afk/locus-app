@@ -1,10 +1,7 @@
 /* cadastro.js — professor envia solicitação de acesso */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-import { carregarPreferenciaModo, COORD_EMAIL, supabase as authClient } from './utils.js'
+import { carregarPreferenciaModo, COORD_EMAIL, supabase as authClient, SUPABASE_URL, SUPABASE_KEY } from './utils.js'
 import { enviarNotificacao } from './push.js'
-
-const SUPABASE_URL = window.__ENV__?.SUPABASE_URL || 'https://ixhuqbfzwkobhrvlzwgm.supabase.co'
-const SUPABASE_KEY = window.__ENV__?.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84'
 
 // Cliente estritamente anônimo para cadastro/solicitação.
 // Nunca herda tokens de sessão do localStorage (ex: coordenador ou professor logado em outra aba),

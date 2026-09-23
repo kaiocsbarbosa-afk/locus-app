@@ -8,8 +8,8 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 // Cliente Supabase único
 // Credenciais carregadas de forma segura via env.js (ignorado no Git)
 // ------------------------------------------------------------
-const SUPABASE_URL = window.__ENV__?.SUPABASE_URL || 'https://ixhuqbfzwkobhrvlzwgm.supabase.co'
-const SUPABASE_KEY = window.__ENV__?.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84'
+export const SUPABASE_URL = window.__ENV__?.SUPABASE_URL || 'https://ixhuqbfzwkobhrvlzwgm.supabase.co'
+export const SUPABASE_KEY = window.__ENV__?.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml4aHVxYmZ6d2tvYmhydmx6d2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwMjIyOTgsImV4cCI6MjA5NTU5ODI5OH0.ZtKv5X2Zxjp80Cjmvy0NzFDqadBYUvWBZHH12iD8x84'
 
 
 export const supabase = (SUPABASE_URL && SUPABASE_KEY)
@@ -295,3 +295,65 @@ if (typeof document !== 'undefined') {
         configurarMonitorConexao();
     }
 }
+
+// ------------------------------------------------------------
+// Rate Limiting de Login (Proteção contra Força Bruta)
+// Regra: Máximo 5 tentativas incorretas; ao atingir, bloqueio de 1 minuto (60s).
+// ------------------------------------------------------------
+const LIMITE_TENTATIVAS_LOGIN = 5;
+const TEMPO_BLOQUEIO_LOGIN_MS = 60 * 1000; // 1 minuto (60 segundos)
+
+export function checarBloqueioLogin(chave = 'padrao') {
+    const storageKey = `locus_rl_${chave}`;
+    try {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return { bloqueado: false, tentativas: 0, segundosRestantes: 0 };
+        const dados = JSON.parse(raw);
+        const agora = Date.now();
+        if (dados.bloqueadoAte && dados.bloqueadoAte > agora) {
+            const segundosRestantes = Math.ceil((dados.bloqueadoAte - agora) / 1000);
+            return { bloqueado: true, tentativas: dados.tentativas || LIMITE_TENTATIVAS_LOGIN, segundosRestantes };
+        }
+        // Se o período de bloqueio expirou, limpa o registro
+        if (dados.bloqueadoAte && dados.bloqueadoAte <= agora) {
+            localStorage.removeItem(storageKey);
+            return { bloqueado: false, tentativas: 0, segundosRestantes: 0 };
+        }
+        return { bloqueado: false, tentativas: dados.tentativas || 0, segundosRestantes: 0 };
+    } catch (_) {
+        return { bloqueado: false, tentativas: 0, segundosRestantes: 0 };
+    }
+}
+
+export function registrarFalhaLogin(chave = 'padrao') {
+    const storageKey = `locus_rl_${chave}`;
+    try {
+        const agora = Date.now();
+        const estadoAtual = checarBloqueioLogin(chave);
+        const novasTentativas = estadoAtual.tentativas + 1;
+
+        if (novasTentativas >= LIMITE_TENTATIVAS_LOGIN) {
+            const bloqueadoAte = agora + TEMPO_BLOQUEIO_LOGIN_MS;
+            localStorage.setItem(storageKey, JSON.stringify({
+                tentativas: novasTentativas,
+                bloqueadoAte
+            }));
+            return { bloqueado: true, tentativas: novasTentativas, segundosRestantes: 60 };
+        } else {
+            localStorage.setItem(storageKey, JSON.stringify({
+                tentativas: novasTentativas,
+                bloqueadoAte: null
+            }));
+            return { bloqueado: false, tentativas: novasTentativas, segundosRestantes: 0 };
+        }
+    } catch (_) {
+        return { bloqueado: false, tentativas: 1, segundosRestantes: 0 };
+    }
+}
+
+export function resetarTentativasLogin(chave = 'padrao') {
+    try {
+        localStorage.removeItem(`locus_rl_${chave}`);
+    } catch (_) {}
+}
+

@@ -1,4 +1,4 @@
-import { supabase, registrarServiceWorker, getProfessorLogado, fazerLogoutAuth, getInfoSessaoAtual, COORD_EMAIL, getTurnoAtivo, setTurnoAtivo, detectarTurnoTurma, obterHorarioAula, obterTotalAulasTurno, GRADE_HORARIOS_MANHA, GRADE_HORARIOS_EJA } from './utils.js'
+import { supabase, registrarServiceWorker, getProfessorLogado, fazerLogoutAuth, getInfoSessaoAtual, COORD_EMAIL, getTurnoAtivo, setTurnoAtivo, detectarTurnoTurma, obterHorarioAula, obterTotalAulasTurno, GRADE_HORARIOS_MANHA, GRADE_HORARIOS_EJA, checarBloqueioLogin, registrarFalhaLogin, resetarTentativasLogin } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 let professorLogado = null;
@@ -303,6 +303,11 @@ window.irParaPin = function() {
     document.getElementById('login-step1').style.display = 'none';
     document.getElementById('login-step2').style.display = 'flex';
     setTimeout(() => document.getElementById('pin-input-real')?.focus(), 150);
+
+    const statusRL = checarBloqueioLogin(`prof_${_profId}`);
+    if (statusRL.bloqueado) {
+        erroPin(`Acesso bloqueado por segurança. Aguarde ${statusRL.segundosRestantes}s.`, true);
+    }
 }
 
 // Volta ao passo 1 sem perder a seleção
@@ -418,10 +423,10 @@ function erroPin(mensagem, isRateLimit = false) {
         limparPin();
     }, 480);
 
-    // 6. Esconde a mensagem depois de 2.5s
+    // 6. Esconde a mensagem depois de 2.5s (ou 5s se for rate limit)
     setTimeout(() => {
         if (erroMsg) erroMsg.classList.remove('visivel');
-    }, 2500);
+    }, isRateLimit ? 5000 : 2500);
 }
 
 window.fazerLogin = async function() {
@@ -441,6 +446,14 @@ window.fazerLogin = async function() {
     if (!profId) {
         limparPin();
         return Swal.fire({ icon: 'warning', title: 'Selecione seu nome', text: 'Escolha seu nome na lista antes de continuar.', confirmButtonColor: '#dc3c3c' });
+    }
+
+    const chaveRL = `prof_${profId}`;
+    const statusRL = checarBloqueioLogin(chaveRL);
+    if (statusRL.bloqueado) {
+        limparPin();
+        erroPin(`Limite de 5 tentativas atingido. Bloqueado por mais ${statusRL.segundosRestantes}s.`, true);
+        return;
     }
 
     if (pin.length < 4) {
@@ -477,13 +490,21 @@ window.fazerLogin = async function() {
 
         if (error || !data?.session) {
             if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+            const falhaRL = registrarFalhaLogin(chaveRL);
             const isRateLimit = error?.message?.includes('rate limit');
-            const mensagem = isRateLimit
-                ? 'Muitas tentativas. Aguarde.'
-                : 'PIN incorreto. Tente novamente.';
-            erroPin(mensagem, isRateLimit);
+
+            if (falhaRL.bloqueado) {
+                erroPin(`Limite de 5 tentativas atingido! Bloqueado por 1 minuto (${falhaRL.segundosRestantes}s).`, true);
+            } else if (isRateLimit) {
+                erroPin('Muitas tentativas no servidor. Aguarde um momento.', true);
+            } else {
+                erroPin(`PIN incorreto. Tentativa ${falhaRL.tentativas} de 5.`);
+            }
             return;
         }
+
+        // Sucesso: zera o contador de tentativas
+        resetarTentativasLogin(chaveRL);
 
         professorLogado = await getProfessorLogado();
 
@@ -514,10 +535,12 @@ window.fazerLogout = async function() {
     _semDados   = null;
     _semSalaId  = null;
     professorLogado = null;
+    document.body.classList.add('tela-login-ativa');
     await fazerLogoutAuth();
 }
 
 function mostrarAppLogado() {
+    document.body.classList.remove('tela-login-ativa');
     document.getElementById('tela-login').style.display = 'none';
     document.getElementById('app-header').classList.add('visivel');
 

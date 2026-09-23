@@ -14,7 +14,7 @@
     <link rel="icon" href="./icon-96.png" type="image/png">
     <link rel="shortcut icon" href="./icon-96.png">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.26.25/dist/sweetalert2.all.min.js" integrity="sha384-nLoOnA/BDh8A/jxqtckg4DumuCGOBYUnNJLZdQz/zfYNp3wcjGSoWTAzgko06G/2" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="locus.css">
     <script src="./env.js"></script>
     <style>
@@ -216,6 +216,26 @@
             padding: 16px 16px calc(80px + env(safe-area-inset-bottom)) 16px;
         }
 
+        /* ── QUANDO NA TELA DE LOGIN: REMOVE PADDING E BARRA DE ROLAGEM ── */
+        body.tela-login-ativa #app-content,
+        body:has(#tela-login:not([style*="display: none"])) #app-content,
+        body:not(:has(#app-header.visivel)) #app-content {
+            padding: 0 !important;
+            margin: 0 !important;
+            gap: 0 !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+        body.tela-login-ativa #app-content::-webkit-scrollbar,
+        body:has(#tela-login:not([style*="display: none"])) #app-content::-webkit-scrollbar,
+        body:not(:has(#app-header.visivel)) #app-content::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
+        }
+
         /* ══════════════════════════════════════════
            LOGIN — Dark Mode (design Figma)
            ══════════════════════════════════════════ */
@@ -236,15 +256,24 @@
         }
 
         #tela-login {
+            height: 100dvh;
             min-height: 100dvh;
+            box-sizing: border-box;
             background: var(--login-bg);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: calc(22px + env(safe-area-inset-top)) 20px calc(36px + env(safe-area-inset-bottom));
+            padding: calc(16px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
             position: relative;
-            overflow: hidden;
+            overflow-y: auto;
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+        #tela-login::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
         }
 
         /* Dot grid background */
@@ -2129,7 +2158,7 @@
     </style>
     <link rel="stylesheet" href="./cal-inspired.css">
 </head>
-<body>
+<body class="tela-login-ativa">
 
 <!-- ── HEADER ─────────────────────────────────────────── -->
 <header id="app-header">
