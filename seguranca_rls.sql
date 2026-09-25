@@ -1,16 +1,85 @@
 -- ============================================================
--- LOCUS - SCRIPT COMPLETO DE SEGURANÇA E POLÍTICAS RLS
+-- LOCUS - SCRIPT COMPLETO DE SEGURANÇA, CONSTRAINTS E POLÍTICAS RLS
 -- ============================================================
 -- Execute este script no SQL Editor do seu painel Supabase:
 -- https://supabase.com/dashboard/project/ixhuqbfzwkobhrvlzwgm/sql
 --
 -- OBJETIVO:
--- Blindar o banco de dados PostgreSQL contra manipulações indevidas
--- via API REST/GraphQL com a chave pública anon, garantindo que
--- apenas usuários autorizados realizem operações de escrita/leitura restrita.
+-- 1. Blindar o banco de dados contra duplicidades de reserva (concorrência).
+-- 2. Garantir integridade referencial com exclusão em cascata (evita erros 23503).
+-- 3. Proteger leituras e escritas via Row Level Security (RLS).
+-- 4. Otimizar consultas com índices estratégicos.
 -- ============================================================
 
--- 1. HABILITAR ROW LEVEL SECURITY (RLS) EM TODAS AS TABELAS
+-- ------------------------------------------------------------
+-- 1. INTEGRIDADE REFERENCIAL & CONSTRAINTS ANTICONFLITO
+-- ------------------------------------------------------------
+
+-- Garante que NUNCA haja agendamentos duplicados na mesma sala, data e aula
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'agendamentos_sala_data_aula_unique'
+    ) THEN
+        ALTER TABLE public.agendamentos
+            ADD CONSTRAINT agendamentos_sala_data_aula_unique
+            UNIQUE (sala_id, data, aula_numero);
+    END IF;
+END $$;
+
+-- Garante que um professor não reserve duas salas diferentes no mesmo horário
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'agendamentos_prof_data_aula_unique'
+    ) THEN
+        ALTER TABLE public.agendamentos
+            ADD CONSTRAINT agendamentos_prof_data_aula_unique
+            UNIQUE (professor_id, data, aula_numero);
+    END IF;
+END $$;
+
+-- Ajusta Foreign Keys para ON DELETE CASCADE (evita erro 23503 ao excluir professor/sala/turma)
+DO $$
+BEGIN
+    -- agendamentos -> professores
+    ALTER TABLE public.agendamentos DROP CONSTRAINT IF EXISTS agendamentos_professor_id_fkey;
+    ALTER TABLE public.agendamentos
+        ADD CONSTRAINT agendamentos_professor_id_fkey
+        FOREIGN KEY (professor_id) REFERENCES public.professores(id) ON DELETE CASCADE;
+
+    -- agendamentos -> salas
+    ALTER TABLE public.agendamentos DROP CONSTRAINT IF EXISTS agendamentos_sala_id_fkey;
+    ALTER TABLE public.agendamentos
+        ADD CONSTRAINT agendamentos_sala_id_fkey
+        FOREIGN KEY (sala_id) REFERENCES public.salas(id) ON DELETE CASCADE;
+
+    -- agendamentos -> turmas
+    ALTER TABLE public.agendamentos DROP CONSTRAINT IF EXISTS agendamentos_turma_id_fkey;
+    ALTER TABLE public.agendamentos
+        ADD CONSTRAINT agendamentos_turma_id_fkey
+        FOREIGN KEY (turma_id) REFERENCES public.turmas(id) ON DELETE CASCADE;
+
+    -- inscricoes_push -> professores
+    ALTER TABLE public.inscricoes_push DROP CONSTRAINT IF EXISTS inscricoes_push_professor_id_fkey;
+    ALTER TABLE public.inscricoes_push
+        ADD CONSTRAINT inscricoes_push_professor_id_fkey
+        FOREIGN KEY (professor_id) REFERENCES public.professores(id) ON DELETE CASCADE;
+END $$;
+
+-- ------------------------------------------------------------
+-- 2. ÍNDICES DE PERFORMANCE PARA CONSULTAS RÁPIDAS
+-- ------------------------------------------------------------
+CREATE INDEX IF NOT EXISTS idx_agendamentos_data_sala ON public.agendamentos (data, sala_id);
+CREATE INDEX IF NOT EXISTS idx_agendamentos_professor_data ON public.agendamentos (professor_id, data);
+CREATE INDEX IF NOT EXISTS idx_agendamentos_turma ON public.agendamentos (turma_id);
+CREATE INDEX IF NOT EXISTS idx_professores_auth_id ON public.professores (auth_user_id);
+CREATE INDEX IF NOT EXISTS idx_professores_nome ON public.professores (nome);
+CREATE INDEX IF NOT EXISTS idx_solicitacoes_status ON public.solicitacoes_acesso (status);
+
+-- ------------------------------------------------------------
+-- 3. HABILITAR ROW LEVEL SECURITY (RLS) EM TODAS AS TABELAS
+-- ------------------------------------------------------------
 ALTER TABLE IF EXISTS public.disciplinas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.salas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.turmas ENABLE ROW LEVEL SECURITY;
@@ -20,8 +89,7 @@ ALTER TABLE IF EXISTS public.solicitacoes_acesso ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.inscricoes_push ENABLE ROW LEVEL SECURITY;
 
 -- ------------------------------------------------------------
--- 2. POLÍTICAS: DISCIPLINAS
--- Leitura pública; modificação exclusiva da coordenação
+-- 4. POLÍTICAS: DISCIPLINAS
 -- ------------------------------------------------------------
 DROP POLICY IF EXISTS "disciplinas_leitura_publica" ON public.disciplinas;
 CREATE POLICY "disciplinas_leitura_publica" ON public.disciplinas
@@ -34,8 +102,7 @@ CREATE POLICY "disciplinas_modificacao_coord" ON public.disciplinas
     WITH CHECK ((auth.jwt() ->> 'email') = 'coordenacao@locus.interno');
 
 -- ------------------------------------------------------------
--- 3. POLÍTICAS: SALAS
--- Leitura pública; modificação exclusiva da coordenação
+-- 5. POLÍTICAS: SALAS
 -- ------------------------------------------------------------
 DROP POLICY IF EXISTS "salas_leitura_publica" ON public.salas;
 CREATE POLICY "salas_leitura_publica" ON public.salas
@@ -48,8 +115,7 @@ CREATE POLICY "salas_modificacao_coord" ON public.salas
     WITH CHECK ((auth.jwt() ->> 'email') = 'coordenacao@locus.interno');
 
 -- ------------------------------------------------------------
--- 4. POLÍTICAS: TURMAS
--- Leitura pública; modificação exclusiva da coordenação
+-- 6. POLÍTICAS: TURMAS
 -- ------------------------------------------------------------
 DROP POLICY IF EXISTS "turmas_leitura_publica" ON public.turmas;
 CREATE POLICY "turmas_leitura_publica" ON public.turmas
@@ -62,9 +128,7 @@ CREATE POLICY "turmas_modificacao_coord" ON public.turmas
     WITH CHECK ((auth.jwt() ->> 'email') = 'coordenacao@locus.interno');
 
 -- ------------------------------------------------------------
--- 5. POLÍTICAS: PROFESSORES
--- Leitura de nomes necessária para a tela de login;
--- Modificações e gestão restritas à coordenação ou ao próprio professor
+-- 7. POLÍTICAS: PROFESSORES
 -- ------------------------------------------------------------
 DROP POLICY IF EXISTS "professores_leitura_publica" ON public.professores;
 CREATE POLICY "professores_leitura_publica" ON public.professores
@@ -83,9 +147,7 @@ CREATE POLICY "professores_update_proprio" ON public.professores
     WITH CHECK (auth_user_id = auth.uid());
 
 -- ------------------------------------------------------------
--- 6. POLÍTICAS: SOLICITAÇÕES DE ACESSO (CADASTRO)
--- Qualquer visitante pode enviar solicitação;
--- Apenas coordenação pode ler, aprovar ou excluir solicitações
+-- 8. POLÍTICAS: SOLICITAÇÕES DE ACESSO
 -- ------------------------------------------------------------
 DROP POLICY IF EXISTS "solicitacoes_inserir_publico" ON public.solicitacoes_acesso;
 CREATE POLICY "solicitacoes_inserir_publico" ON public.solicitacoes_acesso
@@ -98,10 +160,7 @@ CREATE POLICY "solicitacoes_gestao_coord" ON public.solicitacoes_acesso
     WITH CHECK ((auth.jwt() ->> 'email') = 'coordenacao@locus.interno');
 
 -- ------------------------------------------------------------
--- 7. POLÍTICAS: AGENDAMENTOS
--- Leitura pública para visualização do mapa de horários;
--- Inserção permitida para a coordenação ou pelo professor logado para sua própria conta;
--- Exclusão/Cancelamento restrito ao dono do agendamento ou à coordenação
+-- 9. POLÍTICAS: AGENDAMENTOS
 -- ------------------------------------------------------------
 DROP POLICY IF EXISTS "agendamentos_leitura_publica" ON public.agendamentos;
 CREATE POLICY "agendamentos_leitura_publica" ON public.agendamentos
@@ -140,25 +199,37 @@ CREATE POLICY "agendamentos_deletar_professor" ON public.agendamentos
     );
 
 -- ------------------------------------------------------------
--- 8. POLÍTICAS: NOTIFICAÇÕES PUSH
--- Dispositivos registram subscriptions por device_id e tipo;
--- Envio e listagem são restritos à coordenação e Edge Functions.
+-- 10. POLÍTICAS: NOTIFICAÇÕES PUSH
 -- ------------------------------------------------------------
-DROP POLICY IF EXISTS "push_propria_sessao" ON public.inscricoes_push;
 DROP POLICY IF EXISTS "push_inserir_dispositivo" ON public.inscricoes_push;
-DROP POLICY IF EXISTS "push_deletar_dispositivo" ON public.inscricoes_push;
-DROP POLICY IF EXISTS "push_leitura_coord" ON public.inscricoes_push;
-
--- Permite que os aparelhos registrem notificações push
 CREATE POLICY "push_inserir_dispositivo" ON public.inscricoes_push
     FOR INSERT WITH CHECK (true);
 
--- Permite substituir/remover inscrições antigas do mesmo aparelho
+DROP POLICY IF EXISTS "push_deletar_dispositivo" ON public.inscricoes_push;
 CREATE POLICY "push_deletar_dispositivo" ON public.inscricoes_push
     FOR DELETE USING (true);
 
--- Listagem de endpoints restrita à coordenação (e Edge Functions de disparo)
+DROP POLICY IF EXISTS "push_leitura_coord" ON public.inscricoes_push;
 CREATE POLICY "push_leitura_coord" ON public.inscricoes_push
     FOR SELECT TO authenticated
     USING ((auth.jwt() ->> 'email') = 'coordenacao@locus.interno');
 
+-- ------------------------------------------------------------
+-- 11. FUNÇÃO RPC: VERIFICAR SE JÁ EXISTE SOLICITAÇÃO PENDENTE
+-- Permite que a tela de cadastro verifique duplicidade com segurança
+-- sem expor a tabela solicitacoes_acesso (e sem expor PINs).
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.verificar_solicitacao_existente(p_nome text)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM public.solicitacoes_acesso
+        WHERE LOWER(TRIM(nome)) = LOWER(TRIM(p_nome))
+          AND status = 'pendente'
+    );
+$$;
+
+GRANT EXECUTE ON FUNCTION public.verificar_solicitacao_existente(text) TO anon, authenticated;

@@ -19,6 +19,39 @@ window.addEventListener('error', function(e) {
 const COORD_EMAIL = 'coordenacao@locus.interno'
 
 let dadosAtuaisParaExportar = []
+window.modoDataRapido = 'hoje' // 'hoje' | 'amanha' | 'semana' | 'todas' | 'personalizado'
+
+/**
+ * Gera mensagem educada e formatada para envio do PIN via WhatsApp
+ */
+export function gerarMensagemWhatsAppProfessor(nomeProf, pinAcesso) {
+    const primeiroNome = (nomeProf || 'Professor').split(' ')[0]
+    const urlApp = window.location.href.split('?')[0].replace('coordenacao.html', 'professor.html')
+    return `Olá Prof. ${primeiroNome}!\n\nSeu acesso ao sistema *Locus* (agendamento de salas) foi liberado pela coordenação.\n\n🔑 *Seu PIN de acesso:* ${pinAcesso}\n🔗 *Acesse por aqui:* ${urlApp}\n\nQualquer dúvida estamos à disposição da coordenação!`
+}
+
+window.abrirWhatsAppComPin = function(nomeProf, pinAcesso) {
+    const msg = gerarMensagemWhatsAppProfessor(nomeProf, pinAcesso)
+    const link = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`
+    window.open(link, '_blank')
+}
+
+window.copiarMensagemWhatsApp = function(nomeProf, pinAcesso, btnEl) {
+    const msg = gerarMensagemWhatsAppProfessor(nomeProf, pinAcesso)
+    navigator.clipboard.writeText(msg).then(() => {
+        if (btnEl) {
+            const txtAntigo = btnEl.innerHTML
+            btnEl.innerHTML = '✓ Mensagem copiada!'
+            btnEl.style.background = 'rgba(34,197,94,0.18)'
+            btnEl.style.color = '#22c55e'
+            setTimeout(() => {
+                btnEl.innerHTML = txtAntigo
+                btnEl.style.background = ''
+                btnEl.style.color = ''
+            }, 2000)
+        }
+    }).catch(() => alert(msg))
+}
 
 // ============================================================
 //  AUTENTICAÇÃO
@@ -227,6 +260,30 @@ window.sairPainel = async function() {
 //  DASHBOARD
 // ============================================================
 
+window.selecionarFiltroDataRapido = function(modo) {
+    window.modoDataRapido = modo
+    const fData = document.getElementById('filtroData')
+    const hoje = new Date()
+
+    ;['hoje', 'amanha', 'semana', 'todas'].forEach(m => {
+        const btn = document.getElementById(`btn-data-${m}`)
+        if (btn) btn.classList.toggle('ativo', m === modo)
+    })
+
+    if (modo === 'hoje') {
+        if (fData) fData.value = formatarData(hoje)
+    } else if (modo === 'amanha') {
+        const amanha = new Date(hoje)
+        amanha.setDate(amanha.getDate() + 1)
+        if (fData) fData.value = formatarData(amanha)
+    } else if (modo === 'semana') {
+        if (fData) fData.value = ''
+    } else if (modo === 'todas') {
+        if (fData) fData.value = ''
+    }
+    carregarRelatorioGeral()
+}
+
 function mostrarDashboard() {
     document.getElementById('secao-login-coord').style.display = 'none'
     document.getElementById('secao-dashboard').classList.add('visivel')
@@ -234,6 +291,7 @@ function mostrarDashboard() {
     const hoje = new Date()
     const inputData = document.getElementById('filtroData')
     if (inputData) inputData.value = formatarData(hoje)
+    window.modoDataRapido = 'hoje'
 
     // Carrega dados dos filtros (requerem sessão ativa para professores completos)
     carregarSalasNoFiltro()
@@ -245,7 +303,16 @@ function mostrarDashboard() {
     const fSala      = document.getElementById('filtroSala')
     const fProfessor = document.getElementById('filtroProfessor')
     const fTurno     = document.getElementById('filtroTurno')
-    if (fData)      fData.addEventListener('change', () => carregarRelatorioGeral())
+    if (fData) {
+        fData.addEventListener('change', () => {
+            window.modoDataRapido = 'personalizado'
+            ;['hoje', 'amanha', 'semana', 'todas'].forEach(m => {
+                const btn = document.getElementById(`btn-data-${m}`)
+                if (btn) btn.classList.remove('ativo')
+            })
+            carregarRelatorioGeral()
+        })
+    }
     if (fSala)      fSala.addEventListener('change', () => carregarRelatorioGeral())
     if (fProfessor) fProfessor.addEventListener('change', () => carregarRelatorioGeral())
     if (fTurno)     fTurno.addEventListener('change', () => carregarRelatorioGeral())
@@ -371,14 +438,25 @@ async function atualizarBadgePendentes() {
             .select('*', { count: 'exact', head: true })
             .eq('status', 'pendente')
         const total = count || 0
-        if (total > 0) {
-            if (badge) { badge.textContent = total; badge.style.display = 'inline-flex'; }
-            if (badgeNav) { badgeNav.textContent = total; badgeNav.style.display = 'inline-flex'; }
-            if (qtdSolicitacoes) qtdSolicitacoes.textContent = total
-        } else {
-            if (badge) badge.style.display = 'none'
-            if (badgeNav) badgeNav.style.display = 'none'
-            if (qtdSolicitacoes) qtdSolicitacoes.textContent = '0'
+        if (badge) {
+            if (total > 0) {
+                badge.textContent = total; badge.style.display = 'inline-flex';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+        if (badgeNav) {
+            badgeNav.textContent = total; badgeNav.style.display = total > 0 ? 'inline-flex' : 'none';
+        }
+        if (qtdSolicitacoes) {
+            qtdSolicitacoes.textContent = total;
+        }
+
+        const bannerAlerta = document.getElementById('banner-alerta-solicitacoes');
+        const qtdAlerta = document.getElementById('qtd-sol-alerta');
+        if (bannerAlerta && qtdAlerta) {
+            qtdAlerta.textContent = total;
+            bannerAlerta.style.display = total > 0 ? 'flex' : 'none';
         }
     } catch (e) { /* silencioso */ }
 }
@@ -416,6 +494,13 @@ async function carregarSolicitacoes() {
         }
         if (qtdSolicitacoes) {
             qtdSolicitacoes.textContent = total
+        }
+
+        const bannerAlerta = document.getElementById('banner-alerta-solicitacoes');
+        const qtdAlerta = document.getElementById('qtd-sol-alerta');
+        if (bannerAlerta && qtdAlerta) {
+            qtdAlerta.textContent = total;
+            bannerAlerta.style.display = total > 0 ? 'flex' : 'none';
         }
 
         const kpiSol = document.getElementById('kpi-prof-solicitacoes')
@@ -574,7 +659,60 @@ async function aprovarSolicitacao(id, nome, disciplina, pin) {
             profId
         )
 
-        dispararAlerta({ icon: 'success', title: 'Aprovado!', text: `${nome} já pode fazer login no Locus.`, confirmButtonColor: 'var(--cor-sucesso)', timer: 2500, showConfirmButton: false })
+        Swal.fire({
+            icon: 'success',
+            title: 'Professor(a) Aprovado(a)!',
+            html: `
+                <div style="font-family:'Poppins',sans-serif; text-align:center;">
+                    <p style="font-size:0.86rem; color:var(--txt2); margin-bottom:12px;">
+                        O acesso de <strong>${nome}</strong> (${disciplina}) foi ativado com o PIN:
+                    </p>
+                    <div class="modal-copiar-box" style="margin-bottom:14px;">
+                        <div style="text-align:left;">
+                            <div style="font-size:0.68rem; text-transform:uppercase; color:var(--txt3); font-weight:700;">PIN DE ACESSO</div>
+                            <div class="badge-pin-display">${pin}</div>
+                        </div>
+                        <button type="button" id="btn-copiar-pin-aprovado" class="btn-acao-topo" style="padding:8px 14px; border-color:var(--purple); color:var(--purple); font-weight:700;">
+                            📋 Copiar PIN
+                        </button>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
+                        <button type="button" id="btn-zap-aprovado" class="btn-whatsapp-rapido" style="width:100%; justify-content:center;">
+                            <span>📱</span> Enviar Acesso via WhatsApp
+                        </button>
+                        <button type="button" id="btn-copiar-msg-aprovado" class="btn-acao-topo" style="width:100%; justify-content:center; padding:9px 12px; font-size:0.8rem;">
+                            📋 Copiar Mensagem Pronta
+                        </button>
+                    </div>
+                </div>
+            `,
+            confirmButtonText: 'Concluído',
+            confirmButtonColor: 'var(--cor-primaria)',
+            didOpen: () => {
+                const btnCopiar = document.getElementById('btn-copiar-pin-aprovado')
+                const btnZap = document.getElementById('btn-zap-aprovado')
+                const btnCopiarMsg = document.getElementById('btn-copiar-msg-aprovado')
+
+                if (btnCopiar) {
+                    btnCopiar.addEventListener('click', () => {
+                        navigator.clipboard.writeText(pin).then(() => {
+                            btnCopiar.textContent = '✓ Copiado!'
+                            setTimeout(() => { if (btnCopiar) btnCopiar.textContent = '📋 Copiar PIN' }, 2000)
+                        }).catch(() => alert(`PIN: ${pin}`))
+                    })
+                }
+                if (btnZap) {
+                    btnZap.addEventListener('click', () => {
+                        window.abrirWhatsAppComPin(nome, pin)
+                    })
+                }
+                if (btnCopiarMsg) {
+                    btnCopiarMsg.addEventListener('click', () => {
+                        window.copiarMensagemWhatsApp(nome, pin, btnCopiarMsg)
+                    })
+                }
+            }
+        })
 
     } catch (err) {
         Swal.close()
@@ -635,6 +773,7 @@ window.carregarRelatorioGeral = async function() {
     const filtroProfessor = document.getElementById('filtroProfessor')
     const filtroTurno     = document.getElementById('filtroTurno')
     const tabela          = document.getElementById('listaAgendamentos')
+    const buscaRapida     = document.getElementById('busca-rapida-reservas')
 
     if (!filtroData || !tabela) return
 
@@ -646,17 +785,32 @@ window.carregarRelatorioGeral = async function() {
     tabela.innerHTML = ''
     dadosAtuaisParaExportar = []
 
-    if (!dataFiltro && !salaFiltro && !professorFiltro && !turnoFiltro) {
-        tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Selecione uma data, sala, professor ou turno para ver os agendamentos.</td></tr>`
-        return
-    }
+    tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Carregando agendamentos...</td></tr>`
 
-    tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Carregando...</td></tr>`
+    const hojeObj = new Date()
+    const hojeIso = formatarData(hojeObj)
 
     let query = supabase
         .from('agendamentos')
         .select('id, data, aula_numero, professor_id, salas(nome), professores(nome), turmas(nome)')
-    if (dataFiltro)      query = query.eq('data', dataFiltro)
+
+    // Aplica estratégia de data conforme modo rápido ou campo datepicker
+    if (window.modoDataRapido === 'semana') {
+        const diaSemana = hojeObj.getDay() // 0 Dom, 1 Seg, ..., 6 Sab
+        const distSeg = diaSemana === 0 ? -6 : 1 - diaSemana
+        const segObj = new Date(hojeObj)
+        segObj.setDate(hojeObj.getDate() + distSeg)
+        const sexObj = new Date(segObj)
+        sexObj.setDate(segObj.getDate() + 4)
+        query = query.gte('data', formatarData(segObj)).lte('data', formatarData(sexObj))
+    } else if (window.modoDataRapido === 'todas') {
+        query = query.gte('data', hojeIso)
+    } else if (dataFiltro) {
+        query = query.eq('data', dataFiltro)
+    } else {
+        query = query.gte('data', hojeIso)
+    }
+
     if (salaFiltro)      query = query.eq('sala_id', salaFiltro)
     if (professorFiltro) query = query.eq('professor_id', professorFiltro)
 
@@ -759,18 +913,50 @@ window.carregarRelatorioGeral = async function() {
         tr.appendChild(tdAcao)
         tabela.appendChild(tr)
     })
+
+    // Se houver busca em tempo real ativa, reaplica o filtro
+    if (buscaRapida && buscaRapida.value.trim()) {
+        window.filtrarTabelaReservasEmTempoReal(buscaRapida.value)
+    }
+}
+
+window.filtrarTabelaReservasEmTempoReal = function(termo) {
+    const termoNorm = (termo || '').toLowerCase().trim()
+    const linhas = document.querySelectorAll('#listaAgendamentos tr')
+    let visiveis = 0
+    let totalValidas = 0
+
+    linhas.forEach(tr => {
+        if (tr.querySelector('.tabela-vazio-container')) return
+        totalValidas++
+        const texto = tr.textContent.toLowerCase()
+        const match = texto.includes(termoNorm)
+        tr.style.display = match ? '' : 'none'
+        if (match) visiveis++
+    })
+
+    const qtdEl = document.getElementById('qtd-total')
+    if (qtdEl) {
+        if (termoNorm && totalValidas > 0) {
+            qtdEl.innerText = `${visiveis} de ${dadosAtuaisParaExportar.length}`
+        } else {
+            qtdEl.innerText = dadosAtuaisParaExportar.length
+        }
+    }
 }
 
 window.limparFiltros = function() {
-    const filtroData      = document.getElementById('filtroData')
     const filtroSala      = document.getElementById('filtroSala')
     const filtroProfessor = document.getElementById('filtroProfessor')
     const filtroTurno     = document.getElementById('filtroTurno')
-    if (filtroData)       filtroData.value = ''
+    const buscaRapida     = document.getElementById('busca-rapida-reservas')
+
     if (filtroSala)       filtroSala.value = ''
     if (filtroProfessor)  filtroProfessor.value = ''
     if (filtroTurno)      filtroTurno.value = ''
-    carregarRelatorioGeral()
+    if (buscaRapida)      buscaRapida.value = ''
+
+    window.selecionarFiltroDataRapido('hoje')
 }
 
 window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula, professorId, dataBr) {
@@ -1306,7 +1492,7 @@ async function carregarListaProfessores() {
     container.innerHTML = '<div class="gerenciar-vazio">Carregando professores...</div>'
 
     const [{ data: professores, error }, disciplinas, { data: agendamentosData }] = await Promise.all([
-        supabase.from('professores').select('id, nome, disciplina, auth_user_id').order('nome', { ascending: true }),
+        supabase.from('professores').select('id, nome, disciplina, auth_user_id, pin').order('nome', { ascending: true }),
         obterDisciplinasCache(),
         supabase.from('agendamentos').select('professor_id')
     ])
@@ -1500,6 +1686,11 @@ function renderizarListaProfessores(professores, disciplinas = disciplinasCache,
                     ${statusTexto}
                 </span>
                 <div class="card-acoes-botoes">
+                    ${prof.pin ? `
+                    <button class="btn-card-icon" id="btn-zap-prof-${prof.id}" title="Enviar dados de acesso via WhatsApp" style="color: #22c55e; border-color: rgba(34, 197, 94, 0.35); background: rgba(34, 197, 94, 0.08);">
+                        📱
+                    </button>
+                    ` : ''}
                     <button class="btn-card-pin ${temAcesso ? '' : 'destaque'}" id="btn-pin-${prof.id}" title="${temAcesso ? 'Alterar ou redefinir PIN de acesso' : 'Definir PIN e ativar acesso agora'}">
                         <span>🔑</span> ${temAcesso ? 'PIN' : 'Ativar PIN'}
                     </button>
@@ -1539,11 +1730,19 @@ function renderizarListaProfessores(professores, disciplinas = disciplinasCache,
         selectOpts.forEach(opt => select.appendChild(opt.cloneNode(true)))
 
         // Eventos dos botões
+        if (prof.pin) {
+            div.querySelector(`#btn-zap-prof-${prof.id}`)
+                ?.addEventListener('click', (e) => {
+                    e.stopPropagation()
+                    window.abrirWhatsAppComPin(prof.nome, prof.pin)
+                })
+        }
+
         div.querySelector(`#res-prof-${prof.id}`)
             ?.addEventListener('click', () => window.filtrarReservasPorProfessor(prof.nome))
 
         div.querySelector(`#btn-pin-${prof.id}`)
-            ?.addEventListener('click', () => window.gerenciarAcessoProfessor(prof.id, prof.nome, temAcesso))
+            ?.addEventListener('click', () => window.gerenciarAcessoProfessor(prof.id, prof.nome, temAcesso, prof.pin))
 
         div.querySelector(`#btn-edit-${prof.id}`)
             ?.addEventListener('click', () => window.toggleEditarProfessor(prof.id))
@@ -1693,14 +1892,38 @@ async function ativarOuAtualizarPinProfessor(profId, nome, pin) {
     return { sucesso: true, metodo: 'direct_auth', authUserId };
 }
 
-window.gerenciarAcessoProfessor = async function(id, nome, temAcesso) {
+window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual) {
     if (!await exigirAuth()) return
+
+    const pinCadastrado = pinAtual || cacheProfessores.find(p => p.id === id)?.pin || null
 
     const htmlModal = `
         <div class="modal-pin-wrapper">
+            ${pinCadastrado ? `
+            <div class="modal-pin-bloco" style="border-color: rgba(59, 130, 246, 0.35); background: rgba(59, 130, 246, 0.06); margin-bottom: 14px;">
+                <div class="modal-pin-titulo" style="color: #60a5fa;">
+                    <span>🔍</span> PIN Atual Cadastrado
+                </div>
+                <div class="modal-pin-sub">
+                    Código de <strong>${nome}</strong> cadastrado no sistema:
+                </div>
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px; gap:8px; flex-wrap:wrap;">
+                    <span style="font-family:monospace; font-size:1.35rem; letter-spacing:4px; font-weight:800; color:#38bdf8; background:rgba(0,0,0,0.3); padding:4px 14px; border-radius:8px; border:1px solid rgba(56,189,248,0.3);">${pinCadastrado}</span>
+                    <div style="display:flex; gap:6px;">
+                        <button type="button" id="btn-zap-pin-atual" class="btn-whatsapp-rapido" style="padding:6px 12px; font-size:0.75rem;">
+                            📱 WhatsApp
+                        </button>
+                        <button type="button" id="btn-copiar-pin-atual" class="btn-acao-topo" style="padding:6px 12px; font-size:0.75rem;">
+                            📋 Copiar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+
             <div class="modal-pin-bloco">
                 <div class="modal-pin-titulo">
-                    <span>🔑</span> Definir Novo PIN Imediatamente
+                    <span>🔑</span> ${pinCadastrado ? 'Alterar / Redefinir PIN' : 'Definir Novo PIN Imediatamente'}
                 </div>
                 <div class="modal-pin-sub">
                     Digite 4 dígitos ou gere um PIN aleatório para liberar ou redefinir o acesso de <strong>${nome}</strong> na hora.
@@ -1746,6 +1969,8 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso) {
             const inputPin = document.getElementById('modal-input-pin')
             const btnRandom = document.getElementById('btn-gerar-pin-modal')
             const btnRevogar = document.getElementById('btn-revogar-acesso-modal')
+            const btnZapAtual = document.getElementById('btn-zap-pin-atual')
+            const btnCopiarAtual = document.getElementById('btn-copiar-pin-atual')
 
             if (inputPin) {
                 inputPin.focus()
@@ -1759,6 +1984,21 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso) {
                     const rnd = Math.floor(1000 + Math.random() * 9000).toString()
                     inputPin.value = rnd
                     inputPin.focus()
+                })
+            }
+
+            if (btnZapAtual && pinCadastrado) {
+                btnZapAtual.addEventListener('click', () => {
+                    window.abrirWhatsAppComPin(nome, pinCadastrado)
+                })
+            }
+
+            if (btnCopiarAtual && pinCadastrado) {
+                btnCopiarAtual.addEventListener('click', () => {
+                    navigator.clipboard.writeText(pinCadastrado).then(() => {
+                        btnCopiarAtual.textContent = '✓ Copiado!'
+                        setTimeout(() => { if (btnCopiarAtual) btnCopiarAtual.textContent = '📋 Copiar' }, 2000)
+                    }).catch(() => alert(`PIN: ${pinCadastrado}`))
                 })
             }
 
@@ -1807,7 +2047,7 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso) {
 
         await carregarListaProfessores()
 
-        // Tela de confirmação com cópia facilitada
+        // Tela de confirmação com envio WhatsApp e cópia facilitada
         Swal.fire({
             icon: 'success',
             title: 'PIN Definido com Sucesso!',
@@ -1825,6 +2065,14 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso) {
                             📋 Copiar PIN
                         </button>
                     </div>
+                    <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
+                        <button type="button" id="btn-zap-novo-pin" class="btn-whatsapp-rapido" style="width:100%; justify-content:center;">
+                            <span>📱</span> Enviar Novo PIN via WhatsApp
+                        </button>
+                        <button type="button" id="btn-copiar-msg-novo-pin" class="btn-acao-topo" style="width:100%; justify-content:center; padding:9px 12px; font-size:0.8rem;">
+                            📋 Copiar Mensagem Pronta
+                        </button>
+                    </div>
                     <p style="font-size:0.75rem; color:var(--txt3); margin-top:14px;">
                         O professor já pode fazer login na Área do Professor com este PIN.
                     </p>
@@ -1834,6 +2082,9 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso) {
             confirmButtonColor: 'var(--cor-primaria)',
             didOpen: () => {
                 const btnCopiar = document.getElementById('btn-copiar-novo-pin')
+                const btnZap = document.getElementById('btn-zap-novo-pin')
+                const btnCopiarMsg = document.getElementById('btn-copiar-msg-novo-pin')
+
                 if (btnCopiar) {
                     btnCopiar.addEventListener('click', () => {
                         navigator.clipboard.writeText(novoPin).then(() => {
@@ -1841,13 +2092,27 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso) {
                             btnCopiar.style.background = 'rgba(34,197,94,0.15)'
                             btnCopiar.style.color = '#22c55e'
                             setTimeout(() => {
-                                btnCopiar.textContent = '📋 Copiar PIN'
-                                btnCopiar.style.background = ''
-                                btnCopiar.style.color = ''
+                                if (btnCopiar) {
+                                    btnCopiar.textContent = '📋 Copiar PIN'
+                                    btnCopiar.style.background = ''
+                                    btnCopiar.style.color = ''
+                                }
                             }, 2000)
                         }).catch(() => {
                             alert(`PIN: ${novoPin}`)
                         })
+                    })
+                }
+
+                if (btnZap) {
+                    btnZap.addEventListener('click', () => {
+                        window.abrirWhatsAppComPin(nome, novoPin)
+                    })
+                }
+
+                if (btnCopiarMsg) {
+                    btnCopiarMsg.addEventListener('click', () => {
+                        window.copiarMensagemWhatsApp(nome, novoPin, btnCopiarMsg)
                     })
                 }
             }
@@ -2079,18 +2344,41 @@ window.abrirModalNovoProfessor = async function() {
                                 📋 Copiar PIN
                             </button>
                         </div>
+                        <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
+                            <button type="button" id="btn-zap-novo-prof" class="btn-whatsapp-rapido" style="width:100%; justify-content:center;">
+                                <span>📱</span> Enviar Acesso via WhatsApp
+                            </button>
+                            <button type="button" id="btn-copiar-msg-novo-prof" class="btn-acao-topo" style="width:100%; justify-content:center; padding:9px 12px; font-size:0.8rem;">
+                                📋 Copiar Mensagem Pronta
+                            </button>
+                        </div>
                     </div>
                 `,
                 confirmButtonText: 'Entendido',
                 confirmButtonColor: 'var(--cor-primaria)',
                 didOpen: () => {
                     const btnCopiar = document.getElementById('btn-copiar-pin-cad')
+                    const btnZap = document.getElementById('btn-zap-novo-prof')
+                    const btnCopiarMsg = document.getElementById('btn-copiar-msg-novo-prof')
+
                     if (btnCopiar) {
                         btnCopiar.addEventListener('click', () => {
                             navigator.clipboard.writeText(pin).then(() => {
                                 btnCopiar.textContent = '✓ Copiado!'
-                                setTimeout(() => btnCopiar.textContent = '📋 Copiar PIN', 2000)
-                            })
+                                setTimeout(() => { if (btnCopiar) btnCopiar.textContent = '📋 Copiar PIN' }, 2000)
+                            }).catch(() => alert(`PIN: ${pin}`))
+                        })
+                    }
+
+                    if (btnZap) {
+                        btnZap.addEventListener('click', () => {
+                            window.abrirWhatsAppComPin(nome, pin)
+                        })
+                    }
+
+                    if (btnCopiarMsg) {
+                        btnCopiarMsg.addEventListener('click', () => {
+                            window.copiarMensagemWhatsApp(nome, pin, btnCopiarMsg)
                         })
                     }
                 }
@@ -2156,27 +2444,31 @@ window.excluirProfessor = async function(id, nome) {
         });
     } catch (_) {}
 
-    if (total > 0) {
-        const { error: errAgendamentos } = await supabase
-            .from('agendamentos')
-            .delete()
-            .eq('professor_id', id);
-
-        if (errAgendamentos) {
-            console.warn('Não foi possível remover agendamentos antes de excluir professor:', errAgendamentos);
-        }
+    // 1. Remove inscrições push para evitar violação de integridade referencial (23503)
+    try {
+        await supabase.from('inscricoes_push').delete().eq('professor_id', id);
+    } catch (errPush) {
+        console.warn('Aviso ao remover push do professor:', errPush);
     }
 
-    // RLS: professores_delete_coord
+    // 2. Remove agendamentos vinculados
+    try {
+        await supabase.from('agendamentos').delete().eq('professor_id', id);
+    } catch (errAgendamentos) {
+        console.warn('Aviso ao remover agendamentos do professor:', errAgendamentos);
+    }
+
+    // 3. Remove professor (RLS: professores_delete_coord)
     const { error } = await supabase.from('professores').delete().eq('id', id);
     Swal.close();
 
     if (error) {
-        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível excluir o professor.', confirmButtonColor: 'var(--cor-perigo)' });
+        console.error('Erro ao excluir professor:', error);
+        dispararAlerta({ icon: 'error', title: 'Erro', text: error.message || 'Não foi possível excluir o professor.', confirmButtonColor: 'var(--cor-perigo)' });
         return;
     }
 
-    dispararAlerta({ icon: 'success', title: 'Excluído!', text: `Professor "${nome}" foi excluído com sucesso.`, timer: 1500, showConfirmButton: false });
+    dispararAlerta({ icon: 'success', title: 'Excluído!', text: `Professor "${nome}" foi excluído com sucesso.`, timer: 1800, showConfirmButton: false });
     carregarListaProfessores();
     carregarProfessoresNoFiltro();
     carregarRelatorioGeral();

@@ -278,14 +278,29 @@ async function enviarSolicitacao() {
         }
 
         // 2. Verifica se já existe solicitação PENDENTE em análise
-        const { data: solPendentes, error: errSol } = await supabase
-            .from('solicitacoes_acesso')
-            .select('id, status')
-            .ilike('nome', nome)
-            .eq('status', 'pendente')
-            .limit(1);
+        let existePendente = false;
+        try {
+            const { data: rpcRes, error: rpcErr } = await supabase.rpc('verificar_solicitacao_existente', { p_nome: nome });
+            if (!rpcErr && typeof rpcRes === 'boolean') {
+                existePendente = rpcRes;
+            }
+        } catch (_) {}
 
-        if (!errSol && solPendentes && solPendentes.length > 0) {
+        if (!existePendente) {
+            try {
+                const { data: solPendentes, error: errSol } = await supabase
+                    .from('solicitacoes_acesso')
+                    .select('id, status')
+                    .ilike('nome', nome)
+                    .eq('status', 'pendente')
+                    .limit(1);
+                if (!errSol && solPendentes && solPendentes.length > 0) {
+                    existePendente = true;
+                }
+            } catch (_) {}
+        }
+
+        if (existePendente) {
             btnEnviar.disabled = false;
             btnEnviar.classList.remove('carregando');
             return Swal.fire({

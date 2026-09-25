@@ -883,6 +883,12 @@ window.abrirModalAlterarPin = async function() {
 
         if (error) throw error;
 
+        // Mantém a coluna pin na tabela professores sincronizada
+        try {
+            await supabase.from('professores').update({ pin: novoPin }).eq('id', professorLogado.id);
+            professorLogado.pin = novoPin;
+        } catch (_) {}
+
         await Swal.fire({
             icon: 'success',
             title: 'PIN Atualizado!',

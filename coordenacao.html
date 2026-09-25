@@ -2085,6 +2085,177 @@
         margin-left: 4px;
         line-height: 1.2;
     }
+
+    /* ── ATALHOS RÁPIDOS DE DATA (COORDENAÇÃO) ── */
+    .filtros-rapidos-datas-linha {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+    }
+    .label-atalhos {
+        font-size: 0.74rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--txt3);
+    }
+    .chips-datas-atalhos {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .btn-chip-data {
+        padding: 6px 14px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+        background: var(--surface2, rgba(220, 60, 60, 0.05));
+        color: var(--txt2);
+        font-size: 0.79rem;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all 0.18s ease;
+    }
+    .btn-chip-data:hover {
+        background: rgba(220, 60, 60, 0.12);
+        color: var(--txt);
+        border-color: rgba(220, 60, 60, 0.35);
+    }
+    .btn-chip-data.ativo {
+        background: var(--purple, #dc3c3c);
+        color: #ffffff;
+        border-color: var(--purple, #dc3c3c);
+        font-weight: 700;
+        box-shadow: 0 2px 10px rgba(220, 60, 60, 0.25);
+    }
+
+    /* ── BUSCA RÁPIDA NA TABELA ── */
+    .busca-tabela-reservas-wrap {
+        position: relative;
+        margin-bottom: 14px;
+    }
+    .busca-tabela-reservas-wrap .busca-icone {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.88rem;
+        color: var(--txt3);
+        pointer-events: none;
+    }
+    .busca-tabela-reservas-wrap input {
+        width: 100%;
+        padding: 10px 14px 10px 38px;
+        background: var(--surface2, rgba(22, 13, 44, 0.6));
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--txt);
+        font-size: 0.84rem;
+        font-family: inherit;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .busca-tabela-reservas-wrap input:focus {
+        border-color: var(--purple);
+        box-shadow: 0 0 0 3px var(--purple-dim);
+    }
+
+    /* ── BANNER ALERTA SOLICITAÇÕES PENDENTES ── */
+    .alerta-solicitacoes-pendentes {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: linear-gradient(135deg, rgba(234, 179, 8, 0.14), rgba(220, 60, 60, 0.12));
+        border: 1.5px solid rgba(234, 179, 8, 0.4);
+        border-radius: 16px;
+        padding: 14px 18px;
+        margin-bottom: 16px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+        box-shadow: 0 4px 16px rgba(234, 179, 8, 0.1);
+        animation: entrar-card 0.3s ease both;
+    }
+    .alerta-solicitacoes-pendentes:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(234, 179, 8, 0.2);
+        border-color: rgba(234, 179, 8, 0.7);
+    }
+    .alerta-sol-icone {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: rgba(234, 179, 8, 0.22);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    .alerta-sol-texto {
+        flex: 1;
+        min-width: 0;
+    }
+    .alerta-sol-titulo {
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #facc15;
+    }
+    .alerta-sol-sub {
+        font-size: 0.76rem;
+        color: var(--txt2);
+        margin-top: 2px;
+    }
+    .alerta-sol-botao {
+        padding: 7px 14px;
+        background: #facc15;
+        color: #1e1b2e;
+        border-radius: 8px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        white-space: nowrap;
+        flex-shrink: 0;
+        transition: transform 0.15s;
+    }
+    .alerta-solicitacoes-pendentes:active .alerta-sol-botao {
+        transform: scale(0.95);
+    }
+
+    /* ── BOTÃO WHATSAPP NO MODAL ── */
+    .modal-acoes-whatsapp {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 14px;
+    }
+    .btn-whatsapp-pin {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        padding: 11px 16px;
+        background: #25D366;
+        color: #ffffff;
+        border: none;
+        border-radius: 12px;
+        font-size: 0.86rem;
+        font-weight: 700;
+        font-family: inherit;
+        cursor: pointer;
+        text-decoration: none;
+        box-shadow: 0 4px 14px rgba(37, 211, 102, 0.25);
+        transition: background 0.18s, transform 0.12s;
+    }
+    .btn-whatsapp-pin:hover {
+        background: #1ebd5a;
+    }
+    .btn-whatsapp-pin:active {
+        transform: scale(0.97);
+    }
     </style>
     <link rel="stylesheet" href="./cal-inspired.css">
 </head>
@@ -2157,6 +2328,16 @@
             <span>🔔</span> Notificações ativas — você será avisada sobre novas solicitações
         </div>
 
+        <!-- Banner de Solicitações Pendentes (Alerta Rápido para a Coordenação) -->
+        <div id="banner-alerta-solicitacoes" class="alerta-solicitacoes-pendentes" style="display:none;" onclick="mudarAbaPrincipal('professores')">
+            <div class="alerta-sol-icone">⏳</div>
+            <div class="alerta-sol-texto">
+                <div class="alerta-sol-titulo"><span id="qtd-sol-alerta">0</span> professor(es) aguardando liberação de acesso</div>
+                <div class="alerta-sol-sub">Clique aqui para revisar e aprovar o PIN na Gestão de Professores</div>
+            </div>
+            <div class="alerta-sol-botao">Revisar ›</div>
+        </div>
+
         <!-- ══ ABA 1: RESERVAS ══════════════════════════════════ -->
         <div id="painel-aba-reservas" class="painel-aba-principal">
             <!-- Resumo -->
@@ -2187,9 +2368,20 @@
                     </button>
                 </div>
 
+                <!-- Atalhos rápidos de Data (Foco em Usabilidade Ágil para a Coordenação) -->
+                <div class="filtros-rapidos-datas-linha">
+                    <span class="label-atalhos">Atalhos rápidos:</span>
+                    <div class="chips-datas-atalhos">
+                        <button type="button" class="btn-chip-data ativo" id="btn-data-hoje" onclick="selecionarFiltroDataRapido('hoje')">📌 Hoje</button>
+                        <button type="button" class="btn-chip-data" id="btn-data-amanha" onclick="selecionarFiltroDataRapido('amanha')">🗓️ Amanhã</button>
+                        <button type="button" class="btn-chip-data" id="btn-data-semana" onclick="selecionarFiltroDataRapido('semana')">📅 Esta Semana</button>
+                        <button type="button" class="btn-chip-data" id="btn-data-todas" onclick="selecionarFiltroDataRapido('todas')">📋 Todas as Próximas</button>
+                    </div>
+                </div>
+
                 <div class="filtros-container">
                     <div class="filtro-item">
-                        <label>📅 Data</label>
+                        <label>📅 Data Específica</label>
                         <input type="date" id="filtroData">
                     </div>
                     <div class="filtro-item">
@@ -2213,8 +2405,15 @@
                         </select>
                     </div>
                 </div>
+
                 <div class="filtros-acoes">
                     <button class="btn-limpar-filtros" onclick="limparFiltros()">✕ Limpar filtros</button>
+                </div>
+
+                <!-- Campo de busca rápida em tempo real dentro da lista exibida -->
+                <div class="busca-tabela-reservas-wrap">
+                    <span class="busca-icone">🔍</span>
+                    <input type="text" id="busca-rapida-reservas" placeholder="Filtrar instantaneamente por professor, sala ou turma nesta lista..." oninput="filtrarTabelaReservasEmTempoReal(this.value)">
                 </div>
                 <div class="table-responsive">
                     <table>
