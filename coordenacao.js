@@ -22,6 +22,59 @@ let dadosAtuaisParaExportar = []
 window.modoDataRapido = 'hoje' // 'hoje' | 'amanha' | 'semana' | 'todas' | 'personalizado'
 
 /**
+ * Formata um número de telefone brasileiro para o formato internacional aceito pelo WhatsApp (55 + DDD + número)
+ */
+export function formatarTelefoneInternacional(tel) {
+    if (!tel) return ''
+    const limpo = String(tel).replace(/\D/g, '')
+    if (!limpo) return ''
+    if ((limpo.length === 12 || limpo.length === 13) && limpo.startsWith('55')) {
+        return limpo
+    }
+    if (limpo.length === 10 || limpo.length === 11) {
+        return `55${limpo}`
+    }
+    return limpo
+}
+
+/**
+ * Formata número para exibição amigável: (XX) 9XXXX-XXXX ou (XX) XXXX-XXXX
+ */
+export function formatarTelefoneExibicao(tel) {
+    if (!tel) return ''
+    let d = String(tel).replace(/\D/g, '')
+    if ((d.length === 12 || d.length === 13) && d.startsWith('55')) {
+        d = d.slice(2)
+    }
+    if (d.length === 11) {
+        return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+    }
+    if (d.length === 10) {
+        return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+    }
+    return tel
+}
+
+/**
+ * Aplica máscara dinâmica em inputs de telefone: (XX) 9XXXX-XXXX
+ */
+export function aplicarMascaraTelefoneInput(inputEl) {
+    if (!inputEl) return
+    inputEl.addEventListener('input', () => {
+        let v = inputEl.value.replace(/\D/g, '')
+        if (v.length > 11) v = v.slice(0, 11)
+        if (v.length > 6) {
+            v = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`
+        } else if (v.length > 2) {
+            v = `(${v.slice(0, 2)}) ${v.slice(2)}`
+        } else if (v.length > 0) {
+            v = `(${v}`
+        }
+        inputEl.value = v
+    })
+}
+
+/**
  * Gera mensagem educada e formatada para envio do PIN via WhatsApp
  */
 export function gerarMensagemWhatsAppProfessor(nomeProf, pinAcesso) {
@@ -30,9 +83,12 @@ export function gerarMensagemWhatsAppProfessor(nomeProf, pinAcesso) {
     return `Olá Prof. ${primeiroNome}!\n\nSeu acesso ao sistema *Locus* (agendamento de salas) foi liberado pela coordenação.\n\n🔑 *Seu PIN de acesso:* ${pinAcesso}\n🔗 *Acesse por aqui:* ${urlApp}\n\nQualquer dúvida estamos à disposição da coordenação!`
 }
 
-window.abrirWhatsAppComPin = function(nomeProf, pinAcesso) {
+window.abrirWhatsAppComPin = function(nomeProf, pinAcesso, telefone = null) {
     const msg = gerarMensagemWhatsAppProfessor(nomeProf, pinAcesso)
-    const link = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`
+    const telInt = formatarTelefoneInternacional(telefone)
+    const link = telInt
+        ? `https://api.whatsapp.com/send?phone=${telInt}&text=${encodeURIComponent(msg)}`
+        : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`
     window.open(link, '_blank')
 }
 
@@ -466,9 +522,8 @@ async function carregarSolicitacoes() {
     const badge = document.getElementById('badge-pendentes')
     const badgeNav = document.getElementById('badge-nav-professores')
     const qtdSolicitacoes = document.getElementById('qtd-solicitacoes-total')
+    const blocoSol = document.getElementById('bloco-solicitacoes')
     if (!lista) return
-
-    lista.innerHTML = '<div class="gerenciar-vazio">Carregando...</div>'
 
     try {
         const { data, error } = await supabase
@@ -481,12 +536,8 @@ async function carregarSolicitacoes() {
 
         const total = data?.length || 0
         if (badge) {
-            if (total > 0) {
-                badge.textContent = total
-                badge.style.display = 'inline-flex'
-            } else {
-                badge.style.display = 'none'
-            }
+            badge.textContent = total
+            badge.style.display = total > 0 ? 'inline-flex' : 'none'
         }
         if (badgeNav) {
             badgeNav.textContent = total
@@ -508,13 +559,15 @@ async function carregarSolicitacoes() {
         if (kpiSol) kpiSol.textContent = total
         if (kpiBadge) kpiBadge.style.display = total > 0 ? 'inline-flex' : 'none'
 
+        // Se não houver solicitações, mantém a tela limpa e sem poluição
         if (!data || data.length === 0) {
-            lista.innerHTML = `<div class="solicitacoes-vazio" style="padding: 16px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 0.84rem; color: var(--txt3);">
-                <span style="font-size: 1.2rem;">✅</span>
-                <span>Nenhuma solicitação pendente no momento.</span>
-            </div>`
+            if (blocoSol) blocoSol.style.display = 'none'
+            lista.innerHTML = ''
             return
         }
+
+        // Se houver solicitações, exibe o banner em destaque acolhedor
+        if (blocoSol) blocoSol.style.display = 'block'
 
         lista.innerHTML = ''
         data.forEach(s => {
@@ -524,7 +577,6 @@ async function carregarSolicitacoes() {
             card.className = 'solicitacao-card'
             card.id = `sol-${s.id}`
 
-            // Monta o card via DOM (evita XSS com dados do banco)
             const info = document.createElement('div')
             info.className = 'solicitacao-info'
 
@@ -534,30 +586,8 @@ async function carregarSolicitacoes() {
 
             const meta = document.createElement('div')
             meta.className = 'solicitacao-meta'
-            meta.textContent = `${s.disciplina} · ${dataFmt}`
-
-            // Badge com visualização segura do PIN escolhido
-            const pinWrap = document.createElement('span')
-            pinWrap.className = 'badge-solicitacao-pin-wrap'
-            pinWrap.title = 'PIN escolhido pelo docente'
-            const pinSpan = document.createElement('span')
-            pinSpan.textContent = '••••'
-            pinSpan.style.letterSpacing = '2px'
-            const btnVerPin = document.createElement('button')
-            btnVerPin.className = 'btn-ver-pin-sol'
-            btnVerPin.type = 'button'
-            btnVerPin.textContent = '👁️'
-            btnVerPin.title = 'Ver/ocultar PIN'
-            let pinVisivel = false
-            btnVerPin.addEventListener('click', (e) => {
-                e.stopPropagation()
-                pinVisivel = !pinVisivel
-                pinSpan.textContent = pinVisivel ? (s.pin || '----') : '••••'
-                btnVerPin.textContent = pinVisivel ? '🔒' : '👁️'
-            })
-            pinWrap.appendChild(pinSpan)
-            pinWrap.appendChild(btnVerPin)
-            meta.appendChild(pinWrap)
+            const telTag = s.telefone ? `<span class="solicitacao-tel-tag" title="WhatsApp informado">📱 ${formatarTelefoneExibicao(s.telefone)}</span>` : ''
+            meta.innerHTML = `<span class="solicitacao-disc-tag">📚 ${s.disciplina || 'Geral'}</span> ${telTag} <span>· Pedido em ${dataFmt}</span>`
 
             info.appendChild(nome)
             info.appendChild(meta)
@@ -567,13 +597,14 @@ async function carregarSolicitacoes() {
 
             const btnAprovar = document.createElement('button')
             btnAprovar.className = 'btn-aprovar'
-            btnAprovar.textContent = '✓ Aprovar'
-            // PIN armazenado em closure, nunca no DOM como atributo
-            btnAprovar.addEventListener('click', () => aprovarSolicitacao(s.id, s.nome, s.disciplina, s.pin))
+            btnAprovar.type = 'button'
+            btnAprovar.innerHTML = '✓ Liberar Acesso'
+            btnAprovar.addEventListener('click', () => aprovarSolicitacao(s.id, s.nome, s.disciplina, s.pin, s.telefone))
 
             const btnRejeitar = document.createElement('button')
             btnRejeitar.className = 'btn-rejeitar'
-            btnRejeitar.textContent = '✕ Rejeitar'
+            btnRejeitar.type = 'button'
+            btnRejeitar.innerHTML = '✕ Recusar'
             btnRejeitar.addEventListener('click', () => rejeitarSolicitacao(s.id, s.nome))
 
             acoes.appendChild(btnAprovar)
@@ -586,11 +617,11 @@ async function carregarSolicitacoes() {
 
     } catch (err) {
         console.error('Erro ao carregar solicitações:', err)
-        lista.innerHTML = '<div class="gerenciar-vazio">Erro ao carregar solicitações.</div>'
+        if (blocoSol) blocoSol.style.display = 'none'
     }
 }
 
-async function aprovarSolicitacao(id, nome, disciplina, pin) {
+async function aprovarSolicitacao(id, nome, disciplina, pin, telefone = null) {
     if (!await exigirAuth()) return
 
     const confirmar = await Swal.fire({
@@ -617,13 +648,35 @@ async function aprovarSolicitacao(id, nome, disciplina, pin) {
 
         if (existente?.id) {
             profId = existente.id
-            await supabase.from('professores').update({ disciplina }).eq('id', profId)
+            const updatePayload = { disciplina }
+            if (telefone) updatePayload.telefone = telefone
+            try {
+                await supabase.from('professores').update(updatePayload).eq('id', profId)
+            } catch (errUp) {
+                if (errUp?.code === '42703' || String(errUp?.message).includes('telefone')) {
+                    await supabase.from('professores').update({ disciplina }).eq('id', profId)
+                } else {
+                    throw errUp
+                }
+            }
         } else {
-            const { data: prof, error: errProf } = await supabase
+            const insertPayload = { nome, disciplina, auth_user_id: null }
+            if (telefone) insertPayload.telefone = telefone
+            let { data: prof, error: errProf } = await supabase
                 .from('professores')
-                .insert([{ nome, disciplina, auth_user_id: null }])
+                .insert([insertPayload])
                 .select('id')
                 .single()
+
+            if (errProf && (errProf.code === '42703' || String(errProf.message).includes('telefone'))) {
+                const fallback = await supabase
+                    .from('professores')
+                    .insert([{ nome, disciplina, auth_user_id: null }])
+                    .select('id')
+                    .single()
+                prof = fallback.data
+                errProf = fallback.error
+            }
 
             if (errProf) throw errProf
             profId = prof.id
@@ -678,7 +731,7 @@ async function aprovarSolicitacao(id, nome, disciplina, pin) {
                     </div>
                     <div style="display:flex; flex-direction:column; gap:8px; margin-top:10px;">
                         <button type="button" id="btn-zap-aprovado" class="btn-whatsapp-rapido" style="width:100%; justify-content:center;">
-                            <span>📱</span> Enviar Acesso via WhatsApp
+                            <span>📱</span> Enviar Acesso via WhatsApp ${telefone ? `(${formatarTelefoneExibicao(telefone)})` : ''}
                         </button>
                         <button type="button" id="btn-copiar-msg-aprovado" class="btn-acao-topo" style="width:100%; justify-content:center; padding:9px 12px; font-size:0.8rem;">
                             📋 Copiar Mensagem Pronta
@@ -703,7 +756,7 @@ async function aprovarSolicitacao(id, nome, disciplina, pin) {
                 }
                 if (btnZap) {
                     btnZap.addEventListener('click', () => {
-                        window.abrirWhatsAppComPin(nome, pin)
+                        window.abrirWhatsAppComPin(nome, pin, telefone)
                     })
                 }
                 if (btnCopiarMsg) {
@@ -804,7 +857,7 @@ window.carregarRelatorioGeral = async function() {
         sexObj.setDate(segObj.getDate() + 4)
         query = query.gte('data', formatarData(segObj)).lte('data', formatarData(sexObj))
     } else if (window.modoDataRapido === 'todas') {
-        query = query.gte('data', hojeIso)
+        // Exibe todas as reservas (sem restringir por data mínima)
     } else if (dataFiltro) {
         query = query.eq('data', dataFiltro)
     } else {
@@ -814,8 +867,9 @@ window.carregarRelatorioGeral = async function() {
     if (salaFiltro)      query = query.eq('sala_id', salaFiltro)
     if (professorFiltro) query = query.eq('professor_id', professorFiltro)
 
+    const ordemAsc = window.modoDataRapido !== 'todas'
     const { data: agendamentos, error } = await query
-        .order('data', { ascending: true })
+        .order('data', { ascending: ordemAsc })
         .order('aula_numero', { ascending: true })
 
     if (error) {
@@ -1090,23 +1144,174 @@ let disciplinasCache = []
 let cacheAgendamentosPorProf = {}
 let filtroStatusProfAtual = 'todos'
 
-window.filtrarReservasPorProfessor = function(nomeProf) {
-    if (!nomeProf) return
+window.filtrarReservasPorProfessor = function(profId, nomeProf) {
     window.mudarAbaPrincipal('reservas')
+
+    // 1. Ativa 'todas' para exibir todas as reservas do professor sem travar na data de hoje
+    window.modoDataRapido = 'todas'
+    ;['hoje', 'amanha', 'semana', 'todas'].forEach(m => {
+        const btn = document.getElementById(`btn-data-${m}`)
+        if (btn) btn.classList.toggle('ativo', m === 'todas')
+    })
+    const fData = document.getElementById('filtroData')
+    if (fData) fData.value = ''
+
+    // 2. Localiza e seleciona o professor no dropdown
     const fProf = document.getElementById('filtroProfessor')
     if (fProf) {
-        let achou = false
-        for (let opt of fProf.options) {
-            if (opt.text.toLowerCase().trim() === nomeProf.toLowerCase().trim() || opt.value.toLowerCase().trim() === nomeProf.toLowerCase().trim()) {
-                fProf.value = opt.value
-                achou = true
-                break
+        if (profId) {
+            fProf.value = profId
+        } else if (nomeProf) {
+            for (let opt of fProf.options) {
+                if (opt.text.toLowerCase().trim() === nomeProf.toLowerCase().trim() || opt.value.toLowerCase().trim() === nomeProf.toLowerCase().trim()) {
+                    fProf.value = opt.value
+                    break
+                }
             }
         }
-        if (!achou) {
-            fProf.value = nomeProf
+    }
+
+    // 3. Limpa filtros de sala e turno para mostrar todas as aulas dele
+    const fSala = document.getElementById('filtroSala')
+    if (fSala) fSala.value = ''
+    const fTurno = document.getElementById('filtroTurno')
+    if (fTurno) fTurno.value = ''
+
+    // 4. Executa a busca atualizada
+    carregarRelatorioGeral()
+}
+
+window.abrirHistoricoProfessor = async function(profId, nomeProf) {
+    if (!profId) return
+
+    Swal.fire({
+        title: 'Buscando histórico...',
+        html: `Consultando os agendamentos do(a) <strong>Prof. ${nomeProf}</strong>...`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    })
+
+    try {
+        const { data: agendamentos, error } = await supabase
+            .from('agendamentos')
+            .select('id, data, aula_numero, salas(nome), turmas(nome)')
+            .eq('professor_id', profId)
+            .order('data', { ascending: false })
+            .order('aula_numero', { ascending: true })
+
+        if (error) throw error
+
+        if (!agendamentos || agendamentos.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Nenhum Agendamento',
+                text: `O(A) Prof. ${nomeProf} não possui agendamentos registrados no sistema.`,
+                confirmButtonColor: 'var(--cor-primaria)'
+            })
+            return
         }
-        carregarRelatorioGeral()
+
+        const hojeIso = formatarData(new Date())
+        const total = agendamentos.length
+        const futuras = agendamentos.filter(a => a.data >= hojeIso).length
+        const passadas = total - futuras
+
+        const diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
+
+        const itensHtml = agendamentos.map(item => {
+            const [ano, mes, dia] = item.data.split('-').map(Number)
+            const dtObj = new Date(ano, mes - 1, dia)
+            const diaSemana = diasSemana[dtObj.getDay()] || ''
+            const dataFormatada = `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}/${ano}`
+
+            let statusTag = ''
+            if (item.data === hojeIso) {
+                statusTag = '<span class="status-reserva-badge hoje">🟢 Hoje</span>'
+            } else if (item.data > hojeIso) {
+                statusTag = '<span class="status-reserva-badge futura">🔵 Agendada</span>'
+            } else {
+                statusTag = '<span class="status-reserva-badge passada">⚪ Realizada</span>'
+            }
+
+            const salaNome = item.salas?.nome || 'Sala Geral'
+            const turmaNome = item.turmas?.nome || 'Sem turma'
+
+            return `
+                <div class="historico-item-card ${item.data === hojeIso ? 'destaque-hoje' : ''}">
+                    <div class="historico-item-topo">
+                        <div class="historico-item-data">
+                            <strong>📅 ${dataFormatada}</strong>
+                            <span class="historico-item-diasemana">${diaSemana}</span>
+                        </div>
+                        ${statusTag}
+                    </div>
+                    <div class="historico-item-detalhes">
+                        <div class="historico-item-detalhe">
+                            <span class="historico-item-label">🏫 Sala</span>
+                            <span class="historico-item-valor" title="${salaNome}">${salaNome}</span>
+                        </div>
+                        <div class="historico-item-detalhe">
+                            <span class="historico-item-label">👥 Turma</span>
+                            <span class="historico-item-valor" title="${turmaNome}">${turmaNome}</span>
+                        </div>
+                        <div class="historico-item-detalhe">
+                            <span class="historico-item-label">⏰ Horário</span>
+                            <span class="historico-item-valor">${item.aula_numero}ª Aula</span>
+                        </div>
+                    </div>
+                </div>
+            `
+        }).join('')
+
+        const modalHtml = `
+            <div class="historico-prof-modal-container">
+                <div class="historico-prof-resumo">
+                    <div class="resumo-chip total">
+                        <span class="resumo-chip-num">${total}</span>
+                        <span class="resumo-chip-label">Total</span>
+                    </div>
+                    <div class="resumo-chip futuras">
+                        <span class="resumo-chip-num">${futuras}</span>
+                        <span class="resumo-chip-label">Hoje / Futuras</span>
+                    </div>
+                    <div class="resumo-chip passadas">
+                        <span class="resumo-chip-num">${passadas}</span>
+                        <span class="resumo-chip-label">Realizadas</span>
+                    </div>
+                </div>
+
+                <div class="historico-prof-lista-scroll">
+                    ${itensHtml}
+                </div>
+            </div>
+        `
+
+        Swal.fire({
+            title: `Histórico — ${nomeProf}`,
+            html: modalHtml,
+            width: '560px',
+            showCancelButton: true,
+            cancelButtonText: 'Fechar',
+            confirmButtonText: '📊 Ver na Tabela Geral',
+            confirmButtonColor: 'var(--cor-primaria, #dc3c3c)',
+            cancelButtonColor: 'var(--surface2, #160d2c)',
+            customClass: {
+                popup: 'modal-historico-popup'
+            }
+        }).then(result => {
+            if (result.isConfirmed) {
+                window.filtrarReservasPorProfessor(profId, nomeProf)
+            }
+        })
+
+    } catch (err) {
+        console.error('Erro ao buscar histórico do professor:', err)
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro ao carregar',
+            text: 'Não foi possível buscar as reservas deste professor.',
+            confirmButtonColor: 'var(--cor-perigo)'
+        })
     }
 }
 
@@ -1491,8 +1696,17 @@ async function carregarListaProfessores() {
     if (!container) return
     container.innerHTML = '<div class="gerenciar-vazio">Carregando professores...</div>'
 
+    // Busca professores com coluna 'telefone' de forma resiliente
+    const buscarProfessores = async () => {
+        const res = await supabase.from('professores').select('id, nome, disciplina, auth_user_id, pin, telefone').order('nome', { ascending: true })
+        if (res.error && (res.error.code === '42703' || String(res.error.message).includes('telefone'))) {
+            return await supabase.from('professores').select('id, nome, disciplina, auth_user_id, pin').order('nome', { ascending: true })
+        }
+        return res
+    }
+
     const [{ data: professores, error }, disciplinas, { data: agendamentosData }] = await Promise.all([
-        supabase.from('professores').select('id, nome, disciplina, auth_user_id, pin').order('nome', { ascending: true }),
+        buscarProfessores(),
         obterDisciplinasCache(),
         supabase.from('agendamentos').select('professor_id')
     ])
@@ -1540,7 +1754,7 @@ async function carregarListaProfessores() {
     if (selectFiltro) {
         const valAtual = selectFiltro.value
         const discUnicas = [...new Set(cacheProfessores.map(p => p.disciplina).filter(Boolean))].sort()
-        selectFiltro.innerHTML = '<option value="">Todas as disciplinas</option>'
+        selectFiltro.innerHTML = '<option value="">Todas as matérias</option>'
         discUnicas.forEach(d => {
             const opt = document.createElement('option')
             opt.value = d
@@ -1590,9 +1804,9 @@ window.aplicarFiltrosProfessores = function() {
     const contadorEl = document.getElementById('contador-professores-filtrados')
     if (contadorEl) {
         if (termo || discEscolhida || filtroStatusProfAtual !== 'todos') {
-            contadorEl.textContent = `Exibindo ${filtrados.length} de ${cacheProfessores.length} docentes`
+            contadorEl.textContent = `Exibindo ${filtrados.length} de ${cacheProfessores.length} professores`
         } else {
-            contadorEl.textContent = `${cacheProfessores.length} docente${cacheProfessores.length === 1 ? '' : 's'} cadastrado${cacheProfessores.length === 1 ? '' : 's'}`
+            contadorEl.textContent = `${cacheProfessores.length} professor${cacheProfessores.length === 1 ? '' : 'es'} cadastrado${cacheProfessores.length === 1 ? '' : 's'}`
         }
     }
 
@@ -1606,7 +1820,7 @@ window.filtrarProfessores = function(termo) {
     window.aplicarFiltrosProfessores()
 }
 
-// Paleta dinâmica de gradientes para os avatares do corpo docente
+// Paleta dinâmica de gradientes suaves para os avatares do corpo docente
 const GRADIENTES_AVATAR = [
     'linear-gradient(135deg, #6366f1, #8b5cf6)', // Indigo - Violet
     'linear-gradient(135deg, #0284c7, #2563eb)', // Sky - Blue
@@ -1633,8 +1847,14 @@ function renderizarListaProfessores(professores, disciplinas = disciplinasCache,
     if (!container) return
 
     if (!professores || professores.length === 0) {
-        container.innerHTML = `<div class="gerenciar-vazio" style="grid-column: 1 / -1; padding: 36px 16px;">
-            ${isFiltrado ? 'Nenhum professor encontrado para os filtros selecionados.' : 'Nenhum professor cadastrado ainda.'}
+        container.innerHTML = `<div class="gerenciar-vazio" style="grid-column: 1 / -1; padding: 42px 16px; text-align: center;">
+            <div style="font-size: 2.2rem; margin-bottom: 8px;">🔍</div>
+            <div style="font-weight: 700; font-size: 1rem; color: var(--txt);">
+                ${isFiltrado ? 'Nenhum professor encontrado com esse nome ou matéria.' : 'Nenhum professor cadastrado ainda.'}
+            </div>
+            <div style="font-size: 0.82rem; color: var(--txt3); margin-top: 4px;">
+                ${isFiltrado ? 'Tente buscar com outras palavras ou limpe a pesquisa.' : 'Clique no botão "+ Cadastrar Professor" acima para adicionar.'}
+            </div>
         </div>`
         return
     }
@@ -1650,143 +1870,185 @@ function renderizarListaProfessores(professores, disciplinas = disciplinasCache,
         div.classList.add('professor-card')
         div.style.animationDelay = `${i * 0.03}s`
 
-        // Monta seletor de disciplinas via DOM
-        const selectOpts = (disciplinas || []).map(d => {
-            const opt = document.createElement('option')
-            opt.value = d.nome
-            opt.textContent = d.nome
-            if (d.nome === prof.disciplina) opt.selected = true
-            return opt
-        })
-
         const statusClasse = temAcesso ? 'ativo' : 'pendente'
-        const statusTexto  = temAcesso ? '● Acesso Ativo' : '○ Sem PIN'
+        const statusTexto  = temAcesso ? '🟢 Acesso Liberado' : '🟡 Falta Criar Senha'
 
         div.innerHTML = `
             <div class="professor-card-topo">
                 <div class="avatar-wrapper">
-                    <div class="professor-card-avatar" style="--avatar-bg: ${gradiente}; background: ${gradiente} !important;">
+                    <div class="professor-card-avatar" style="background: ${gradiente} !important;">
                         ${iniciais}
                     </div>
-                    <span class="avatar-status-dot ${statusClasse}" title="${temAcesso ? 'Acesso Ativo' : 'Sem PIN'}"></span>
+                    <span class="avatar-status-dot ${statusClasse}" title="${temAcesso ? 'Acesso Liberado' : 'Falta Criar Senha'}"></span>
                 </div>
                 <div class="professor-card-info">
                     <div class="professor-nome" title="${prof.nome}">${prof.nome}</div>
                     <div class="professor-card-meta">
-                        <span class="badge-disciplina-pill" title="Disciplina">${prof.disciplina || 'Sem disciplina'}</span>
-                        <span class="badge-reservas-pill" id="res-prof-${prof.id}" title="Clique para ver os agendamentos deste professor">
-                            📅 ${qtdReservas} reserva${qtdReservas === 1 ? '' : 's'} <span style="opacity:0.7; font-size:0.75rem;">›</span>
+                        <span class="badge-disciplina-pill" title="Matéria">📚 ${prof.disciplina || 'Geral'}</span>
+                        ${prof.telefone ? `<span class="badge-telefone-pill" title="WhatsApp: ${formatarTelefoneExibicao(prof.telefone)}">📱 ${formatarTelefoneExibicao(prof.telefone)}</span>` : ''}
+                        <span class="status-pill-badge ${statusClasse}">
+                            ${statusTexto}
                         </span>
                     </div>
                 </div>
             </div>
 
+            <div class="prof-card-detalhe-bloco">
+                ${temAcesso ? `
+                    <div class="prof-card-pin-status">
+                        <span>🔑 Senha de 4 dígitos ativa</span>
+                    </div>
+                    ${qtdReservas > 0 ? `
+                        <span class="badge-reservas-pill" id="res-prof-${prof.id}" title="Ver histórico de agendamentos deste professor">
+                            📅 ${qtdReservas} agendamento${qtdReservas === 1 ? '' : 's'} ›
+                        </span>
+                    ` : `
+                        <span style="color:var(--txt3); font-size:0.75rem;">Nenhum agendamento</span>
+                    `}
+                ` : `
+                    <div style="color:#f59e0b; font-weight:600; font-size:0.78rem; display:flex; align-items:center; gap:6px;">
+                        <span>⚠️</span> Sem senha cadastrada. O professor não consegue acessar.
+                    </div>
+                `}
+            </div>
+
             <div class="professor-card-footer">
-                <span class="status-pill-badge ${statusClasse}">
-                    ${statusTexto}
-                </span>
-                <div class="card-acoes-botoes">
-                    ${prof.pin ? `
-                    <button class="btn-card-icon" id="btn-zap-prof-${prof.id}" title="Enviar dados de acesso via WhatsApp" style="color: #22c55e; border-color: rgba(34, 197, 94, 0.35); background: rgba(34, 197, 94, 0.08);">
-                        📱
+                <div class="prof-card-linha-acoes prof-card-linha-acesso">
+                    ${temAcesso ? `
+                        <button type="button" class="btn-card-pin" id="btn-pin-${prof.id}" title="Ver ou alterar a senha de acesso (PIN de 4 dígitos)">
+                            <span>🔑</span> Senha de Acesso
+                        </button>
+                        ${prof.pin ? `
+                        <button type="button" class="btn-card-zap" id="btn-zap-prof-${prof.id}" title="Enviar dados de acesso diretamente pelo WhatsApp">
+                            <span>📱</span> WhatsApp
+                        </button>
+                        ` : ''}
+                    ` : `
+                        <button type="button" class="btn-card-pin destaque" id="btn-pin-${prof.id}" title="Criar senha de 4 números para liberar o acesso">
+                            <span>✨</span> Criar Senha de Acesso
+                        </button>
+                    `}
+                </div>
+                <div class="prof-card-linha-acoes prof-card-linha-gestao">
+                    <button type="button" class="btn-card-editar-modal" id="btn-edit-${prof.id}" title="Alterar nome ou matéria do professor">
+                        <span>✏️</span> Editar Dados
                     </button>
-                    ` : ''}
-                    <button class="btn-card-pin ${temAcesso ? '' : 'destaque'}" id="btn-pin-${prof.id}" title="${temAcesso ? 'Alterar ou redefinir PIN de acesso' : 'Definir PIN e ativar acesso agora'}">
-                        <span>🔑</span> ${temAcesso ? 'PIN' : 'Ativar PIN'}
-                    </button>
-                    <button class="btn-card-icon" id="btn-edit-${prof.id}" title="Editar nome e disciplina">
-                        ✏️
-                    </button>
-                    <button class="btn-card-icon danger" id="btn-del-${prof.id}" title="Excluir professor">
+                    <button type="button" class="btn-card-icon-del" id="btn-del-${prof.id}" title="Excluir professor do sistema">
                         🗑️
                     </button>
                 </div>
-            </div>
-
-            <div class="professor-card-expansivel" id="exp-${prof.id}">
-                <div class="edicao-campos-grid">
-                    <div class="edicao-campo">
-                        <label>Nome Completo:</label>
-                        <input type="text" id="edit-nome-${prof.id}" placeholder="Nome completo" value="${prof.nome.replace(/"/g, '&quot;')}">
-                    </div>
-                    <div class="edicao-campo">
-                        <label>Disciplina:</label>
-                        <select id="edit-disciplina-${prof.id}">
-                            <option value="">Selecione a disciplina...</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="edicao-botoes">
-                    <button class="btn-novo-professor" id="btn-salvar-${prof.id}" style="padding: 8px 16px; font-size: 0.78rem;">
-                        💾 Salvar Alterações
-                    </button>
-                    <button class="btn-card-pin" id="btn-cancelar-edit-${prof.id}" style="padding: 8px 14px;">
-                        ✕ Cancelar
-                    </button>
-                </div>
             </div>`
-
-        const select = div.querySelector(`#edit-disciplina-${prof.id}`)
-        selectOpts.forEach(opt => select.appendChild(opt.cloneNode(true)))
 
         // Eventos dos botões
         if (prof.pin) {
             div.querySelector(`#btn-zap-prof-${prof.id}`)
                 ?.addEventListener('click', (e) => {
                     e.stopPropagation()
-                    window.abrirWhatsAppComPin(prof.nome, prof.pin)
+                    window.abrirWhatsAppComPin(prof.nome, prof.pin, prof.telefone)
                 })
         }
 
         div.querySelector(`#res-prof-${prof.id}`)
-            ?.addEventListener('click', () => window.filtrarReservasPorProfessor(prof.nome))
+            ?.addEventListener('click', (e) => {
+                e.stopPropagation()
+                window.abrirHistoricoProfessor(prof.id, prof.nome)
+            })
 
         div.querySelector(`#btn-pin-${prof.id}`)
-            ?.addEventListener('click', () => window.gerenciarAcessoProfessor(prof.id, prof.nome, temAcesso, prof.pin))
+            ?.addEventListener('click', () => window.gerenciarAcessoProfessor(prof.id, prof.nome, temAcesso, prof.pin, prof.telefone))
 
         div.querySelector(`#btn-edit-${prof.id}`)
-            ?.addEventListener('click', () => window.toggleEditarProfessor(prof.id))
+            ?.addEventListener('click', () => window.abrirModalEditarProfessor(prof.id, prof.nome, prof.disciplina, prof.telefone))
 
         div.querySelector(`#btn-del-${prof.id}`)
             ?.addEventListener('click', () => window.excluirProfessor(prof.id, prof.nome))
-
-        div.querySelector(`#btn-salvar-${prof.id}`)
-            ?.addEventListener('click', () => window.salvarEdicaoProfessor(prof.id))
-
-        div.querySelector(`#btn-cancelar-edit-${prof.id}`)
-            ?.addEventListener('click', () => window.toggleEditarProfessor(prof.id))
 
         container.appendChild(div)
     })
 }
 
-window.toggleEditarProfessor = function(id) {
-    const exp = document.getElementById(`exp-${id}`)
-    const btn = document.getElementById(`btn-edit-${id}`)
-    if (!exp) return
-    const isOpen = exp.classList.contains('aberto')
-    document.querySelectorAll('.professor-card-expansivel.aberto').forEach(el => {
-        el.classList.remove('aberto')
-        const otherId = el.id.replace('exp-', '')
-        const otherBtn = document.getElementById(`btn-edit-${otherId}`)
-        if (otherBtn) otherBtn.textContent = '✏️'
-    })
-    if (!isOpen) {
-        exp.classList.add('aberto')
-        if (btn) btn.textContent = '✕'
-        exp.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-    }
-}
-
-window.salvarEdicaoProfessor = async function(id) {
+window.abrirModalEditarProfessor = async function(id, nomeAtual, disciplinaAtual, telefoneAtual) {
     if (!await exigirAuth()) return
-    const nome       = document.getElementById(`edit-nome-${id}`).value.trim()
-    const disciplina = document.getElementById(`edit-disciplina-${id}`).value
-    if (!nome) { dispararAlerta({ icon: 'warning', title: 'Atenção', text: 'O nome não pode ficar vazio.', confirmButtonColor: 'var(--cor-primaria)' }); return }
-    // RLS: professores_update_coord
-    const { error } = await supabase.from('professores').update({ nome, disciplina }).eq('id', id)
-    if (error) { dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível salvar as alterações.', confirmButtonColor: 'var(--cor-perigo)' }); return }
-    dispararAlerta({ icon: 'success', title: 'Salvo!', timer: 1200, showConfirmButton: false })
+    const telExistente = telefoneAtual !== undefined ? telefoneAtual : (cacheProfessores.find(p => p.id === id)?.telefone || '')
+    const disciplinas = await obterDisciplinasCache()
+    const optsDisciplinas = (disciplinas || []).map(d => 
+        `<option value="${d.nome}" ${d.nome === disciplinaAtual ? 'selected' : ''}>${d.nome}</option>`
+    ).join('')
+
+    const htmlModal = `
+        <div class="modal-pin-wrapper">
+            <div style="font-size:0.84rem; color:var(--txt2); margin-bottom:4px;">
+                Altere os dados de cadastro de <strong>${nomeAtual}</strong>:
+            </div>
+            <div style="display:flex; flex-direction:column; gap:5px;">
+                <label style="font-size:0.8rem; font-weight:700; color:var(--txt);">Nome Completo:</label>
+                <input type="text" id="edit-modal-nome-${id}" class="swal2-input" value="${nomeAtual.replace(/"/g, '&quot;')}" style="margin:0; width:100%; font-size:0.88rem; box-sizing:border-box;">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:5px;">
+                <label style="font-size:0.8rem; font-weight:700; color:var(--txt);">Matéria / Disciplina:</label>
+                <select id="edit-modal-disc-${id}" class="swal2-select" style="margin:0; width:100%; font-size:0.88rem; display:block; box-sizing:border-box;">
+                    <option value="">Selecione a matéria...</option>
+                    ${optsDisciplinas}
+                </select>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:5px;">
+                <label style="font-size:0.8rem; font-weight:700; color:var(--txt);">WhatsApp / Celular:</label>
+                <input type="tel" id="edit-modal-tel-${id}" class="swal2-input" value="${formatarTelefoneExibicao(telExistente)}" placeholder="(DDD) 99999-9999" maxlength="15" inputmode="numeric" style="margin:0; width:100%; font-size:0.88rem; box-sizing:border-box;">
+            </div>
+        </div>
+    `
+
+    const res = await Swal.fire({
+        title: 'Editar Professor',
+        html: htmlModal,
+        showCancelButton: true,
+        confirmButtonText: '💾 Salvar Alterações',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: 'var(--cor-primaria)',
+        cancelButtonColor: 'var(--texto-secundario)',
+        didOpen: () => {
+            const inputNome = document.getElementById(`edit-modal-nome-${id}`)
+            const inputTel = document.getElementById(`edit-modal-tel-${id}`)
+            if (inputNome) inputNome.focus()
+            if (inputTel) aplicarMascaraTelefoneInput(inputTel)
+        },
+        preConfirm: () => {
+            const novoNome = document.getElementById(`edit-modal-nome-${id}`)?.value.trim()
+            const novaDisc = document.getElementById(`edit-modal-disc-${id}`)?.value
+            const telLimpo = (document.getElementById(`edit-modal-tel-${id}`)?.value || '').replace(/\D/g, '')
+            if (!novoNome || novoNome.length < 3) {
+                Swal.showValidationMessage('Digite o nome completo do professor.')
+                return false
+            }
+            if (telLimpo && telLimpo.length < 10) {
+                Swal.showValidationMessage('O WhatsApp deve ter DDD e pelo menos 10 dígitos (ou deixe em branco).')
+                return false
+            }
+            return { nome: novoNome, disciplina: novaDisc || '', telefone: telLimpo || null }
+        }
+    })
+
+    if (!res.isConfirmed || !res.value) return
+
+    const { nome, disciplina, telefone } = res.value
+    Swal.fire({ title: 'Salvando alterações...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
+
+    let error = null
+    const { error: errTel } = await supabase.from('professores').update({ nome, disciplina, telefone }).eq('id', id)
+
+    if (errTel && (errTel.code === '42703' || String(errTel.message).includes('telefone'))) {
+        const { error: errSemTel } = await supabase.from('professores').update({ nome, disciplina }).eq('id', id)
+        error = errSemTel
+    } else {
+        error = errTel
+    }
+
+    if (error) {
+        dispararAlerta({ icon: 'error', title: 'Erro', text: 'Não foi possível salvar as alterações.', confirmButtonColor: 'var(--cor-perigo)' })
+        return
+    }
+
+    dispararAlerta({ icon: 'success', title: 'Alterações Salvas!', timer: 1400, showConfirmButton: false })
     carregarListaProfessores()
     carregarProfessoresNoFiltro()
 }
@@ -1892,64 +2154,60 @@ async function ativarOuAtualizarPinProfessor(profId, nome, pin) {
     return { sucesso: true, metodo: 'direct_auth', authUserId };
 }
 
-window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual) {
+window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual, telefone = null) {
     if (!await exigirAuth()) return
 
-    const pinCadastrado = pinAtual || cacheProfessores.find(p => p.id === id)?.pin || null
+    const profDoCache = cacheProfessores.find(p => p.id === id)
+    const pinCadastrado = pinAtual || profDoCache?.pin || null
+    const telProf = telefone !== null && telefone !== undefined ? telefone : (profDoCache?.telefone || null)
 
     const htmlModal = `
         <div class="modal-pin-wrapper">
+            <div style="font-size:0.84rem; color:var(--txt2); line-height:1.45;">
+                O professor usa esta senha de 4 números para entrar no Locus e agendar salas.
+            </div>
+
             ${pinCadastrado ? `
-            <div class="modal-pin-bloco" style="border-color: rgba(59, 130, 246, 0.35); background: rgba(59, 130, 246, 0.06); margin-bottom: 14px;">
-                <div class="modal-pin-titulo" style="color: #60a5fa;">
-                    <span>🔍</span> PIN Atual Cadastrado
+            <div class="modal-copiar-box" style="margin-top:2px; margin-bottom:4px;">
+                <div style="text-align:left;">
+                    <div style="font-size:0.68rem; text-transform:uppercase; color:var(--txt3); font-weight:700;">SENHA ATUAL CADASTRADA</div>
+                    <div class="badge-pin-display">${pinCadastrado}</div>
                 </div>
-                <div class="modal-pin-sub">
-                    Código de <strong>${nome}</strong> cadastrado no sistema:
-                </div>
-                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px; gap:8px; flex-wrap:wrap;">
-                    <span style="font-family:monospace; font-size:1.35rem; letter-spacing:4px; font-weight:800; color:#38bdf8; background:rgba(0,0,0,0.3); padding:4px 14px; border-radius:8px; border:1px solid rgba(56,189,248,0.3);">${pinCadastrado}</span>
-                    <div style="display:flex; gap:6px;">
-                        <button type="button" id="btn-zap-pin-atual" class="btn-whatsapp-rapido" style="padding:6px 12px; font-size:0.75rem;">
-                            📱 WhatsApp
-                        </button>
-                        <button type="button" id="btn-copiar-pin-atual" class="btn-acao-topo" style="padding:6px 12px; font-size:0.75rem;">
-                            📋 Copiar
-                        </button>
-                    </div>
+                <div style="display:flex; gap:8px;">
+                    <button type="button" id="btn-zap-pin-atual" class="btn-whatsapp-rapido" style="padding:8px 14px; font-size:0.78rem;">
+                        📱 WhatsApp ${telProf ? `(${formatarTelefoneExibicao(telProf)})` : ''}
+                    </button>
+                    <button type="button" id="btn-copiar-pin-atual" class="btn-acao-topo" style="padding:8px 14px; font-size:0.78rem;">
+                        📋 Copiar
+                    </button>
                 </div>
             </div>
             ` : ''}
 
             <div class="modal-pin-bloco">
                 <div class="modal-pin-titulo">
-                    <span>🔑</span> ${pinCadastrado ? 'Alterar / Redefinir PIN' : 'Definir Novo PIN Imediatamente'}
+                    <span>🔑</span> ${pinCadastrado ? 'Trocar a Senha de Acesso' : 'Definir Senha de Acesso'}
                 </div>
                 <div class="modal-pin-sub">
-                    Digite 4 dígitos ou gere um PIN aleatório para liberar ou redefinir o acesso de <strong>${nome}</strong> na hora.
+                    Digite 4 números ou clique em "Gerar Senha" para ${pinCadastrado ? 'trocar a senha de' : 'liberar o acesso de'} <strong>${nome}</strong>.
                 </div>
                 <div class="modal-pin-input-linha">
                     <input type="text" id="modal-input-pin" class="modal-pin-input" maxlength="4" placeholder="••••" autocomplete="off" inputmode="numeric">
                     <button type="button" id="btn-gerar-pin-modal" class="modal-pin-btn-random">
-                        🎲 Gerar PIN Aleatório
+                        🎲 Gerar Senha
                     </button>
                 </div>
-                <label style="font-size:0.75rem; color:var(--txt2); display:flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px;">
+                <label style="font-size:0.76rem; color:var(--txt2); display:flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px;">
                     <input type="checkbox" id="chk-notificar-prof" checked style="cursor:pointer;">
-                    Enviar notificação push avisando sobre o novo PIN
+                    Avisar o professor pelo aplicativo sobre a nova senha
                 </label>
             </div>
 
             ${temAcesso ? `
-            <div class="modal-pin-bloco" style="border-color: rgba(239, 68, 68, 0.25); background: rgba(239, 68, 68, 0.04);">
-                <div class="modal-pin-titulo" style="color: #f87171;">
-                    <span>⚠️</span> Revogar Acesso & Desconectar
-                </div>
-                <div class="modal-pin-sub">
-                    Desconecta imediatamente as sessões ativas do professor. Ele precisará definir um novo PIN para voltar a acessar.
-                </div>
-                <button type="button" id="btn-revogar-acesso-modal" class="btn-acao-topo btn-acao-excluir" style="width:fit-content; padding:8px 14px;">
-                    Revogar PIN e Desconectar
+            <div style="margin-top:4px; padding-top:10px; border-top:1px dashed var(--border); display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                <span style="font-size:0.75rem; color:var(--txt3);">Precisa desativar o acesso temporariamente?</span>
+                <button type="button" id="btn-revogar-acesso-modal" style="background:none; border:none; color:#f87171; font-size:0.76rem; font-weight:700; cursor:pointer; text-decoration:underline;">
+                    Bloquear Acesso
                 </button>
             </div>
             ` : ''}
@@ -1957,10 +2215,10 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual) 
     `
 
     const res = await Swal.fire({
-        title: `Acesso · ${nome}`,
+        title: `Senha de Acesso · ${nome}`,
         html: htmlModal,
         showCancelButton: true,
-        confirmButtonText: '💾 Salvar e Ativar PIN',
+        confirmButtonText: '💾 Salvar Senha',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: 'var(--cor-sucesso, #22c55e)',
         cancelButtonColor: 'var(--texto-secundario, #6b7280)',
@@ -1989,7 +2247,7 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual) 
 
             if (btnZapAtual && pinCadastrado) {
                 btnZapAtual.addEventListener('click', () => {
-                    window.abrirWhatsAppComPin(nome, pinCadastrado)
+                    window.abrirWhatsAppComPin(nome, pinCadastrado, telProf)
                 })
             }
 
@@ -2014,7 +2272,7 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual) 
             const chkNotificar = document.getElementById('chk-notificar-prof')
             const val = inputPin ? inputPin.value.replace(/\D/g, '') : ''
             if (val.length !== 4) {
-                Swal.showValidationMessage('O PIN deve conter exatamente 4 dígitos numéricos.')
+                Swal.showValidationMessage('A senha deve conter exatamente 4 números.')
                 return false
             }
             return { pin: val, notificar: chkNotificar ? chkNotificar.checked : true }
@@ -2026,7 +2284,7 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual) 
     const { pin: novoPin, notificar } = res.value
 
     Swal.fire({
-        title: 'Aplicando novo PIN...',
+        title: 'Salvando nova senha...',
         allowOutsideClick: false,
         didOpen: () => Swal.showLoading()
     })
@@ -2038,8 +2296,8 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual) 
 
         if (notificar) {
             enviarNotificacao(
-                '🔑 Novo PIN Ativado',
-                `Olá, ${nome}! Seu PIN de acesso ao Locus foi atualizado para: ${novoPin}`,
+                '🔑 Nova Senha Ativada',
+                `Olá, ${nome}! Sua senha de acesso ao Locus foi atualizada para: ${novoPin}`,
                 'professor',
                 id
             ).catch(() => {})
@@ -2050,31 +2308,31 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual) 
         // Tela de confirmação com envio WhatsApp e cópia facilitada
         Swal.fire({
             icon: 'success',
-            title: 'PIN Definido com Sucesso!',
+            title: 'Senha Salva com Sucesso!',
             html: `
                 <div style="font-family:'Poppins',sans-serif; text-align:center;">
                     <p style="font-size:0.86rem; color:var(--txt2); margin-bottom:12px;">
-                        O código de acesso de <strong>${nome}</strong> já está ativo:
+                        A senha de acesso de <strong>${nome}</strong> já está ativa no sistema:
                     </p>
                     <div class="modal-copiar-box">
                         <div style="text-align:left;">
-                            <div style="font-size:0.68rem; text-transform:uppercase; color:var(--txt3); font-weight:700;">PIN DE ACESSO</div>
+                            <div style="font-size:0.68rem; text-transform:uppercase; color:var(--txt3); font-weight:700;">SENHA DE ACESSO</div>
                             <div class="badge-pin-display" id="display-novo-pin">${novoPin}</div>
                         </div>
                         <button type="button" id="btn-copiar-novo-pin" class="btn-acao-topo" style="padding:8px 14px; border-color:var(--purple); color:var(--purple); font-weight:700;">
-                            📋 Copiar PIN
+                            📋 Copiar Senha
                         </button>
                     </div>
                     <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
                         <button type="button" id="btn-zap-novo-pin" class="btn-whatsapp-rapido" style="width:100%; justify-content:center;">
-                            <span>📱</span> Enviar Novo PIN via WhatsApp
+                            <span>📱</span> Enviar Nova Senha via WhatsApp ${telProf ? `(${formatarTelefoneExibicao(telProf)})` : ''}
                         </button>
                         <button type="button" id="btn-copiar-msg-novo-pin" class="btn-acao-topo" style="width:100%; justify-content:center; padding:9px 12px; font-size:0.8rem;">
                             📋 Copiar Mensagem Pronta
                         </button>
                     </div>
                     <p style="font-size:0.75rem; color:var(--txt3); margin-top:14px;">
-                        O professor já pode fazer login na Área do Professor com este PIN.
+                        O professor já pode entrar na Área do Professor com esta senha.
                     </p>
                 </div>
             `,
@@ -2106,7 +2364,7 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual) 
 
                 if (btnZap) {
                     btnZap.addEventListener('click', () => {
-                        window.abrirWhatsAppComPin(nome, novoPin)
+                        window.abrirWhatsAppComPin(nome, novoPin, telProf)
                     })
                 }
 
@@ -2199,28 +2457,35 @@ window.abrirModalNovoProfessor = async function() {
 
     const htmlModal = `
         <div class="modal-pin-wrapper">
-            <div style="display:flex; flex-direction:column; gap:5px;">
-                <label style="font-size:0.8rem; font-weight:700; color:var(--txt);">Nome Completo:</label>
-                <input type="text" id="novo-prof-nome" class="swal2-input" placeholder="Ex: Lucas Gabriel Martins" style="margin:0; width:100%; font-size:0.86rem; box-sizing:border-box;">
+            <div style="font-size:0.84rem; color:var(--txt2); margin-bottom:4px;">
+                Preencha os dados abaixo para adicionar um novo professor à escola:
             </div>
             <div style="display:flex; flex-direction:column; gap:5px;">
-                <label style="font-size:0.8rem; font-weight:700; color:var(--txt);">Disciplina Principal:</label>
-                <select id="novo-prof-disciplina" class="swal2-select" style="margin:0; width:100%; font-size:0.86rem; display:block; box-sizing:border-box;">
-                    <option value="">Selecione a disciplina...</option>
+                <label style="font-size:0.8rem; font-weight:700; color:var(--txt);">Nome Completo:</label>
+                <input type="text" id="novo-prof-nome" class="swal2-input" placeholder="Ex: Maria Clara Souza" style="margin:0; width:100%; font-size:0.88rem; box-sizing:border-box;">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:5px;">
+                <label style="font-size:0.8rem; font-weight:700; color:var(--txt);">Matéria / Disciplina:</label>
+                <select id="novo-prof-disciplina" class="swal2-select" style="margin:0; width:100%; font-size:0.88rem; display:block; box-sizing:border-box;">
+                    <option value="">Selecione a matéria...</option>
                     ${optsDisciplinas}
                 </select>
             </div>
+            <div style="display:flex; flex-direction:column; gap:5px;">
+                <label style="font-size:0.8rem; font-weight:700; color:var(--txt);">WhatsApp / Celular (Opcional):</label>
+                <input type="tel" id="novo-prof-tel" class="swal2-input" placeholder="(DDD) 99999-9999" maxlength="15" inputmode="numeric" style="margin:0; width:100%; font-size:0.88rem; box-sizing:border-box;">
+            </div>
             <div class="modal-pin-bloco">
                 <div class="modal-pin-titulo">
-                    <span>🔑</span> Definir PIN Inicial (Opcional)
+                    <span>🔑</span> Senha de Acesso (4 números)
                 </div>
                 <div class="modal-pin-sub">
-                    Defina 4 dígitos agora para o professor já começar a usar, ou deixe vazio para que ele ative posteriormente.
+                    Defina agora ou clique em "Gerar Senha" para o professor já começar a usar. Se preferir, pode deixar em branco para criar depois.
                 </div>
                 <div class="modal-pin-input-linha">
                     <input type="text" id="novo-prof-pin" class="modal-pin-input" maxlength="4" placeholder="••••" autocomplete="off" inputmode="numeric">
                     <button type="button" id="btn-gerar-pin-novo" class="modal-pin-btn-random">
-                        🎲 Gerar PIN
+                        🎲 Gerar Senha
                     </button>
                 </div>
             </div>
@@ -2228,7 +2493,7 @@ window.abrirModalNovoProfessor = async function() {
     `
 
     const res = await Swal.fire({
-        title: 'Novo Professor',
+        title: 'Cadastrar Novo Professor',
         html: htmlModal,
         showCancelButton: true,
         confirmButtonText: 'Cadastrar Professor',
@@ -2237,10 +2502,12 @@ window.abrirModalNovoProfessor = async function() {
         cancelButtonColor: 'var(--texto-secundario)',
         didOpen: () => {
             const inputNome = document.getElementById('novo-prof-nome')
+            const inputTel = document.getElementById('novo-prof-tel')
             const inputPin = document.getElementById('novo-prof-pin')
             const btnRandom = document.getElementById('btn-gerar-pin-novo')
 
             if (inputNome) inputNome.focus()
+            if (inputTel) aplicarMascaraTelefoneInput(inputTel)
             if (inputPin) {
                 inputPin.addEventListener('input', () => {
                     inputPin.value = inputPin.value.replace(/\D/g, '').slice(0, 4)
@@ -2255,6 +2522,7 @@ window.abrirModalNovoProfessor = async function() {
         preConfirm: () => {
             const nomeRaw = document.getElementById('novo-prof-nome')?.value.trim() || ''
             const disciplina = document.getElementById('novo-prof-disciplina')?.value || ''
+            const telLimpo = (document.getElementById('novo-prof-tel')?.value || '').replace(/\D/g, '')
             const pinRaw = document.getElementById('novo-prof-pin')?.value.replace(/\D/g, '') || ''
 
             if (!nomeRaw || nomeRaw.length < 3) {
@@ -2262,21 +2530,25 @@ window.abrirModalNovoProfessor = async function() {
                 return false
             }
             if (!disciplina) {
-                Swal.showValidationMessage('Selecione uma disciplina.')
+                Swal.showValidationMessage('Selecione a matéria do professor.')
+                return false
+            }
+            if (telLimpo && telLimpo.length < 10) {
+                Swal.showValidationMessage('O WhatsApp deve ter DDD e pelo menos 10 dígitos (ou deixe em branco).')
                 return false
             }
             if (pinRaw && pinRaw.length !== 4) {
-                Swal.showValidationMessage('O PIN inicial deve conter exatamente 4 dígitos (ou deixe em branco).')
+                Swal.showValidationMessage('A senha inicial deve conter exatamente 4 números (ou deixe em branco).')
                 return false
             }
 
-            return { nome: nomeRaw, disciplina, pin: pinRaw || null }
+            return { nome: nomeRaw, disciplina, pin: pinRaw || null, telefone: telLimpo || null }
         }
     })
 
     if (!res.isConfirmed || !res.value) return
 
-    const { nome, disciplina, pin } = res.value
+    const { nome, disciplina, pin, telefone } = res.value
 
     Swal.fire({
         title: 'Cadastrando professor...',
@@ -2303,12 +2575,31 @@ window.abrirModalNovoProfessor = async function() {
             return
         }
 
-        // Insere professor
-        const { data: novoProf, error: errInsert } = await supabase
+        // Insere professor com suporte a telefone e fallback resiliente
+        const insertPayload = { nome, disciplina, auth_user_id: null }
+        if (telefone) insertPayload.telefone = telefone
+
+        let novoProf = null
+        let errInsert = null
+
+        const resInsert = await supabase
             .from('professores')
-            .insert([{ nome, disciplina, auth_user_id: null }])
+            .insert([insertPayload])
             .select('id')
             .single()
+
+        if (resInsert.error && (resInsert.error.code === '42703' || String(resInsert.error.message).includes('telefone'))) {
+            const fallbackRes = await supabase
+                .from('professores')
+                .insert([{ nome, disciplina, auth_user_id: null }])
+                .select('id')
+                .single()
+            novoProf = fallbackRes.data
+            errInsert = fallbackRes.error
+        } else {
+            novoProf = resInsert.data
+            errInsert = resInsert.error
+        }
 
         if (errInsert || !novoProf) throw errInsert || new Error('Falha ao cadastrar')
 
@@ -2333,20 +2624,20 @@ window.abrirModalNovoProfessor = async function() {
                 html: `
                     <div style="font-family:'Poppins',sans-serif; text-align:center;">
                         <p style="font-size:0.86rem; color:var(--txt2); margin-bottom:12px;">
-                            <strong>${nome}</strong> foi adicionado(a) e seu PIN já está pronto para uso:
+                            <strong>${nome}</strong> foi cadastrado(a) com sucesso e sua senha já está pronta para uso:
                         </p>
                         <div class="modal-copiar-box">
                             <div style="text-align:left;">
-                                <div style="font-size:0.68rem; text-transform:uppercase; color:var(--txt3); font-weight:700;">PIN DE ACESSO</div>
+                                <div style="font-size:0.68rem; text-transform:uppercase; color:var(--txt3); font-weight:700;">SENHA DE ACESSO</div>
                                 <div class="badge-pin-display">${pin}</div>
                             </div>
                             <button type="button" id="btn-copiar-pin-cad" class="btn-acao-topo" style="padding:8px 14px; border-color:var(--purple); color:var(--purple); font-weight:700;">
-                                📋 Copiar PIN
+                                📋 Copiar Senha
                             </button>
                         </div>
                         <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
                             <button type="button" id="btn-zap-novo-prof" class="btn-whatsapp-rapido" style="width:100%; justify-content:center;">
-                                <span>📱</span> Enviar Acesso via WhatsApp
+                                <span>📱</span> Enviar Senha via WhatsApp ${telefone ? `(${formatarTelefoneExibicao(telefone)})` : ''}
                             </button>
                             <button type="button" id="btn-copiar-msg-novo-prof" class="btn-acao-topo" style="width:100%; justify-content:center; padding:9px 12px; font-size:0.8rem;">
                                 📋 Copiar Mensagem Pronta
@@ -2354,7 +2645,7 @@ window.abrirModalNovoProfessor = async function() {
                         </div>
                     </div>
                 `,
-                confirmButtonText: 'Entendido',
+                confirmButtonText: 'Concluído',
                 confirmButtonColor: 'var(--cor-primaria)',
                 didOpen: () => {
                     const btnCopiar = document.getElementById('btn-copiar-pin-cad')
@@ -2372,7 +2663,7 @@ window.abrirModalNovoProfessor = async function() {
 
                     if (btnZap) {
                         btnZap.addEventListener('click', () => {
-                            window.abrirWhatsAppComPin(nome, pin)
+                            window.abrirWhatsAppComPin(nome, pin, telefone)
                         })
                     }
 

@@ -466,122 +466,7 @@
     }
     .solicitacoes-vazio-icon { font-size: 1.8rem; display: block; margin-bottom: 8px; opacity: .5; }
 
-    /* ── CARDS DE PROFESSOR ─────────────────────────── */
-    .gerenciar-lista-professores { display: flex; flex-direction: column; gap: 10px; }
 
-    .professor-card {
-        background: rgba(15,9,28,.7);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        overflow: hidden;
-        transition: border-color .2s;
-        animation: entrar-card .3s cubic-bezier(.34,1.56,.64,1) both;
-    }
-    .professor-card:nth-child(2) { animation-delay: .05s; }
-    .professor-card:nth-child(3) { animation-delay: .1s; }
-    .professor-card:nth-child(4) { animation-delay: .15s; }
-
-    .professor-card-topo {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 14px 16px;
-    }
-    .professor-card-avatar {
-        width: 42px; height: 42px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #dc3c3c, #96272a);
-        display: flex; align-items: center; justify-content: center;
-        font-size: .9rem; font-weight: 800; color: #fff;
-        flex-shrink: 0;
-        box-shadow: 0 3px 10px rgba(220,60,60,.3);
-    }
-    .professor-card-info { flex: 1; min-width: 0; }
-    .professor-nome {
-        font-weight: 700; font-size: .92rem; color: var(--txt);
-        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .professor-disciplina {
-        font-size: .74rem; color: var(--txt3); margin-top: 2px;
-    }
-    .status-pin {
-        font-size: .66rem; font-weight: 800;
-        padding: 4px 9px; border-radius: 20px;
-        text-transform: uppercase; letter-spacing: .05em;
-        flex-shrink: 0; white-space: nowrap;
-    }
-    .status-pin.ativo {
-        background: rgba(34,197,94,.12);
-        border: 1px solid rgba(34,197,94,.25);
-        color: #4ade80;
-    }
-    .status-pin.pendente {
-        background: rgba(234,179,8,.1);
-        border: 1px solid rgba(234,179,8,.22);
-        color: #facc15;
-    }
-
-    .professor-card-edicao {
-        padding: 0 16px 12px;
-        display: flex; flex-direction: column; gap: 8px;
-    }
-    .professor-card-edicao input,
-    .professor-card-edicao select {
-        width: 100%;
-        padding: 11px 13px;
-        background: rgba(22,13,44,.85);
-        border: 1px solid rgba(220,60,60,.22);
-        border-radius: 11px;
-        color: var(--txt);
-        font-size: .84rem;
-        font-family: 'Poppins', sans-serif;
-        outline: none;
-        -webkit-appearance: none;
-        transition: border-color .2s, box-shadow .2s;
-    }
-    .professor-card-edicao input:focus,
-    .professor-card-edicao select:focus {
-        border-color: var(--purple);
-        box-shadow: 0 0 0 3px var(--purple-dim);
-    }
-
-    .professor-card-acoes {
-        padding: 10px 16px 14px;
-        display: flex; gap: 7px; flex-wrap: wrap;
-        border-top: 1px solid var(--border);
-    }
-    .btn-salvar-professor {
-        flex: 1; padding: 9px 12px;
-        background: rgba(220,60,60,.15);
-        border: 1px solid rgba(220,60,60,.35);
-        border-radius: 10px; color: #ffb4b0;
-        font-size: .78rem; font-weight: 700;
-        font-family: 'Poppins', sans-serif; cursor: pointer;
-        transition: background .2s, transform .15s;
-    }
-    .btn-salvar-professor:active { background: rgba(220,60,60,.28); transform: scale(.95); }
-
-    .btn-resetar-pin {
-        flex: 1; padding: 9px 12px;
-        background: rgba(234,179,8,.1);
-        border: 1px solid rgba(234,179,8,.25);
-        border-radius: 10px; color: #facc15;
-        font-size: .78rem; font-weight: 700;
-        font-family: 'Poppins', sans-serif; cursor: pointer;
-        transition: background .2s, transform .15s;
-    }
-    .btn-resetar-pin:active { background: rgba(234,179,8,.2); transform: scale(.95); }
-
-    .btn-excluir-professor {
-        padding: 9px 12px;
-        background: var(--red-soft);
-        border: 1px solid rgba(239,68,68,.22);
-        border-radius: 10px; color: #f87171;
-        font-size: .78rem; font-weight: 700;
-        font-family: 'Poppins', sans-serif; cursor: pointer;
-        transition: background .2s, transform .15s;
-    }
-    .btn-excluir-professor:active { background: rgba(239,68,68,.22); transform: scale(.95); }
 
     .gerenciar-vazio {
         text-align: center; padding: 28px 16px;
@@ -755,31 +640,7 @@
     .gerenciar-painel { padding-top: 14px; }
     .gerenciar-painel.oculto { display: none; }
 
-    /* ── PROFESSOR CARD — avatar + botão editar ─────── */
-    .professor-card-avatar {
-        width: 42px; height: 42px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #dc3c3c, #96272a);
-        display: flex; align-items: center; justify-content: center;
-        font-size: .9rem; font-weight: 800; color: #fff;
-        flex-shrink: 0;
-        box-shadow: 0 3px 10px rgba(220,60,60,.3);
-        letter-spacing: -.5px;
-    }
-    .professor-card-btn-editar {
-        width: 34px; height: 34px;
-        background: rgba(220,60,60,.1);
-        border: 1px solid rgba(220,60,60,.25);
-        border-radius: 50%;
-        color: #ffb4b0; font-size: .8rem;
-        cursor: pointer; touch-action: manipulation;
-        display: flex; align-items: center; justify-content: center;
-        flex-shrink: 0;
-        transition: background .18s, transform .12s;
-    }
-    .professor-card-btn-editar:active { background: rgba(220,60,60,.28); transform: scale(.88); }
-    .professor-card-expansivel { display: none; }
-    .professor-card-expansivel.aberto { display: block; }
+
 
     /* ══ REFINAMENTO VISUAL ELEGANTE DO DASHBOARD E TABELA ══ */
     
@@ -1246,190 +1107,266 @@
     }
 
     /* ══════════════════════════════════════════════════════════
-       GESTÃO DE PROFESSORES - DESIGN MODERNO & REFINADO
+       GESTÃO DE PROFESSORES — REMODELADO, CLARO & AMIGÁVEL
+       Projetado para máxima clareza, facilidade e zero confusão.
        ══════════════════════════════════════════════════════════ */
 
-    /* Grid de Métricas KPI no topo */
-    .prof-metricas-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 12px;
-        margin-bottom: 18px;
-    }
-    .prof-metrica-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 16px 18px;
+    /* Header da Seção de Professores */
+    .prof-secao-header {
         display: flex;
         align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+    .prof-secao-info {
+        display: flex;
+        align-items: flex-start;
         gap: 14px;
-        transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-        position: relative;
     }
-    .prof-metrica-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-        border-color: var(--border2);
-    }
-    .prof-metrica-icone {
-        width: 44px;
-        height: 44px;
-        border-radius: 14px;
+    .prof-secao-icone-wrap {
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(220, 60, 60, 0.18), rgba(220, 60, 60, 0.06));
+        border: 1px solid rgba(220, 60, 60, 0.3);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
+        font-size: 1.6rem;
         flex-shrink: 0;
+        box-shadow: 0 4px 14px rgba(220, 60, 60, 0.15);
     }
-    .prof-metrica-info {
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
-    }
-    .prof-metrica-valor {
+    .prof-secao-titulo {
         font-size: 1.45rem;
         font-weight: 800;
         color: var(--txt);
-        line-height: 1.1;
-        font-family: 'Poppins', sans-serif;
+        margin: 0;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
     }
-    .prof-metrica-rotulo {
-        font-size: 0.72rem;
-        font-weight: 600;
-        color: var(--txt3);
-        margin-top: 3px;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
+    .prof-secao-sub {
+        font-size: 0.84rem;
+        color: var(--txt2);
+        margin-top: 4px;
+        line-height: 1.4;
     }
-    .prof-metrica-badge-alerta {
-        margin-left: auto;
-        padding: 3px 8px;
-        border-radius: 20px;
-        background: rgba(239, 68, 68, 0.15);
-        color: #ef4444;
-        font-size: 0.68rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-    }
-
-    /* Deck de Controle / Toolbar Integrado */
-    .painel-prof-toolbar {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 16px 20px;
-        margin-bottom: 18px;
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
-    }
-    .toolbar-linha-busca {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-    }
-    .busca-prof-input-wrap {
-        position: relative;
-        flex: 1;
-        min-width: 240px;
-    }
-    .busca-prof-input-wrap .busca-icone {
-        position: absolute;
-        left: 14px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 0.92rem;
-        color: var(--txt3);
-        pointer-events: none;
-    }
-    .busca-prof-input-wrap input {
-        width: 100%;
-        padding: 11px 16px 11px 42px;
-        border-radius: 12px;
-        background: var(--surface2);
-        border: 1px solid var(--border);
-        color: var(--txt);
-        font-size: 0.85rem;
-        font-family: 'Poppins', sans-serif;
-        outline: none;
-        transition: all 0.2s ease;
-        box-sizing: border-box;
-    }
-    .busca-prof-input-wrap input:focus {
-        border-color: var(--cor-primaria, #dc3c3c);
-        box-shadow: 0 0 0 3px rgba(220, 60, 60, 0.12);
-        background: var(--surface);
-    }
-    .filtro-disc-select-wrap select {
-        padding: 11px 16px;
-        background: var(--surface2);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        color: var(--txt);
-        font-size: 0.82rem;
-        font-weight: 600;
-        font-family: 'Poppins', sans-serif;
-        outline: none;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    .filtro-disc-select-wrap select:focus {
-        border-color: var(--cor-primaria, #dc3c3c);
-        background: var(--surface);
-    }
-    .btn-novo-professor {
+    .btn-novo-professor-topo {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 11px 20px;
-        background: linear-gradient(135deg, var(--cor-primaria, #dc3c3c), #b91c1c);
-        color: #fff;
+        gap: 9px;
+        padding: 12px 22px;
+        background: linear-gradient(135deg, #dc3c3c, #b91c1c);
+        color: #ffffff;
         border: none;
-        border-radius: 12px;
-        font-size: 0.84rem;
+        border-radius: 14px;
+        font-size: 0.88rem;
         font-weight: 700;
         font-family: 'Poppins', sans-serif;
         cursor: pointer;
         white-space: nowrap;
-        box-shadow: 0 4px 16px rgba(220, 60, 60, 0.3);
-        transition: all 0.2s ease;
+        box-shadow: 0 4px 18px rgba(220, 60, 60, 0.35);
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .btn-novo-professor:hover {
-        opacity: 0.94;
-        transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(220, 60, 60, 0.4);
+    .btn-novo-professor-topo:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(220, 60, 60, 0.45);
+        opacity: 0.96;
     }
-    .btn-novo-professor:active {
+    .btn-novo-professor-topo:active {
         transform: scale(0.97);
     }
 
-    /* Linha de Segmentação e Contador */
-    .toolbar-linha-status {
+    /* Banner inteligente de Solicitações Pendentes (aparece somente quando há solicitações) */
+    .bloco-solicitacoes-destaque {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(217, 119, 6, 0.05));
+        border: 1.5px solid rgba(245, 158, 11, 0.35);
+        border-radius: 18px;
+        padding: 18px 22px;
+        margin-bottom: 22px;
+        box-shadow: 0 4px 20px rgba(245, 158, 11, 0.08);
+        animation: entrar-card 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+    .solicitacoes-alerta-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
         flex-wrap: wrap;
-        padding-top: 12px;
-        border-top: 1px dashed var(--border);
+        margin-bottom: 6px;
     }
-    .status-segment-group {
+    .solicitacoes-alerta-titulo-linha {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .solicitacoes-alerta-icone {
+        font-size: 1.3rem;
+        animation: pulse-ring 2s infinite ease-in-out;
+    }
+    @keyframes pulse-ring {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.15); }
+    }
+    .solicitacoes-alerta-titulo {
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: #fbbf24;
+    }
+    .badge-pendentes-chip {
         display: inline-flex;
-        background: var(--surface2);
-        padding: 4px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
+        align-items: center;
+        justify-content: center;
+        background: #f59e0b;
+        color: #000;
+        font-size: 0.72rem;
+        font-weight: 800;
+        padding: 2px 9px;
+        border-radius: 20px;
+    }
+    .solicitacoes-alerta-sub {
+        font-size: 0.8rem;
+        color: var(--txt2);
+        margin-bottom: 14px;
+        line-height: 1.4;
+    }
+    .lista-solicitacoes-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .solicitacao-card {
+        background: var(--surface);
+        border: 1px solid rgba(245, 158, 11, 0.25);
+        border-radius: 14px;
+        padding: 14px 18px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        transition: transform 0.18s ease;
+    }
+    .solicitacao-card:hover {
+        border-color: rgba(245, 158, 11, 0.45);
+        transform: translateY(-1px);
+    }
+    .solicitacao-info {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 180px;
+    }
+    .solicitacao-nome {
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: var(--txt);
+    }
+    .solicitacao-meta {
+        font-size: 0.78rem;
+        color: var(--txt2);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .solicitacao-disc-tag {
+        display: inline-flex;
+        align-items: center;
         gap: 4px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid var(--border);
+        padding: 1px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        color: var(--txt);
+    }
+    .solicitacao-tel-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.28);
+        padding: 1px 8px;
+        border-radius: 6px;
+        font-weight: 600;
+        color: #4ade80;
+    }
+    .solicitacao-acoes {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn-aprovar {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 9px 18px;
+        background: linear-gradient(135deg, #16a34a, #15803d);
+        color: #ffffff;
+        border: none;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        box-shadow: 0 2px 10px rgba(22, 163, 74, 0.3);
+        transition: all 0.15s ease;
+    }
+    .btn-aprovar:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(22, 163, 74, 0.45);
+        filter: brightness(1.06);
+    }
+    .btn-rejeitar {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 9px 14px;
+        background: rgba(239, 68, 68, 0.08);
+        color: #f87171;
+        border: 1px solid rgba(239, 68, 68, 0.25);
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .btn-rejeitar:hover {
+        background: rgba(239, 68, 68, 0.18);
+        border-color: rgba(239, 68, 68, 0.45);
+    }
+
+    /* Toolbar Amigável de Controle e Filtros */
+    .painel-prof-toolbar {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 18px 20px;
+        margin-bottom: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    }
+    /* Abas Rápidas de status */
+    .status-segment-group {
+        display: flex;
+        gap: 6px;
+        background: var(--surface2);
+        padding: 5px;
+        border-radius: 14px;
+        border: 1px solid var(--border);
+        flex-wrap: wrap;
     }
     .status-segment-btn {
-        padding: 6px 14px;
-        border-radius: 8px;
-        font-size: 0.77rem;
+        flex: 1;
+        min-width: 140px;
+        padding: 10px 16px;
+        border-radius: 10px;
+        font-size: 0.82rem;
         font-weight: 600;
         font-family: 'Poppins', sans-serif;
         background: transparent;
@@ -1438,34 +1375,135 @@
         cursor: pointer;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
+        justify-content: center;
+        gap: 8px;
         transition: all 0.15s ease;
     }
     .status-segment-btn:hover {
         color: var(--txt);
+        background: rgba(255, 255, 255, 0.03);
     }
     .status-segment-btn.ativo {
         background: var(--surface);
         color: var(--txt);
         font-weight: 700;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--border2);
     }
     .segment-badge {
-        padding: 1px 6px;
-        border-radius: 10px;
-        font-size: 0.68rem;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 0.72rem;
         font-weight: 800;
-        background: rgba(0, 0, 0, 0.08);
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--txt);
     }
     .status-segment-btn.ativo .segment-badge {
-        background: rgba(220, 60, 60, 0.12);
-        color: var(--cor-primaria, #dc3c3c);
+        background: rgba(220, 60, 60, 0.18);
+        color: var(--purple-bright);
     }
 
-    /* Grid Responsivo de Professores (2-3 Colunas) */
+    /* Linha de Busca por nome e filtro de matéria */
+    .toolbar-linha-busca {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .busca-prof-input-wrap {
+        position: relative;
+        flex: 2;
+        min-width: 250px;
+    }
+    .busca-prof-input-wrap .busca-icone {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.95rem;
+        color: var(--txt3);
+        pointer-events: none;
+    }
+    .busca-prof-input-wrap input {
+        width: 100%;
+        padding: 12px 16px 12px 42px;
+        border-radius: 12px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--txt);
+        font-size: 0.86rem;
+        font-family: 'Poppins', sans-serif;
+        outline: none;
+        box-sizing: border-box;
+        transition: all 0.2s ease;
+    }
+    .busca-prof-input-wrap input:focus {
+        border-color: var(--purple-bright);
+        box-shadow: 0 0 0 3px rgba(220, 60, 60, 0.16);
+        background: var(--surface);
+    }
+    .filtro-disc-select-wrap {
+        flex: 1;
+        min-width: 200px;
+    }
+    .filtro-disc-select-wrap select {
+        width: 100%;
+        padding: 12px 16px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--txt);
+        font-size: 0.84rem;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+        outline: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-sizing: border-box;
+    }
+    .filtro-disc-select-wrap select:focus {
+        border-color: var(--purple-bright);
+        background: var(--surface);
+    }
+    .contador-professores-filtrados {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--txt2);
+        white-space: nowrap;
+        margin-left: auto;
+    }
+
+    /* Container do Bloco de Docentes */
+    .bloco-docentes-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .bloco-docentes-topo {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 4px;
+        flex-wrap: wrap;
+    }
+    .bloco-docentes-titulo {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--txt);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .bloco-docentes-dica {
+        font-size: 0.78rem;
+        color: var(--txt3);
+    }
+
+    /* Grid Responsivo de Professores */
     .gerenciar-lista-professores {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
         gap: 16px;
     }
     @media (max-width: 640px) {
@@ -1474,26 +1512,28 @@
         }
     }
 
-    /* Card do Professor - Modern Card Layout */
+    /* Card do Professor - Moderno, Limpo e Respirável */
     .professor-card {
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 18px;
-        overflow: hidden;
+        padding: 16px;
         display: flex;
         flex-direction: column;
-        justify-content: space-between;
-        transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
-        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.02);
+        justify-content: flex-start;
+        gap: 12px;
+        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
         position: relative;
     }
     .professor-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.07);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
         border-color: var(--border2);
     }
+
+    /* Topo do Card */
     .professor-card-topo {
-        padding: 18px 18px 14px;
         display: flex;
         align-items: flex-start;
         gap: 14px;
@@ -1509,11 +1549,11 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.96rem;
+        font-size: 0.98rem;
         font-weight: 800;
         color: #ffffff;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-        border: 1.5px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+        border: 1.5px solid rgba(255, 255, 255, 0.18);
     }
     .avatar-status-dot {
         position: absolute;
@@ -1533,10 +1573,10 @@
         min-width: 0;
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 5px;
     }
     .professor-nome {
-        font-size: 0.96rem;
+        font-size: 1.02rem;
         font-weight: 700;
         color: var(--txt);
         line-height: 1.3;
@@ -1549,49 +1589,32 @@
         align-items: center;
         gap: 6px;
         flex-wrap: wrap;
-        margin-top: 2px;
     }
     .badge-disciplina-pill {
-        font-size: 0.72rem;
+        font-size: 0.74rem;
         font-weight: 600;
-        color: var(--txt2);
+        color: var(--txt);
         background: var(--surface2);
         border: 1px solid var(--border);
-        padding: 2px 8px;
+        padding: 3px 9px;
         border-radius: 8px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        max-width: 160px;
+        max-width: 170px;
     }
-    .badge-reservas-pill {
+    .badge-telefone-pill {
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: #4ade80;
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.28);
+        padding: 3px 9px;
+        border-radius: 8px;
         display: inline-flex;
         align-items: center;
-        gap: 4px;
-        font-size: 0.7rem;
-        font-weight: 600;
-        color: #2563eb;
-        background: rgba(37, 99, 235, 0.08);
-        border: 1px solid rgba(37, 99, 235, 0.2);
-        padding: 2px 8px;
-        border-radius: 8px;
-        cursor: pointer;
-        transition: all 0.15s ease;
-    }
-    .badge-reservas-pill:hover {
-        background: rgba(37, 99, 235, 0.16);
-        transform: translateX(1px);
-    }
-
-    /* Rodapé do Card com Ações Limpas */
-    .professor-card-footer {
-        padding: 12px 18px;
-        background: rgba(0, 0, 0, 0.02);
-        border-top: 1px solid var(--border);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
+        gap: 5px;
+        white-space: nowrap;
     }
     .status-pill-badge {
         font-size: 0.7rem;
@@ -1601,143 +1624,204 @@
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
+        letter-spacing: 0.02em;
     }
     .status-pill-badge.ativo {
         background: rgba(34, 197, 94, 0.12);
-        border: 1px solid rgba(34, 197, 94, 0.25);
-        color: #16a34a;
+        border: 1px solid rgba(34, 197, 94, 0.28);
+        color: #22c55e;
     }
     .status-pill-badge.pendente {
-        background: rgba(234, 179, 8, 0.12);
-        border: 1px solid rgba(234, 179, 8, 0.25);
-        color: #ca8a04;
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.28);
+        color: #f59e0b;
     }
-    .card-acoes-botoes {
+
+    /* Bloco intermediário com detalhes de acesso e agendamentos */
+    .prof-card-detalhe-bloco {
+        background: var(--surface2);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 12px;
+        padding: 10px 14px;
         display: flex;
         align-items: center;
-        gap: 6px;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+        font-size: 0.78rem;
     }
-    .btn-card-pin {
-        padding: 6px 12px;
-        border-radius: 9px;
-        font-size: 0.77rem;
-        font-weight: 700;
-        font-family: 'Poppins', sans-serif;
-        border: 1px solid var(--border);
-        background: var(--surface);
+    .prof-card-pin-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--txt2);
+    }
+    .prof-card-pin-status strong {
         color: var(--txt);
-        cursor: pointer;
+    }
+    .badge-reservas-pill {
         display: inline-flex;
         align-items: center;
         gap: 5px;
-        transition: all 0.15s ease;
-    }
-    .btn-card-pin:hover {
-        background: var(--surface2);
-        transform: translateY(-1px);
-        border-color: var(--border2);
-    }
-    .btn-card-pin.destaque {
-        background: rgba(245, 158, 11, 0.12);
-        border-color: rgba(245, 158, 11, 0.3);
-        color: #d97706;
-    }
-    .btn-card-pin.destaque:hover {
-        background: rgba(245, 158, 11, 0.22);
-    }
-    .btn-card-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 9px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        color: var(--txt2);
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #60a5fa;
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.25);
+        padding: 3px 9px;
+        border-radius: 8px;
         cursor: pointer;
-        font-size: 0.82rem;
         transition: all 0.15s ease;
     }
-    .btn-card-icon:hover {
-        background: var(--surface2);
-        color: var(--txt);
+    .badge-reservas-pill:hover {
+        background: rgba(59, 130, 246, 0.2);
         transform: translateY(-1px);
-    }
-    .btn-card-icon.danger {
-        color: #f87171;
-    }
-    .btn-card-icon.danger:hover {
-        background: rgba(239, 68, 68, 0.12);
-        border-color: rgba(239, 68, 68, 0.25);
     }
 
-    /* Drawer de Edição no Card */
-    .professor-card-expansivel {
-        display: none;
-        padding: 14px 18px;
-        background: var(--surface2);
+    /* Rodapé com Ações Claras (2 Linhas Harmônicas e 100% Responsivas) */
+    .professor-card-footer {
+        margin-top: auto;
+        padding-top: 12px;
         border-top: 1px solid var(--border);
-        animation: fadeIn 0.2s ease-out;
-    }
-    .professor-card-expansivel.aberto {
-        display: block;
-    }
-    .edicao-campos-grid {
         display: flex;
         flex-direction: column;
-        gap: 10px;
-        margin-bottom: 12px;
-    }
-    .edicao-campo label {
-        font-size: 0.72rem;
-        font-weight: 700;
-        color: var(--txt3);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        display: block;
-        margin-bottom: 4px;
-    }
-    .edicao-campo input,
-    .edicao-campo select {
+        gap: 8px;
         width: 100%;
-        padding: 9px 12px;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        color: var(--txt);
-        font-size: 0.83rem;
-        font-family: 'Poppins', sans-serif;
-        outline: none;
-        box-sizing: border-box;
     }
-    .edicao-botoes {
+
+    .prof-card-linha-acoes {
         display: flex;
         align-items: center;
         gap: 8px;
+        width: 100%;
     }
 
-    /* Badge PIN na Solicitação */
-    .badge-solicitacao-pin-wrap {
+    /* Linha 1: Senha e WhatsApp */
+    .btn-card-pin {
+        flex: 1;
+        height: 38px;
+        padding: 0 12px;
+        border-radius: 10px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        border: 1px solid rgba(220, 60, 60, 0.32);
+        background: rgba(220, 60, 60, 0.12);
+        color: var(--txt);
+        cursor: pointer;
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 6px;
-        margin-left: 8px;
-        font-size: 0.75rem;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        padding: 2px 7px;
-        border-radius: 6px;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+        box-sizing: border-box;
     }
-    .btn-ver-pin-sol {
-        background: none;
-        border: none;
+    .btn-card-pin:hover {
+        background: rgba(220, 60, 60, 0.22);
+        border-color: rgba(220, 60, 60, 0.55);
+        transform: translateY(-1px);
+    }
+    .btn-card-pin:active {
+        transform: translateY(0);
+    }
+    .btn-card-pin.destaque {
+        width: 100%;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        border-color: #f59e0b;
+        color: #ffffff;
+        box-shadow: 0 3px 12px rgba(245, 158, 11, 0.3);
+    }
+    .btn-card-pin.destaque:hover {
+        opacity: 0.95;
+        box-shadow: 0 4px 16px rgba(245, 158, 11, 0.45);
+        transform: translateY(-1px);
+    }
+
+    .btn-card-zap {
+        flex: 1;
+        height: 38px;
+        padding: 0 12px;
+        border-radius: 10px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        border: 1px solid rgba(34, 197, 94, 0.38);
+        background: rgba(34, 197, 94, 0.12);
+        color: #22c55e;
         cursor: pointer;
-        padding: 0;
-        font-size: 0.8rem;
-        line-height: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+        box-sizing: border-box;
+    }
+    .btn-card-zap:hover {
+        background: rgba(34, 197, 94, 0.24);
+        border-color: rgba(34, 197, 94, 0.65);
+        transform: translateY(-1px);
+    }
+    .btn-card-zap:active {
+        transform: translateY(0);
+    }
+
+    /* Linha 2: Editar Dados + Excluir */
+    .btn-card-editar-modal {
+        flex: 1;
+        height: 36px;
+        padding: 0 12px;
+        border-radius: 10px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        color: var(--txt2);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+        box-sizing: border-box;
+    }
+    .btn-card-editar-modal:hover {
+        color: var(--txt);
+        border-color: var(--border2);
+        background: var(--surface);
+        transform: translateY(-1px);
+    }
+    .btn-card-editar-modal:active {
+        transform: translateY(0);
+    }
+
+    .btn-card-icon-del {
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        border-radius: 10px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(239, 68, 68, 0.08);
+        border: 1px solid rgba(239, 68, 68, 0.22);
+        color: #f87171;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 0.15s ease;
+        flex-shrink: 0;
+        box-sizing: border-box;
+    }
+    .btn-card-icon-del:hover {
+        background: rgba(239, 68, 68, 0.2);
+        border-color: rgba(239, 68, 68, 0.45);
+        transform: translateY(-1px);
+    }
+    .btn-card-icon-del:active {
+        transform: translateY(0);
     }
 
     /* Modal customizado SweetAlert para PIN e Gestão */
@@ -1752,28 +1836,28 @@
     .modal-pin-bloco {
         background: rgba(125, 125, 125, 0.05);
         border: 1px solid var(--border);
-        border-radius: 12px;
-        padding: 14px;
+        border-radius: 14px;
+        padding: 16px;
         display: flex;
         flex-direction: column;
         gap: 10px;
     }
     .modal-pin-titulo {
-        font-size: 0.88rem;
+        font-size: 0.92rem;
         font-weight: 700;
         color: var(--txt);
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
     }
     .modal-pin-sub {
-        font-size: 0.74rem;
-        color: var(--txt3);
-        line-height: 1.4;
+        font-size: 0.78rem;
+        color: var(--txt2);
+        line-height: 1.45;
     }
     .modal-pin-input-linha {
         display: flex;
-        gap: 8px;
+        gap: 10px;
         align-items: center;
         flex-wrap: wrap;
     }
@@ -1781,7 +1865,7 @@
         width: 140px;
         letter-spacing: 0.25em;
         text-align: center;
-        font-size: 1.25rem;
+        font-size: 1.35rem;
         font-weight: 800;
         padding: 8px 10px;
         border-radius: 10px;
@@ -1792,18 +1876,18 @@
         outline: none;
     }
     .modal-pin-btn-random {
-        padding: 9px 12px;
+        padding: 10px 14px;
         border-radius: 10px;
         background: var(--surface2);
         border: 1px solid var(--border);
         color: var(--txt);
-        font-size: 0.78rem;
+        font-size: 0.8rem;
         font-weight: 600;
         font-family: 'Poppins', sans-serif;
         cursor: pointer;
         display: inline-flex;
         align-items: center;
-        gap: 5px;
+        gap: 6px;
         transition: background 0.15s;
     }
     .modal-pin-btn-random:hover {
@@ -1816,7 +1900,7 @@
         background: var(--surface2);
         border: 1px dashed var(--border);
         padding: 12px 16px;
-        border-radius: 10px;
+        border-radius: 12px;
         margin-top: 10px;
     }
     .badge-pin-display {
@@ -1827,46 +1911,169 @@
         color: var(--cor-primaria, #dc3c3c);
     }
 
-    /* Blocos de gestão */
-    .bloco-gestao-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 20px;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+    /* Modal de Histórico de Agendamentos do Professor */
+    .historico-prof-modal-container {
         display: flex;
         flex-direction: column;
-        gap: 16px;
+        gap: 14px;
+        text-align: left;
+        font-family: 'Poppins', sans-serif;
     }
-    .bloco-gestao-header {
+    .historico-prof-resumo {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+    .resumo-chip {
+        padding: 9px 8px;
+        border-radius: 12px;
+        text-align: center;
         display: flex;
         flex-direction: column;
-        gap: 3px;
-        padding-bottom: 12px;
-        border-bottom: 1px solid var(--border);
-    }
-    .bloco-gestao-titulo {
-        display: flex;
         align-items: center;
-        gap: 10px;
-        font-size: 0.96rem;
-        font-weight: 700;
-        color: var(--txt);
+        gap: 2px;
     }
-    .bloco-gestao-sub {
-        font-size: 0.76rem;
+    .resumo-chip.total {
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.25);
+    }
+    .resumo-chip.total .resumo-chip-num { color: #60a5fa; }
+    .resumo-chip.futuras {
+        background: rgba(34, 197, 94, 0.1);
+        border: 1px solid rgba(34, 197, 94, 0.25);
+    }
+    .resumo-chip.futuras .resumo-chip-num { color: #22c55e; }
+    .resumo-chip.passadas {
+        background: rgba(148, 163, 184, 0.1);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+    }
+    .resumo-chip.passadas .resumo-chip-num { color: var(--txt2); }
+
+    .resumo-chip-num {
+        font-size: 1.3rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+    .resumo-chip-label {
+        font-size: 0.7rem;
+        font-weight: 600;
         color: var(--txt3);
     }
-    .badge-pendentes-chip {
-        display: inline-flex;
+
+    .historico-prof-lista-scroll {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 330px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+    .historico-prof-lista-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+    .historico-prof-lista-scroll::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 6px;
+    }
+
+    .historico-item-card {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px 13px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+    .historico-item-card:hover {
+        border-color: var(--border2);
+        transform: translateY(-1px);
+    }
+    .historico-item-card.destaque-hoje {
+        border-color: rgba(34, 197, 94, 0.45);
+        background: rgba(34, 197, 94, 0.06);
+    }
+    .historico-item-topo {
+        display: flex;
         align-items: center;
-        justify-content: center;
-        background: #f59e0b;
-        color: #fff;
-        font-size: 0.7rem;
-        font-weight: 800;
+        justify-content: space-between;
+        gap: 8px;
+    }
+    .historico-item-data {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.86rem;
+        color: var(--txt);
+    }
+    .historico-item-diasemana {
+        font-size: 0.74rem;
+        color: var(--txt3);
+        font-weight: 500;
+    }
+
+    .status-reserva-badge {
+        font-size: 0.68rem;
+        font-weight: 700;
         padding: 2px 8px;
         border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+    .status-reserva-badge.hoje {
+        background: rgba(34, 197, 94, 0.15);
+        border: 1px solid rgba(34, 197, 94, 0.35);
+        color: #22c55e;
+    }
+    .status-reserva-badge.futura {
+        background: rgba(59, 130, 246, 0.15);
+        border: 1px solid rgba(59, 130, 246, 0.35);
+        color: #60a5fa;
+    }
+    .status-reserva-badge.passada {
+        background: rgba(148, 163, 184, 0.12);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        color: var(--txt3);
+    }
+
+    .historico-item-detalhes {
+        display: grid;
+        grid-template-columns: 1.2fr 1.2fr 0.9fr;
+        gap: 8px;
+        background: var(--surface);
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        font-size: 0.78rem;
+    }
+    @media (max-width: 480px) {
+        .historico-item-detalhes {
+            grid-template-columns: 1fr;
+            gap: 4px;
+        }
+    }
+    .historico-item-detalhe {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+    .historico-item-label {
+        font-size: 0.66rem;
+        color: var(--txt3);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    .historico-item-valor {
+        font-weight: 600;
+        color: var(--txt);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     /* Sub-tabs para Salas & Turmas */
@@ -2446,77 +2653,62 @@
         <!-- ══ ABA 2: PROFESSORES ═══════════════════════════════ -->
         <div id="painel-aba-professores" class="painel-aba-principal oculto">
             
-            <!-- Header da Seção Professores -->
-            <div class="secao-aba-header">
-                <div class="secao-aba-info">
-                    <div class="secao-aba-icone">👨‍🏫</div>
+            <!-- Header Amigável da Seção Professores -->
+            <div class="prof-secao-header">
+                <div class="prof-secao-info">
+                    <div class="prof-secao-icone-wrap">👨‍🏫</div>
                     <div>
-                        <h2 class="secao-aba-titulo">Gestão de Professores</h2>
-                        <div class="secao-aba-sub">Administre o corpo docente, aprove cadastros e redefina credenciais de acesso</div>
+                        <h2 class="prof-secao-titulo">Professores</h2>
+                        <div class="prof-secao-sub">Consulte os professores da escola, cadastre novos e ajude quem precisa de senha.</div>
                     </div>
+                </div>
+                <button class="btn-novo-professor-topo" onclick="window.abrirModalNovoProfessor()" title="Cadastrar novo professor">
+                    <span>➕</span> Cadastrar Professor
+                </button>
+            </div>
+
+            <!-- Banner Inteligente de Solicitações Pendentes (aparece somente se houver solicitações) -->
+            <div class="bloco-solicitacoes-destaque" id="bloco-solicitacoes" style="display:none;">
+                <div class="solicitacoes-alerta-header">
+                    <div class="solicitacoes-alerta-titulo-linha">
+                        <span class="solicitacoes-alerta-icone">👋</span>
+                        <div class="solicitacoes-alerta-titulo">Novos Professores Aguardando Liberação</div>
+                        <span class="badge-pendentes-chip" id="badge-pendentes">0</span>
+                    </div>
+                </div>
+                <div class="solicitacoes-alerta-sub">
+                    Eles se cadastraram pelo aplicativo e estão aguardando sua autorização para começar a agendar salas.
+                </div>
+                <div class="lista-solicitacoes-cards" id="lista-solicitacoes">
+                    <div class="gerenciar-vazio">Carregando solicitações...</div>
                 </div>
             </div>
 
-            <!-- Grid de Indicadores KPI da Gestão de Docentes -->
-            <div class="prof-metricas-grid">
-                <div class="prof-metrica-card">
-                    <div class="prof-metrica-icone" style="background: rgba(99, 102, 241, 0.12); color: #6366f1;">👥</div>
-                    <div class="prof-metrica-info">
-                        <span class="prof-metrica-valor" id="kpi-prof-total">0</span>
-                        <span class="prof-metrica-rotulo">Total Docentes</span>
-                    </div>
-                </div>
-                <div class="prof-metrica-card">
-                    <div class="prof-metrica-icone" style="background: rgba(34, 197, 94, 0.12); color: #22c55e;">🟢</div>
-                    <div class="prof-metrica-info">
-                        <span class="prof-metrica-valor" id="kpi-prof-ativos">0</span>
-                        <span class="prof-metrica-rotulo">Acessos Ativos</span>
-                    </div>
-                </div>
-                <div class="prof-metrica-card">
-                    <div class="prof-metrica-icone" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">🟡</div>
-                    <div class="prof-metrica-info">
-                        <span class="prof-metrica-valor" id="kpi-prof-pendentes">0</span>
-                        <span class="prof-metrica-rotulo">Sem PIN / Pendentes</span>
-                    </div>
-                </div>
-                <div class="prof-metrica-card" id="kpi-card-solicitacoes" onclick="document.getElementById('bloco-solicitacoes')?.scrollIntoView({behavior:'smooth'})" style="cursor:pointer;" title="Clique para ver solicitações">
-                    <div class="prof-metrica-icone" style="background: rgba(239, 68, 68, 0.12); color: #ef4444;">⏳</div>
-                    <div class="prof-metrica-info">
-                        <span class="prof-metrica-valor" id="kpi-prof-solicitacoes">0</span>
-                        <span class="prof-metrica-rotulo">Solicitações</span>
-                    </div>
-                    <div class="prof-metrica-badge-alerta" id="kpi-badge-alerta" style="display:none;">Atenção</div>
-                </div>
-            </div>
-
-            <!-- Deck de Controle e Filtros -->
+            <!-- Toolbar de Filtros & Busca Simplificada -->
             <div class="painel-prof-toolbar">
+                <!-- Abas Rápidas de Status (3 em 1: Informa a contagem e filtra na hora) -->
+                <div class="status-segment-group">
+                    <button class="status-segment-btn ativo" id="chip-status-todos" onclick="window.filtrarStatusProfessores('todos')">
+                        👥 Todos os Professores <span class="segment-badge" id="chip-count-todos">0</span>
+                    </button>
+                    <button class="status-segment-btn" id="chip-status-ativos" onclick="window.filtrarStatusProfessores('ativos')">
+                        🟢 Acesso Liberado <span class="segment-badge" id="chip-count-ativos">0</span>
+                    </button>
+                    <button class="status-segment-btn" id="chip-status-pendentes" onclick="window.filtrarStatusProfessores('pendentes')">
+                        🟡 Falta Definir Senha <span class="segment-badge" id="chip-count-pendentes">0</span>
+                    </button>
+                </div>
+
+                <!-- Linha de Busca e Matéria -->
                 <div class="toolbar-linha-busca">
                     <div class="busca-prof-input-wrap">
                         <span class="busca-icone">🔍</span>
-                        <input type="text" id="busca-professores" placeholder="Buscar por nome ou disciplina..." oninput="window.aplicarFiltrosProfessores()">
+                        <input type="text" id="busca-professores" placeholder="Buscar professor por nome ou matéria..." oninput="window.aplicarFiltrosProfessores()">
                     </div>
                     <div class="filtro-disc-select-wrap">
                         <select id="filtro-disciplina-professores" onchange="window.aplicarFiltrosProfessores()">
-                            <option value="">Todas as disciplinas</option>
+                            <option value="">Todas as matérias</option>
                         </select>
-                    </div>
-                    <button class="btn-novo-professor" onclick="window.abrirModalNovoProfessor()" title="Cadastrar novo professor diretamente">
-                        <span>➕</span> Novo Professor
-                    </button>
-                </div>
-                <div class="toolbar-linha-status">
-                    <div class="status-segment-group">
-                        <button class="status-segment-btn ativo" id="chip-status-todos" onclick="window.filtrarStatusProfessores('todos')">
-                            Todos <span class="segment-badge" id="chip-count-todos">0</span>
-                        </button>
-                        <button class="status-segment-btn" id="chip-status-ativos" onclick="window.filtrarStatusProfessores('ativos')">
-                            🟢 Com PIN <span class="segment-badge" id="chip-count-ativos">0</span>
-                        </button>
-                        <button class="status-segment-btn" id="chip-status-pendentes" onclick="window.filtrarStatusProfessores('pendentes')">
-                            🟡 Sem PIN <span class="segment-badge" id="chip-count-pendentes">0</span>
-                        </button>
                     </div>
                     <div class="contador-professores-filtrados" id="contador-professores-filtrados">
                         <!-- Atualizado via JS -->
@@ -2524,31 +2716,29 @@
                 </div>
             </div>
 
-            <!-- Solicitações Pendentes (Alert Box) -->
-            <div class="bloco-gestao-card" id="bloco-solicitacoes">
-                <div class="bloco-gestao-header">
-                    <div class="bloco-gestao-titulo">
-                        <span>⏳ Solicitações Pendentes de Acesso</span>
-                        <span class="badge-pendentes-chip" id="badge-pendentes">0</span>
+            <!-- Corpo Docente Cadastrado -->
+            <div class="bloco-docentes-container" id="bloco-docentes">
+                <div class="bloco-docentes-topo">
+                    <div class="bloco-docentes-titulo">
+                        <span>👥 Lista de Professores</span>
                     </div>
-                    <div class="bloco-gestao-sub">Revise e aprove novos professores para liberar o acesso ao sistema</div>
-                </div>
-                <div id="lista-solicitacoes">
-                    <div class="gerenciar-vazio">Carregando solicitações...</div>
-                </div>
-            </div>
-
-            <!-- Corpo Docente (Grid de Cards) -->
-            <div class="bloco-gestao-card" id="bloco-docentes">
-                <div class="bloco-gestao-header">
-                    <div class="bloco-gestao-titulo">
-                        <span>👥 Corpo Docente Cadastrado</span>
+                    <div class="bloco-docentes-dica">
+                        Dica: Clique em "Senha de Acesso" para ver ou trocar a senha, ou envie direto pelo WhatsApp.
                     </div>
-                    <div class="bloco-gestao-sub">Gerencie credenciais PIN, edite dados e monitore o status de cada professor</div>
                 </div>
                 <div class="gerenciar-lista-professores" id="lista-professores">
                     <div class="gerenciar-vazio">Carregando professores...</div>
                 </div>
+            </div>
+
+            <!-- Elementos ocultos para compatibilidade com KPIs anteriores (evita erros em scripts) -->
+            <div style="display:none;" aria-hidden="true">
+                <span id="kpi-prof-total">0</span>
+                <span id="kpi-prof-ativos">0</span>
+                <span id="kpi-prof-pendentes">0</span>
+                <span id="kpi-prof-solicitacoes">0</span>
+                <span id="kpi-badge-alerta"></span>
+                <span id="kpi-card-solicitacoes"></span>
             </div>
 
         </div>

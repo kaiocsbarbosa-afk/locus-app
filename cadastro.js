@@ -60,11 +60,22 @@ document.addEventListener('DOMContentLoaded', () => {
         if (inputNome.value) inputNome.value = formatarNomeProprio(inputNome.value);
     });
 
+    const inputTelefone = document.getElementById('input-telefone');
+    if (inputTelefone) {
+        aplicarMascaraTelefone(inputTelefone);
+        inputTelefone.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('input-disciplina')?.focus();
+            }
+        });
+    }
+
     // Facilita preenchimento com navegação por teclado
     inputNome?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            document.getElementById('input-disciplina')?.focus();
+            document.getElementById('input-telefone')?.focus() || document.getElementById('input-disciplina')?.focus();
         }
     });
 
@@ -89,6 +100,23 @@ function formatarNomeProprio(str) {
             return pLower.charAt(0).toUpperCase() + pLower.slice(1);
         })
         .join(' ');
+}
+
+function aplicarMascaraTelefone(input) {
+    if (!input) return;
+    input.addEventListener('input', (e) => {
+        let val = e.target.value.replace(/\D/g, '').slice(0, 11);
+        if (val.length > 10) {
+            val = val.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+        } else if (val.length > 6) {
+            val = val.replace(/^(\d{2})(\d{4})(\d{0,4})$/, '($1) $2-$3');
+        } else if (val.length > 2) {
+            val = val.replace(/^(\d{2})(\d*)$/, '($1) $2');
+        } else if (val.length > 0) {
+            val = val.replace(/^(\d*)$/, '($1');
+        }
+        e.target.value = val;
+    });
 }
 
 // ── VERIFICAÇÃO DE SESSÃO EXISTENTE NO NAVEGADOR ───────────
@@ -249,6 +277,18 @@ async function enviarSolicitacao() {
         });
     }
 
+    const telefoneBruto = document.getElementById('input-telefone')?.value || '';
+    const telefone = telefoneBruto.replace(/\D/g, '');
+
+    if (!telefone || telefone.length < 10) {
+        return Swal.fire({
+            icon: 'warning',
+            title: 'WhatsApp obrigatório',
+            text: 'Informe seu WhatsApp com DDD para envio da confirmação de acesso.',
+            confirmButtonColor: '#dc3c3c'
+        });
+    }
+
     const btnEnviar = document.getElementById('btn-enviar');
     btnEnviar.disabled = true;
     btnEnviar.classList.add('carregando');
@@ -311,16 +351,27 @@ async function enviarSolicitacao() {
             });
         }
 
-        // 3. Insere a nova solicitação sem retorno de coluna pin (.select())
-        // Usa cliente estritamente anônimo com 'Prefer: return=minimal'
-        const { error: errInsert } = await supabase
+        // 3. Insere a nova solicitação com telefone
+        // Se a coluna telefone ainda não existir no banco (código 42703), faz fallback para não bloquear
+        const payloadInsert = {
+            nome,
+            disciplina,
+            pin,
+            telefone: telefone || null,
+            status: 'pendente'
+        };
+
+        let { error: errInsert } = await supabase
             .from('solicitacoes_acesso')
-            .insert({
-                nome,
-                disciplina,
-                pin,
-                status: 'pendente'
-            });
+            .insert(payloadInsert);
+
+        if (errInsert && (errInsert.code === '42703' || errInsert.message?.includes('telefone'))) {
+            delete payloadInsert.telefone;
+            const resFallback = await supabase
+                .from('solicitacoes_acesso')
+                .insert(payloadInsert);
+            errInsert = resFallback.error;
+        }
 
         if (errInsert) throw errInsert;
 
