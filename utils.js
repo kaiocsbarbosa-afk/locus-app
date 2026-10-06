@@ -302,6 +302,17 @@ if (typeof document !== 'undefined') {
 // ------------------------------------------------------------
 const LIMITE_TENTATIVAS_LOGIN = 5;
 const TEMPO_BLOQUEIO_LOGIN_MS = 60 * 1000; // 1 minuto (60 segundos)
+const TTL_TENTATIVAS_MS = 15 * 60 * 1000; // 15 minutos para zerar histórico de falhas parciais
+
+export function getAgoraBrasilia() {
+    try {
+        const agoraUtc = new Date();
+        const strSp = agoraUtc.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
+        return new Date(strSp);
+    } catch (_) {
+        return new Date();
+    }
+}
 
 export function checarBloqueioLogin(chave = 'padrao') {
     const storageKey = `locus_rl_${chave}`;
@@ -310,6 +321,13 @@ export function checarBloqueioLogin(chave = 'padrao') {
         if (!raw) return { bloqueado: false, tentativas: 0, segundosRestantes: 0 };
         const dados = JSON.parse(raw);
         const agora = Date.now();
+
+        // Expira falhas parciais se já se passaram mais de 15 minutos da última tentativa
+        if (dados.atualizadoEm && (agora - dados.atualizadoEm > TTL_TENTATIVAS_MS) && (!dados.bloqueadoAte || dados.bloqueadoAte <= agora)) {
+            localStorage.removeItem(storageKey);
+            return { bloqueado: false, tentativas: 0, segundosRestantes: 0 };
+        }
+
         if (dados.bloqueadoAte && dados.bloqueadoAte > agora) {
             const segundosRestantes = Math.ceil((dados.bloqueadoAte - agora) / 1000);
             return { bloqueado: true, tentativas: dados.tentativas || LIMITE_TENTATIVAS_LOGIN, segundosRestantes };
@@ -336,13 +354,15 @@ export function registrarFalhaLogin(chave = 'padrao') {
             const bloqueadoAte = agora + TEMPO_BLOQUEIO_LOGIN_MS;
             localStorage.setItem(storageKey, JSON.stringify({
                 tentativas: novasTentativas,
-                bloqueadoAte
+                bloqueadoAte,
+                atualizadoEm: agora
             }));
             return { bloqueado: true, tentativas: novasTentativas, segundosRestantes: 60 };
         } else {
             localStorage.setItem(storageKey, JSON.stringify({
                 tentativas: novasTentativas,
-                bloqueadoAte: null
+                bloqueadoAte: null,
+                atualizadoEm: agora
             }));
             return { bloqueado: false, tentativas: novasTentativas, segundosRestantes: 0 };
         }
@@ -355,5 +375,117 @@ export function resetarTentativasLogin(chave = 'padrao') {
     try {
         localStorage.removeItem(`locus_rl_${chave}`);
     } catch (_) {}
+}
+
+// ------------------------------------------------------------
+// Feedback Tátil (Haptic Feedback) para Dispositivos Móveis
+// ------------------------------------------------------------
+export function vibrarSucesso() {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate([25, 35, 25]); } catch (_) {}
+    }
+}
+
+export function vibrarErro() {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate([60, 50, 60]); } catch (_) {}
+    }
+}
+
+export function vibrarClique() {
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+        try { navigator.vibrate(15); } catch (_) {}
+    }
+}
+
+// ------------------------------------------------------------
+// Gerenciador de Instalação PWA (beforeinstallprompt + iOS)
+// ------------------------------------------------------------
+let _promptInstalacaoPWA = null;
+
+export function inicializarInstaladorPWA(seletorBotao = '.btn-instalar-pwa, .banner-instalar-pwa') {
+    if (typeof window === 'undefined') return;
+
+    const ehStandalone = window.matchMedia('(display-mode: standalone)').matches
+        || window.navigator.standalone === true
+        || (typeof document !== 'undefined' && document.referrer.includes('android-app://'));
+
+    if (ehStandalone) {
+        document.querySelectorAll(seletorBotao).forEach(el => el.style.display = 'none');
+        return;
+    }
+
+    // Se for iOS Safari, pode exibir o botão mesmo sem beforeinstallprompt
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+        document.querySelectorAll(seletorBotao).forEach(el => {
+            el.style.display = el.dataset.displayOriginal || 'inline-flex';
+        });
+    }
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        _promptInstalacaoPWA = e;
+        document.querySelectorAll(seletorBotao).forEach(el => {
+            el.style.display = el.dataset.displayOriginal || 'inline-flex';
+        });
+    });
+
+    window.addEventListener('appinstalled', () => {
+        _promptInstalacaoPWA = null;
+        document.querySelectorAll(seletorBotao).forEach(el => el.style.display = 'none');
+        vibrarSucesso();
+    });
+}
+
+export async function acionarInstalacaoPWA() {
+    vibrarClique();
+    if (_promptInstalacaoPWA) {
+        _promptInstalacaoPWA.prompt();
+        const { outcome } = await _promptInstalacaoPWA.userChoice;
+        if (outcome === 'accepted') {
+            vibrarSucesso();
+            _promptInstalacaoPWA = null;
+        }
+        return;
+    }
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    if (isIOS) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'info',
+                title: 'Instalar no iPhone / iPad',
+                html: `
+                    <div style="text-align: left; font-size: 0.9rem; line-height: 1.6; color: #374151;">
+                        <p style="margin-bottom: 8px;">1. Toque no botão <strong>Compartilhar</strong> (ícone ⎋ na barra inferior do Safari).</p>
+                        <p style="margin-bottom: 8px;">2. Role as opções e selecione <strong>"Adicionar à Tela de Início"</strong> 📲.</p>
+                        <p>3. Toque em <strong>"Adicionar"</strong> no canto superior direito.</p>
+                    </div>
+                `,
+                confirmButtonColor: '#dc3c3c',
+                confirmButtonText: 'Entendi'
+            });
+        } else {
+            alert("No Safari: toque no botão Compartilhar (⎋) e escolha 'Adicionar à Tela de Início'.");
+        }
+        return;
+    }
+
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'info',
+            title: 'Instalar Aplicativo',
+            text: 'Abra as opções do seu navegador (⋮) e selecione "Instalar aplicativo" ou "Adicionar à tela inicial".',
+            confirmButtonColor: '#dc3c3c'
+        });
+    }
+}
+
+if (typeof window !== 'undefined') {
+    window.acionarInstalacaoPWA = acionarInstalacaoPWA;
+    window.vibrarSucesso = vibrarSucesso;
+    window.vibrarErro = vibrarErro;
+    window.vibrarClique = vibrarClique;
 }
 

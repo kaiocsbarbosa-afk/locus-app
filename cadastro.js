@@ -1,6 +1,6 @@
 /* cadastro.js — professor envia solicitação de acesso */
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-import { carregarPreferenciaModo, COORD_EMAIL, supabase as authClient, SUPABASE_URL, SUPABASE_KEY } from './utils.js'
+import { carregarPreferenciaModo, COORD_EMAIL, supabase as authClient, SUPABASE_URL, SUPABASE_KEY, vibrarSucesso, vibrarErro } from './utils.js'
 import { enviarNotificacao } from './push.js'
 
 // Cliente estritamente anônimo para cadastro/solicitação.
@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     inputNome?.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
-            document.getElementById('input-telefone')?.focus() || document.getElementById('input-disciplina')?.focus();
+            (document.getElementById('input-telefone') || document.getElementById('input-disciplina'))?.focus();
         }
     });
 
@@ -383,10 +383,12 @@ async function enviarSolicitacao() {
         ).catch(e => console.warn('[Push] Falha ao notificar coordenação:', e));
 
         // 5. Exibe a tela de sucesso
+        vibrarSucesso();
         document.getElementById('tela-form').style.display = 'none';
         document.getElementById('tela-sucesso').style.display = 'flex';
 
     } catch (err) {
+        vibrarErro();
         console.error('Erro ao enviar solicitação:', err);
         btnEnviar.disabled = false;
         btnEnviar.classList.remove('carregando');
