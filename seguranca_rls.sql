@@ -15,27 +15,46 @@
 -- 1. INTEGRIDADE REFERENCIAL & CONSTRAINTS ANTICONFLITO
 -- ------------------------------------------------------------
 
--- Garante que NUNCA haja agendamentos duplicados na mesma sala, data e aula
+-- Garante que colunas auxiliares necessárias existam nas tabelas
+ALTER TABLE public.agendamentos ADD COLUMN IF NOT EXISTS turno TEXT DEFAULT 'manha';
+ALTER TABLE public.solicitacoes_acesso ADD COLUMN IF NOT EXISTS telefone TEXT;
+ALTER TABLE public.solicitacoes_acesso ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMPTZ;
+
+-- Garante que NUNCA haja agendamentos duplicados na mesma sala, data, aula e turno
 DO $$
 BEGIN
-    IF NOT EXISTS (
+    -- Remove constraint antiga (sem turno) se existir
+    IF EXISTS (
         SELECT 1 FROM pg_constraint WHERE conname = 'agendamentos_sala_data_aula_unique'
     ) THEN
+        ALTER TABLE public.agendamentos DROP CONSTRAINT agendamentos_sala_data_aula_unique;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'agendamentos_sala_data_aula_turno_unique'
+    ) THEN
         ALTER TABLE public.agendamentos
-            ADD CONSTRAINT agendamentos_sala_data_aula_unique
-            UNIQUE (sala_id, data, aula_numero);
+            ADD CONSTRAINT agendamentos_sala_data_aula_turno_unique
+            UNIQUE (sala_id, data, aula_numero, turno);
     END IF;
 END $$;
 
--- Garante que um professor não reserve duas salas diferentes no mesmo horário
+-- Garante que um professor não reserve duas salas diferentes no mesmo horário e turno
 DO $$
 BEGIN
-    IF NOT EXISTS (
+    -- Remove constraint antiga (sem turno) se existir
+    IF EXISTS (
         SELECT 1 FROM pg_constraint WHERE conname = 'agendamentos_prof_data_aula_unique'
     ) THEN
+        ALTER TABLE public.agendamentos DROP CONSTRAINT agendamentos_prof_data_aula_unique;
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'agendamentos_prof_data_aula_turno_unique'
+    ) THEN
         ALTER TABLE public.agendamentos
-            ADD CONSTRAINT agendamentos_prof_data_aula_unique
-            UNIQUE (professor_id, data, aula_numero);
+            ADD CONSTRAINT agendamentos_prof_data_aula_turno_unique
+            UNIQUE (professor_id, data, aula_numero, turno);
     END IF;
 END $$;
 

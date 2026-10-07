@@ -1,5 +1,5 @@
 // IMPORTANTE: incremente CACHE_VERSION a cada deploy para forçar atualização
-const CACHE_VERSION = 'v27';
+const CACHE_VERSION = 'v28';
 const CACHE_NAME    = `locus-cache-${CACHE_VERSION}`;
 
 // Chave pública VAPID — necessária para renovar a subscription em pushsubscriptionchange
@@ -26,6 +26,8 @@ const ASSETS = [
   './icon-192.png',
   './icon-512.png',
   './icon-notification.png',
+  './hero-photo.jpg',
+  './hero-photo.avif',
   'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap',
 ];
 

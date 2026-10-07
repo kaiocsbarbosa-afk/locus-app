@@ -1,4 +1,4 @@
-import { supabase, registrarServiceWorker, getProfessorLogado, fazerLogoutAuth, getInfoSessaoAtual, COORD_EMAIL, getTurnoAtivo, setTurnoAtivo, detectarTurnoTurma, obterHorarioAula, obterTotalAulasTurno, GRADE_HORARIOS_MANHA, GRADE_HORARIOS_EJA, checarBloqueioLogin, registrarFalhaLogin, resetarTentativasLogin } from './utils.js'
+import { supabase, registrarServiceWorker, getProfessorLogado, fazerLogoutAuth, getInfoSessaoAtual, COORD_EMAIL, getTurnoAtivo, setTurnoAtivo, detectarTurnoTurma, obterHorarioAula, obterTotalAulasTurno, GRADE_HORARIOS_MANHA, GRADE_HORARIOS_EJA, checarBloqueioLogin, registrarFalhaLogin, resetarTentativasLogin, vibrarSucesso, vibrarErro, vibrarClique } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 let professorLogado = null;
@@ -11,6 +11,7 @@ let turnoAtivo = getTurnoAtivo(); // 'manha' | 'eja'
 // ============================================================
 
 window.selecionarTurnoLogin = function(turno) {
+    vibrarClique();
     turnoAtivo = setTurnoAtivo(turno);
     atualizarVisualTurnoLogin();
 };
@@ -40,6 +41,7 @@ function atualizarVisualTurnoLogin() {
 
 window.selecionarTurnoSegmented = function(turno) {
     if (turno === turnoAtivo) return;
+    vibrarClique();
     turnoAtivo = setTurnoAtivo(turno);
     atualizarVisualTurnoBanner();
     carregarTurmas();
@@ -375,7 +377,6 @@ function configurarPinBoxesGrande() {
             const val = inputReal.value.replace(/\D/g, '').slice(0, 4);
             inputReal.value = val;
             atualizarDots(val);
-            if (val.length === 4) fazerLogin();
         }, 20);
     });
 
@@ -434,99 +435,108 @@ function erroPin(mensagem, isRateLimit = false) {
     }, isRateLimit ? 5000 : 2500);
 }
 
+let _fazendoLogin = false;
 window.fazerLogin = async function() {
-    const sessaoInfo = await getInfoSessaoAtual();
-    if (sessaoInfo.tipo === 'coordenacao') {
-        return Swal.fire({
-            icon: 'warning',
-            title: 'Sessão da Coordenação Ativa',
-            text: 'Você precisa sair da conta de Coordenação antes de entrar como Professor.',
-            confirmButtonColor: '#dc3c3c'
-        });
-    }
-
-    const profId = _profId;   // definido em _selecionarCard()
-    const pin = (document.getElementById('pin-input-real')?.value || '').replace(/\D/g, '').slice(0, 4);
-
-    if (!profId) {
-        limparPin();
-        return Swal.fire({ icon: 'warning', title: 'Selecione seu nome', text: 'Escolha seu nome na lista antes de continuar.', confirmButtonColor: '#dc3c3c' });
-    }
-
-    const chaveRL = `prof_${profId}`;
-    const statusRL = checarBloqueioLogin(chaveRL);
-    if (statusRL.bloqueado) {
-        limparPin();
-        erroPin(`Limite de 5 tentativas atingido. Bloqueado por mais ${statusRL.segundosRestantes}s.`, true);
-        return;
-    }
-
-    if (pin.length < 4) {
-        return; // auto-login só dispara quando pin.length === 4
-    }
-
-    const btnLogin = document.getElementById('btn-login');
-    if (btnLogin) { btnLogin.innerText = 'Entrando... ⏳'; btnLogin.disabled = true; }
+    if (_fazendoLogin) return;
+    _fazendoLogin = true;
 
     try {
-        const emailFicticio = `prof-${profId}@locus.interno`;
+        const sessaoInfo = await getInfoSessaoAtual();
+        if (sessaoInfo.tipo === 'coordenacao') {
+            return Swal.fire({
+                icon: 'warning',
+                title: 'Sessão da Coordenação Ativa',
+                text: 'Você precisa sair da conta de Coordenação antes de entrar como Professor.',
+                confirmButtonColor: '#dc3c3c'
+            });
+        }
 
-        // 1. Tenta login com o formato de senha do Locus (locus_PIN, >= 6 caracteres)
-        let authResult = await supabase.auth.signInWithPassword({
-            email: emailFicticio,
-            password: `locus_${pin}`
-        });
+        const profId = _profId;   // definido em _selecionarCard()
+        const pin = (document.getElementById('pin-input-real')?.value || '').replace(/\D/g, '').slice(0, 4);
 
-        // 2. Fallback: se falhar, tenta com o PIN puro (legado / ativado via Edge Function)
-        if (authResult.error || !authResult.data?.session) {
-            const authLegado = await supabase.auth.signInWithPassword({
+        if (!profId) {
+            limparPin();
+            return Swal.fire({ icon: 'warning', title: 'Selecione seu nome', text: 'Escolha seu nome na lista antes de continuar.', confirmButtonColor: '#dc3c3c' });
+        }
+
+        const chaveRL = `prof_${profId}`;
+        const statusRL = checarBloqueioLogin(chaveRL);
+        if (statusRL.bloqueado) {
+            limparPin();
+            erroPin(`Limite de 5 tentativas atingido. Bloqueado por mais ${statusRL.segundosRestantes}s.`, true);
+            return;
+        }
+
+        if (pin.length < 4) {
+            return; // auto-login só dispara quando pin.length === 4
+        }
+
+        const btnLogin = document.getElementById('btn-login');
+        if (btnLogin) { btnLogin.innerText = 'Entrando... ⏳'; btnLogin.disabled = true; }
+
+        try {
+            const emailFicticio = `prof-${profId}@locus.interno`;
+
+            // 1. Tenta login com o formato de senha do Locus (locus_PIN, >= 6 caracteres)
+            let authResult = await supabase.auth.signInWithPassword({
                 email: emailFicticio,
-                password: pin
+                password: `locus_${pin}`
             });
 
-            if (!authLegado.error && authLegado.data?.session) {
-                authResult = authLegado;
-                // Migra silenciosamente a senha para o padrão com 6+ caracteres para permitir futuras alterações
-                supabase.auth.updateUser({ password: `locus_${pin}` }).catch(() => {});
+            // 2. Fallback: se falhar, tenta com o PIN puro (legado / ativado via Edge Function)
+            if (authResult.error || !authResult.data?.session) {
+                const authLegado = await supabase.auth.signInWithPassword({
+                    email: emailFicticio,
+                    password: pin
+                });
+
+                if (!authLegado.error && authLegado.data?.session) {
+                    authResult = authLegado;
+                    // Migra silenciosamente a senha para o padrão com 6+ caracteres para permitir futuras alterações
+                    supabase.auth.updateUser({ password: `locus_${pin}` }).catch(() => {});
+                }
             }
-        }
 
-        const { data, error } = authResult;
+            const { data, error } = authResult;
 
-        if (error || !data?.session) {
-            if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-            const falhaRL = registrarFalhaLogin(chaveRL);
-            const isRateLimit = error?.message?.includes('rate limit');
+            if (error || !data?.session) {
+                if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+                const falhaRL = registrarFalhaLogin(chaveRL);
+                const isRateLimit = error?.message?.includes('rate limit');
 
-            if (falhaRL.bloqueado) {
-                erroPin(`Limite de 5 tentativas atingido! Bloqueado por 1 minuto (${falhaRL.segundosRestantes}s).`, true);
-            } else if (isRateLimit) {
-                erroPin('Muitas tentativas no servidor. Aguarde um momento.', true);
-            } else {
-                erroPin(`PIN incorreto. Tentativa ${falhaRL.tentativas} de 5.`);
+                if (falhaRL.bloqueado) {
+                    erroPin(`Limite de 5 tentativas atingido! Bloqueado por 1 minuto (${falhaRL.segundosRestantes}s).`, true);
+                } else if (isRateLimit) {
+                    erroPin('Muitas tentativas no servidor. Aguarde um momento.', true);
+                } else {
+                    erroPin(`PIN incorreto. Tentativa ${falhaRL.tentativas} de 5.`);
+                }
+                return;
             }
-            return;
-        }
 
-        // Sucesso: zera o contador de tentativas
-        resetarTentativasLogin(chaveRL);
+            // Sucesso: zera o contador de tentativas
+            resetarTentativasLogin(chaveRL);
 
-        professorLogado = await getProfessorLogado();
+            professorLogado = await getProfessorLogado();
 
-        if (!professorLogado) {
-            await supabase.auth.signOut();
+            if (!professorLogado) {
+                await supabase.auth.signOut();
+                if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+                erroPin('Perfil não encontrado. Contate a coordenação.');
+                return;
+            }
+
             if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-            erroPin('Perfil não encontrado. Contate a coordenação.');
-            return;
+            vibrarSucesso();
+            mostrarAppLogado();
+
+        } catch (err) {
+            console.error('Erro no login:', err);
+            if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
+            erroPin('Erro de conexão. Tente novamente.');
         }
-
-        if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-        mostrarAppLogado();
-
-    } catch (err) {
-        console.error('Erro no login:', err);
-        if (btnLogin) { btnLogin.innerText = 'Entrar'; btnLogin.disabled = false; }
-        erroPin('Erro de conexão. Tente novamente.');
+    } finally {
+        _fazendoLogin = false;
     }
 }
 
@@ -1421,12 +1431,21 @@ window.agendarAula = async function(numeroAula) {
         });
         if (!confirmacao.isConfirmed) return;
 
-        const { error } = await supabase.from('agendamentos').insert([{
+        const insertPayload = {
             professor_id: professorLogado.id, sala_id: salaId, turma_id: turmaId,
-            data: dataEscolhida, aula_numero: numeroAula
-        }]);
+            data: dataEscolhida, aula_numero: numeroAula, turno: turnoAtivo
+        };
+        let { error } = await supabase.from('agendamentos').insert([insertPayload]);
+
+        // Se a coluna 'turno' ainda não existir no banco (erro 42703), insere sem ela
+        if (error && error.code === '42703') {
+            delete insertPayload.turno;
+            const resFallback = await supabase.from('agendamentos').insert([insertPayload]);
+            error = resFallback.error;
+        }
 
         if (error) {
+            vibrarErro();
             // P0002 = trigger check_aula_nao_iniciada no banco
             if (error.code === 'P0002') {
                 Swal.fire({ icon: 'info', title: 'Horário encerrado', text: 'Essa aula já começou e não pode mais ser reservada.', confirmButtonColor: '#dc3c3c' });
@@ -1439,6 +1458,7 @@ window.agendarAula = async function(numeroAula) {
                 buscarAulas();
             }
         } else {
+            vibrarSucesso();
             Swal.fire({ icon: 'success', title: 'Agendado com sucesso!', text: 'Sua reserva foi confirmada. 🎉', confirmButtonColor: '#059669', timer: 2000, showConfirmButton: false });
             buscarAulas();
             carregarHistorico();
@@ -1446,6 +1466,7 @@ window.agendarAula = async function(numeroAula) {
             enviarNotificacao('✅ Reserva confirmada!', `${nomeSala} — Aula ${numeroAula} em ${dataBr} está reservada para você.`, 'professor', professorLogado.id);
         }
     } catch (err) {
+        vibrarErro();
         console.error('Erro ao agendar aula:', err);
         Swal.fire({ icon: 'error', title: 'Erro de conexão', text: 'Não foi possível completar o agendamento. Tente novamente.', confirmButtonColor: '#dc3c3c' });
     }
@@ -1637,6 +1658,7 @@ async function cancelarAgendamento(id, nomeSala, numeroAula, dataBr, dataIso, in
         const { error } = await supabase.from('agendamentos').delete().eq('id', id);
         if (error) throw error;
 
+        vibrarClique();
         Swal.fire({ icon: 'success', title: 'Cancelada!', confirmButtonColor: '#059669', timer: 1500, showConfirmButton: false });
         enviarNotificacao('🗑️ Reserva cancelada', `${professorLogado.nome} cancelou ${nomeSala} — Aula ${numeroAula} em ${dataBr}.`, 'coordenacao');
         buscarAulas();
@@ -1788,7 +1810,7 @@ async function _fetchESalvar() {
         return { nome, data: fmt(d), diaNum: d.getDate(), mes: d.getMonth() + 1 };
     });
 
-    const hojeStr = fmt(new Date());
+    const hojeStr = fmt(_getAgoraBrasilia());
 
     // Auto-seleciona hoje se estiver nesta semana
     if (_semDiaIdx < 0) {

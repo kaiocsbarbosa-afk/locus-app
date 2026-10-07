@@ -27,5 +27,46 @@
       "purpose": "any maskable"
     }
   ],
-  "scope": "./"
+  "scope": "./",
+  "shortcuts": [
+    {
+      "name": "Área do Professor",
+      "short_name": "Professor",
+      "description": "Agendar salas e gerenciar aulas",
+      "url": "./professor.html",
+      "icons": [
+        {
+          "src": "./icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Coordenação",
+      "short_name": "Coordenação",
+      "description": "Painel de controle e aprovações",
+      "url": "./coordenacao.html",
+      "icons": [
+        {
+          "src": "./icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Solicitar Acesso",
+      "short_name": "Cadastro",
+      "description": "Pedir liberação de novo professor",
+      "url": "./cadastro.html",
+      "icons": [
+        {
+          "src": "./icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
 }

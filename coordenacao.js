@@ -1,5 +1,5 @@
 /* coordenacao.js — autenticação via Supabase Auth */
-import { supabase, registrarServiceWorker, dispararAlerta, detectarTurnoTurma, obterHorarioAula, formatarData, checarBloqueioLogin, registrarFalhaLogin, resetarTentativasLogin } from './utils.js'
+import { supabase, registrarServiceWorker, dispararAlerta, detectarTurnoTurma, obterHorarioAula, formatarData, getAgoraBrasilia, checarBloqueioLogin, registrarFalhaLogin, resetarTentativasLogin, vibrarSucesso, vibrarErro, vibrarClique } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 window.addEventListener('error', function(e) {
@@ -79,7 +79,7 @@ export function aplicarMascaraTelefoneInput(inputEl) {
  */
 export function gerarMensagemWhatsAppProfessor(nomeProf, pinAcesso) {
     const primeiroNome = (nomeProf || 'Professor').split(' ')[0]
-    const urlApp = window.location.href.split('?')[0].replace('coordenacao.html', 'professor.html')
+    const urlApp = new URL('professor.html', window.location.href).href
     return `Olá Prof. ${primeiroNome}!\n\nSeu acesso ao sistema *Locus* (agendamento de salas) foi liberado pela coordenação.\n\n🔑 *Seu PIN de acesso:* ${pinAcesso}\n🔗 *Acesse por aqui:* ${urlApp}\n\nQualquer dúvida estamos à disposição da coordenação!`
 }
 
@@ -277,6 +277,7 @@ window.entrarPainel = async function() {
         document.getElementById('senha-coord').value = '';
 
         if (!autenticadoSucesso) {
+            vibrarErro();
             const falhaRL = registrarFalhaLogin('coord');
             if (falhaRL.bloqueado) {
                 dispararAlerta({
@@ -298,6 +299,7 @@ window.entrarPainel = async function() {
 
         // Sucesso: zera o contador de tentativas
         resetarTentativasLogin('coord');
+        vibrarSucesso();
         mostrarDashboard();
 
     } catch (err) {
@@ -319,7 +321,7 @@ window.sairPainel = async function() {
 window.selecionarFiltroDataRapido = function(modo) {
     window.modoDataRapido = modo
     const fData = document.getElementById('filtroData')
-    const hoje = new Date()
+    const hoje = getAgoraBrasilia()
 
     ;['hoje', 'amanha', 'semana', 'todas'].forEach(m => {
         const btn = document.getElementById(`btn-data-${m}`)
@@ -344,7 +346,7 @@ function mostrarDashboard() {
     document.getElementById('secao-login-coord').style.display = 'none'
     document.getElementById('secao-dashboard').classList.add('visivel')
 
-    const hoje = new Date()
+    const hoje = getAgoraBrasilia()
     const inputData = document.getElementById('filtroData')
     if (inputData) inputData.value = formatarData(hoje)
     window.modoDataRapido = 'hoje'
@@ -697,10 +699,17 @@ async function aprovarSolicitacao(id, nome, disciplina, pin, telefone = null) {
         }
 
         // 3. Marca solicitação como aprovada (RLS: solicitacoes_update_coord)
-        await supabase
+        let { error: errUpdate } = await supabase
             .from('solicitacoes_acesso')
             .update({ status: 'aprovado', atualizado_em: new Date().toISOString() })
             .eq('id', id)
+
+        if (errUpdate && errUpdate.code === '42703') {
+            await supabase
+                .from('solicitacoes_acesso')
+                .update({ status: 'aprovado' })
+                .eq('id', id)
+        }
 
         Swal.close()
 
@@ -716,6 +725,7 @@ async function aprovarSolicitacao(id, nome, disciplina, pin, telefone = null) {
             profId
         )
 
+        vibrarSucesso()
         Swal.fire({
             icon: 'success',
             title: 'Professor(a) Aprovado(a)!',
@@ -794,10 +804,17 @@ async function rejeitarSolicitacao(id, nome) {
 
     try {
         // RLS: solicitacoes_update_coord
-        await supabase
+        let { error: errUpdate } = await supabase
             .from('solicitacoes_acesso')
             .update({ status: 'rejeitado', atualizado_em: new Date().toISOString() })
             .eq('id', id)
+
+        if (errUpdate && errUpdate.code === '42703') {
+            await supabase
+                .from('solicitacoes_acesso')
+                .update({ status: 'rejeitado' })
+                .eq('id', id)
+        }
 
         document.getElementById(`sol-${id}`)?.remove()
         carregarSolicitacoes()
@@ -808,6 +825,7 @@ async function rejeitarSolicitacao(id, nome) {
             'coordenacao'
         )
 
+        vibrarClique()
         dispararAlerta({ icon: 'info', title: 'Solicitação rejeitada', text: `${nome} não terá acesso ao sistema.`, confirmButtonColor: 'var(--cor-primaria)', timer: 2200, showConfirmButton: false })
     } catch (err) {
         console.error('Erro ao rejeitar:', err)
@@ -844,7 +862,7 @@ window.carregarRelatorioGeral = async function() {
 
     tabela.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--texto-secundario)">Carregando agendamentos...</td></tr>`
 
-    const hojeObj = new Date()
+    const hojeObj = getAgoraBrasilia()
     const hojeIso = formatarData(hojeObj)
 
     let query = supabase
@@ -1038,6 +1056,7 @@ window.revogarAgendamento = async function(idAgendamento, nomeSala, numeroAula, 
     if (error) {
         dispararAlerta({ icon: 'error', title: 'Erro!', text: 'Não foi possível excluir o agendamento.', confirmButtonColor: 'var(--cor-primaria)' })
     } else {
+        vibrarClique()
         dispararAlerta({ icon: 'success', title: 'Cancelado!', text: 'Reserva removida.', timer: 1500, showConfirmButton: false })
         carregarRelatorioGeral()
         if (professorId && professorId !== 'undefined' && professorId !== 'null') {

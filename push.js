@@ -99,6 +99,7 @@ if ('serviceWorker' in navigator) {
         if (ok) {
             // Atualiza cache local para evitar re-save desnecessário na próxima abertura
             localStorage.setItem(`locus_push_endpoint_${tipo}`, sub.endpoint);
+            localStorage.setItem(`locus_push_prof_${tipo}`, String(professorId || ''));
         }
         console.log('[Push] Subscription renovada automaticamente:', ok ? 'OK' : 'ERRO');
     });
@@ -118,6 +119,7 @@ if ('serviceWorker' in navigator) {
             const ok = await salvarSubscriptionNoBanco(sub, tipo, professorId, deviceId);
             if (ok) {
                 localStorage.setItem(`locus_push_endpoint_${tipo}`, sub.endpoint);
+                localStorage.setItem(`locus_push_prof_${tipo}`, String(professorId || ''));
                 await cache.delete('/__push_subscription_pending');
                 console.log('[Push] Subscription pendente processada ao reabrir o app.');
             }
@@ -164,25 +166,27 @@ export async function ativarNotificacoes(tipo, professorId = null) {
         // não há policy SELECT para inscricoes_push — o cache local é
         // suficiente: o device_id + endpoint identifica unicamente este aparelho.
         const cacheKey      = `locus_push_endpoint_${tipo}`;
+        const cacheKeyProf  = `locus_push_prof_${tipo}`;
         const endpointSalvo = localStorage.getItem(cacheKey);
+        const profSalvo     = localStorage.getItem(cacheKeyProf);
 
-        if (endpointSalvo === subscription.endpoint) {
-            // Endpoint não mudou desde a última ativação — não precisa tocar no banco.
-            // Atualiza contexto (professorId pode ter mudado) e retorna.
+        if (endpointSalvo === subscription.endpoint && profSalvo === String(professorId || '')) {
+            // Endpoint e professor não mudaram desde a última ativação — não precisa tocar no banco.
             salvarContextoPush(tipo, professorId);
             console.log('[Push] Subscription atual, sem alterações necessárias.');
             return true;
         }
 
-        // Endpoint novo ou mudou (reinstalação, limpeza de cache) — salva no banco.
+        // Endpoint novo ou perfil mudou (ex: outro professor no mesmo dispositivo) — salva no banco.
         const ok = await salvarSubscriptionNoBanco(
             subscription.toJSON(), tipo, professorId, deviceId
         );
 
         if (!ok) return false;
 
-        // Persiste o endpoint no cache local após confirmação do banco
+        // Persiste o endpoint e professor no cache local após confirmação do banco
         localStorage.setItem(cacheKey, subscription.endpoint);
+        localStorage.setItem(cacheKeyProf, String(professorId || ''));
         salvarContextoPush(tipo, professorId);
 
         console.log('[Push] Subscription registrada:', tipo);

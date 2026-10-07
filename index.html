@@ -274,6 +274,97 @@
             gap: 12px;
         }
 
+        .btn-instalar-pwa {
+            background: var(--primary-red);
+            color: #ffffff;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 4px 14px rgba(220, 60, 60, 0.35);
+            transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-instalar-pwa:hover {
+            background: var(--primary-red-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(220, 60, 60, 0.45);
+        }
+
+        .btn-instalar-pwa:active {
+            transform: scale(0.96);
+        }
+
+        .banner-instalar-pwa {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            background: #ffffff;
+            border: 1px solid rgba(220, 60, 60, 0.22);
+            border-radius: 16px;
+            padding: 14px 18px;
+            margin-bottom: 24px;
+            cursor: pointer;
+            box-shadow: 0 8px 24px rgba(220, 60, 60, 0.08);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .banner-instalar-pwa:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 28px rgba(220, 60, 60, 0.15);
+        }
+
+        body.dark-mode .banner-instalar-pwa {
+            background: #181226;
+            border-color: rgba(220, 60, 60, 0.35);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        .banner-instalar-icone {
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .banner-instalar-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+            text-align: left;
+        }
+
+        .banner-instalar-info strong {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .banner-instalar-info span {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .banner-instalar-acao {
+            background: var(--primary-red);
+            color: #ffffff;
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
         .btn-theme-toggle {
             background: rgba(255, 255, 255, 0.5);
             border: 1px solid rgba(0, 0, 0, 0.08);
@@ -633,6 +724,7 @@
                 <span class="brand-name">Locus</span>
             </a>
             <div class="nav-actions">
+                <button class="btn-instalar-pwa" id="btn-instalar-pwa" onclick="acionarInstalacaoPWA()" title="Instalar aplicativo no celular" data-display-original="inline-flex" style="display: none;">📲 Instalar App</button>
                 <button class="btn-theme-toggle" id="btn-dark" title="Alternar modo" aria-label="Alternar modo">🌙</button>
             </div>
         </header>
@@ -652,6 +744,15 @@
     <!-- ACTION CARDS GRID -->
     <section class="cards-section">
         <main class="cards-container">
+            <div class="banner-instalar-pwa" id="banner-instalar-pwa" onclick="acionarInstalacaoPWA()" data-display-original="flex" style="display: none;">
+                <div class="banner-instalar-icone">📲</div>
+                <div class="banner-instalar-info">
+                    <strong>Instale o Locus no seu celular</strong>
+                    <span>Acesse suas aulas com um toque direto da tela inicial</span>
+                </div>
+                <div class="banner-instalar-acao">Instalar</div>
+            </div>
+
             <div class="cards-grid">
                 
                 <a href="professor.html" class="action-card" id="card-professor">
@@ -700,7 +801,10 @@
     <div id="toast"></div>
 
     <script type="module">
-        import { supabase as sb, getInfoSessaoAtual } from './utils.js';
+        import { supabase as sb, getInfoSessaoAtual, inicializarInstaladorPWA, acionarInstalacaoPWA } from './utils.js';
+
+        // Inicializa o instalador inteligente do PWA
+        inicializarInstaladorPWA('.btn-instalar-pwa, .banner-instalar-pwa');
 
         // ── DARK MODE ──────────────────────────────────────────────
         const metaThemeColor = document.querySelector('meta[name="theme-color"]');
