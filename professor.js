@@ -1,106 +1,17 @@
-import { supabase, registrarServiceWorker, getProfessorLogado, fazerLogoutAuth, getInfoSessaoAtual, COORD_EMAIL, getTurnoAtivo, setTurnoAtivo, detectarTurnoTurma, obterHorarioAula, obterTotalAulasTurno, GRADE_HORARIOS_MANHA, GRADE_HORARIOS_EJA, checarBloqueioLogin, registrarFalhaLogin, resetarTentativasLogin, vibrarSucesso, vibrarErro, vibrarClique } from './utils.js'
+import { supabase, registrarServiceWorker, getProfessorLogado, fazerLogoutAuth, getInfoSessaoAtual, COORD_EMAIL, obterHorarioAula, GRADE_HORARIOS_MANHA, checarBloqueioLogin, registrarFalhaLogin, resetarTentativasLogin, vibrarSucesso, vibrarErro, vibrarClique } from './utils.js'
 import { ativarNotificacoes, enviarNotificacao } from './push.js'
 
 let professorLogado = null;
 let buscandoAulasAtualmente = false;
 let telaAtual = 'agendar';
-let turnoAtivo = getTurnoAtivo(); // 'manha' | 'eja'
 
-// ============================================================
-//  GERENCIAMENTO DE TURNO (MANHÃ INTEGRAL vs EJA NOTURNO)
-// ============================================================
-
-window.selecionarTurnoLogin = function(turno) {
-    vibrarClique();
-    turnoAtivo = setTurnoAtivo(turno);
-    atualizarVisualTurnoLogin();
-};
-
-function atualizarVisualTurnoLogin() {
-    const btnManha = document.getElementById('btn-turno-manha');
-    const btnEja = document.getElementById('btn-turno-eja');
-    const statusEl = document.getElementById('login-turno-status');
-    const linkCad = document.getElementById('link-solicitar-acesso');
-
-    if (linkCad) {
-        linkCad.href = `cadastro.html?turno=${turnoAtivo}`;
-    }
-
-    if (btnManha && btnEja) {
-        if (turnoAtivo === 'eja') {
-            btnManha.classList.remove('ativo');
-            btnEja.classList.add('ativo');
-            if (statusEl) statusEl.innerHTML = 'Turno selecionado: <strong>🌙 EJA Noturno (4 aulas)</strong>';
-        } else {
-            btnEja.classList.remove('ativo');
-            btnManha.classList.add('ativo');
-            if (statusEl) statusEl.innerHTML = 'Turno selecionado: <strong>☀️ Manhã Integral (7 aulas)</strong>';
-        }
-    }
-}
-
-window.selecionarTurnoSegmented = function(turno) {
-    if (turno === turnoAtivo) return;
-    vibrarClique();
-    turnoAtivo = setTurnoAtivo(turno);
-    atualizarVisualTurnoBanner();
-    carregarTurmas();
-    buscarAulas();
-    if (telaAtual === 'semana') carregarVisaoSemanal();
-    if (telaAtual === 'perfil') atualizarPerfil();
-};
-
-window.alternarTurnoHeader = function() {
-    const novoTurno = turnoAtivo === 'eja' ? 'manha' : 'eja';
-    turnoAtivo = setTurnoAtivo(novoTurno);
-    atualizarVisualTurnoBanner();
-    carregarTurmas();
-    buscarAulas();
-    if (telaAtual === 'semana') carregarVisaoSemanal();
-    if (telaAtual === 'perfil') atualizarPerfil();
-};
-
-window.alternarTurnoPerfil = function() {
-    window.alternarTurnoHeader();
-    atualizarPerfil();
-};
-
-function atualizarVisualTurnoBanner() {
-    const txtTurno = document.getElementById('txt-turno-header');
-    const txtAgendar = document.getElementById('txt-turno-agendar');
+function atualizarSaudacao() {
     const elPeriodo = document.getElementById('saudacao-periodo');
-    const segManha = document.getElementById('seg-turno-manha');
-    const segEja = document.getElementById('seg-turno-eja');
-
-    if (segManha && segEja) {
-        if (turnoAtivo === 'eja') {
-            segManha.classList.remove('ativo');
-            segManha.setAttribute('aria-selected', 'false');
-            segEja.classList.add('ativo');
-            segEja.setAttribute('aria-selected', 'true');
-        } else {
-            segEja.classList.remove('ativo');
-            segEja.setAttribute('aria-selected', 'false');
-            segManha.classList.add('ativo');
-            segManha.setAttribute('aria-selected', 'true');
-        }
-    }
-
-    if (txtTurno) {
-        txtTurno.textContent = turnoAtivo === 'eja' ? '🌙 EJA (Noite)' : '☀️ Manhã Integral';
-    }
-    if (txtAgendar) {
-        txtAgendar.textContent = turnoAtivo === 'eja' ? '🌙 EJA' : '☀️ Manhã';
-    }
     if (elPeriodo) {
-        if (turnoAtivo === 'eja') {
-            elPeriodo.innerHTML = `<span class="greeting-dot">🌙</span> Boa noite! (EJA)`;
-        } else {
-            const hora = new Date().getHours();
-            const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
-            const emoji   = hora < 12 ? '☀️' : hora < 18 ? '🌤️' : '🌙';
-            elPeriodo.innerHTML = `<span class="greeting-dot">${emoji}</span> ${periodo}!`;
-        }
+        const hora = new Date().getHours();
+        const periodo = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+        const emoji   = hora < 12 ? '☀️' : hora < 18 ? '🌤️' : '🌙';
+        elPeriodo.innerHTML = `<span class="greeting-dot">${emoji}</span> ${periodo}!`;
     }
 }
 
@@ -143,7 +54,7 @@ function bloquearAcessoPorSessaoCoord() {
 
 document.addEventListener("DOMContentLoaded", async () => {
     registrarServiceWorker();
-    atualizarVisualTurnoLogin();
+
 
     const sessaoInfo = await getInfoSessaoAtual();
 
@@ -226,7 +137,12 @@ async function carregarListaNomesLogin() {
 
     } catch (err) {
         console.error('Erro ao carregar professores:', err);
-        if (grid) grid.innerHTML = '<div class="prof-grid-vazio">Erro ao carregar professores.</div>';
+        if (grid) {
+            const isPermissao = err?.code === '42501' || String(err?.message).includes('permission denied');
+            grid.innerHTML = isPermissao
+                ? '<div class="prof-grid-vazio" style="padding:20px; line-height:1.5;"><span>🔒</span><br><strong>Permissões em atualização</strong><br><span style="font-size:0.8rem; color:var(--text-muted);">Aguardando liberação de acesso (RLS). Execute o script seguranca_rls.sql no Supabase.</span><br><button type="button" onclick="location.reload()" style="margin-top:10px; padding:6px 14px; border-radius:8px; border:none; background:#dc3c3c; color:#fff; font-size:0.8rem; cursor:pointer; font-weight:600;">Tentar novamente</button></div>'
+                : '<div class="prof-grid-vazio">Erro ao carregar professores.<br><button type="button" onclick="location.reload()" style="margin-top:8px; padding:5px 12px; border-radius:8px; border:1px solid rgba(220,60,60,0.3); background:transparent; font-size:0.75rem; cursor:pointer; color:var(--text-main);">Tentar novamente</button></div>';
+        }
     }
 }
 
@@ -295,7 +211,7 @@ window.irParaPin = function() {
     const elIniciais = document.getElementById('pin-avatar-iniciais');
     const elNome     = document.getElementById('pin-usuario-nome');
     if (elIniciais) elIniciais.textContent = _iniciais(_profNome);
-    if (elNome)     elNome.textContent     = _profNome + (turnoAtivo === 'eja' ? ' · EJA' : ' · Manhã');
+    if (elNome)     elNome.textContent     = _profNome;
 
     // Limpa PIN
     const inputReal = document.getElementById('pin-input-real');
@@ -586,7 +502,7 @@ function mostrarAppLogado() {
     }
 
     document.getElementById('tela-agendar').classList.add('ativa');
-    atualizarVisualTurnoBanner();
+    atualizarSaudacao();
     configurarCalendarioSemana();
     carregarTurmas();
     carregarSalas();
@@ -771,27 +687,6 @@ async function atualizarPerfil() {
         avatarGrande.style.background = _corAvatar(professorLogado.nome);
     }
 
-    // Atualiza badges e detalhes do turno ativo
-    const badgeTurno = document.getElementById('perfil-turno-badge');
-    const nomeTurno = document.getElementById('perfil-turno-nome');
-    const detalheTurno = document.getElementById('perfil-turno-detalhe');
-
-    if (turnoAtivo === 'eja') {
-        if (badgeTurno) {
-            badgeTurno.textContent = '🌙 EJA Noturno (4 aulas)';
-            badgeTurno.className = 'perfil-badge-turno perfil-badge-turno-eja';
-        }
-        if (nomeTurno) nomeTurno.textContent = 'EJA Noturno (4 aulas)';
-        if (detalheTurno) detalheTurno.textContent = 'Horário das aulas: 18:00 às 21:40 (com intervalo)';
-    } else {
-        if (badgeTurno) {
-            badgeTurno.textContent = '☀️ Manhã Integral (7 aulas)';
-            badgeTurno.className = 'perfil-badge-turno perfil-badge-turno-manha';
-        }
-        if (nomeTurno) nomeTurno.textContent = 'Manhã Integral (7 aulas)';
-        if (detalheTurno) detalheTurno.textContent = 'Horário das aulas: 07:00 às 14:00 (com almoço e intervalo)';
-    }
-
     // Atualiza banner stitch exclusivo do perfil
     const elNome = document.getElementById('saudacao-nome');
     const elDisc = document.getElementById('saudacao-disciplina');
@@ -803,7 +698,7 @@ async function atualizarPerfil() {
         avatarBanner.innerHTML = `<span style="font-size:1.1rem;font-weight:700;color:#fff;">${_iniciais(professorLogado.nome)}</span>`;
     }
 
-    atualizarVisualTurnoBanner();
+    atualizarSaudacao();
     atualizarStatusNotificacoes();
 }
 
@@ -976,9 +871,9 @@ async function carregarTurmas() {
         if (error) throw error;
         select.innerHTML = '<option value="">Selecione a turma...</option>';
         
-        // Filtra turmas conforme o turno ativo (EJA Noturno ou Manhã Integral)
+        // Carrega turmas do ensino regular (ignora registros legados de EJA)
         const turmasFiltradas = (data || []).filter(t => {
-            return detectarTurnoTurma(t.nome) === turnoAtivo;
+            return !t.nome.toUpperCase().includes('EJA');
         });
 
         turmasFiltradas.forEach(t => {
@@ -1162,16 +1057,16 @@ window.abrirSeletorData = function() {
 };
 
 // ============================================================
-//  GRADE DE AULAS — Horários Oficiais (Manhã e EJA Noturno)
-//  Importadas de utils.js (GRADE_HORARIOS_MANHA e GRADE_HORARIOS_EJA)
+//  GRADE DE AULAS — Horários Oficiais do Ensino Regular (7 Aulas)
+//  Importada de utils.js (GRADE_HORARIOS_MANHA)
 // ============================================================
 
-function _totalAulasTurno(turno = turnoAtivo) {
-    return obterTotalAulasTurno(turno);
+function _totalAulasTurno() {
+    return 7;
 }
 
-function _gradeHorariosTurno(turno = turnoAtivo) {
-    return turno === 'eja' ? GRADE_HORARIOS_EJA : GRADE_HORARIOS_MANHA;
+function _gradeHorariosTurno() {
+    return GRADE_HORARIOS_MANHA;
 }
 
 let timerAtualizacaoHorario = null;
@@ -1182,19 +1077,19 @@ function _formatarHora(totalMinutos) {
     return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}`;
 }
 
-function _horarioDaAula(numeroAula, turno = turnoAtivo) {
-    return obterHorarioAula(numeroAula, turno);
+function _horarioDaAula(numeroAula) {
+    return obterHorarioAula(numeroAula);
 }
 
-function _inicioDaAula(dataIso, numeroAula, turno = turnoAtivo) {
+function _inicioDaAula(dataIso, numeroAula) {
     const [ano, mes, dia] = dataIso.split('-').map(Number);
-    const { inicioMinutos } = _horarioDaAula(numeroAula, turno);
+    const { inicioMinutos } = _horarioDaAula(numeroAula);
     return new Date(ano, mes - 1, dia, Math.floor(inicioMinutos / 60), inicioMinutos % 60, 0, 0);
 }
 
 // Uma reserva só pode ser feita antes do início da aula.
-function _aulaJaComecou(dataIso, numeroAula, agora = _getAgoraBrasilia(), turno = turnoAtivo) {
-    return agora >= _inicioDaAula(dataIso, numeroAula, turno);
+function _aulaJaComecou(dataIso, numeroAula, agora = _getAgoraBrasilia()) {
+    return agora >= _inicioDaAula(dataIso, numeroAula);
 }
 
 function _programarAtualizacaoDaGrade(dataIso) {
@@ -1241,25 +1136,30 @@ window.buscarAulas = async function() {
 
         const mapaOcupacao = {};
         agendamentos.forEach(a => {
-            const turnoAgendamento = detectarTurnoTurma(a.turmas?.nome);
-            if (turnoAgendamento === turnoAtivo) {
-                mapaOcupacao[a.aula_numero] = { prof: a.professores?.nome || 'Desconhecido', turma: a.turmas?.nome || 'Turma' };
-            }
+            mapaOcupacao[a.aula_numero] = { prof: a.professores?.nome || 'Desconhecido', turma: a.turmas?.nome || 'Turma' };
         });
 
         grid.innerHTML = '';
         const totalAulas = _totalAulasTurno();
 
         for (let i = 1; i <= totalAulas; i++) {
-            // No EJA, adiciona o intervalo de 20 min entre a 2ª e a 3ª aula (19:40 - 20:00)
-            if (turnoAtivo === 'eja' && i === 3) {
+            // Intervalos oficiais da manhã: Recreio (após Aula 2) e Almoço (após Aula 5)
+            if (i === 3) {
                 const divIntervalo = document.createElement('div');
                 divIntervalo.className = 'card-intervalo';
                 divIntervalo.innerHTML = `
-                    <div class="card-intervalo-badge">☕ Intervalo · 19:40 às 20:00 (20 min)</div>
-                    <div class="card-intervalo-sub">Pausa pedagógica do EJA entre a 2ª e a 3ª aula</div>
+                    <div class="card-intervalo-badge">☕ Recreio · 08:40 às 09:00 (20 min)</div>
+                    <div class="card-intervalo-sub">Intervalo das turmas da manhã</div>
                 `;
                 grid.appendChild(divIntervalo);
+            } else if (i === 6) {
+                const divAlmoco = document.createElement('div');
+                divAlmoco.className = 'card-intervalo';
+                divAlmoco.innerHTML = `
+                    <div class="card-intervalo-badge">🍽️ Almoço · 11:30 às 12:20 (50 min)</div>
+                    <div class="card-intervalo-sub">Intervalo para almoço e descanso</div>
+                `;
+                grid.appendChild(divAlmoco);
             }
 
             const btn = document.createElement('button');
@@ -1385,17 +1285,12 @@ window.agendarAula = async function(numeroAula) {
 
         if (errChoque) throw errChoque;
 
-        const choqueMesmoTurno = (choqueProf || []).filter(c => {
-            return detectarTurnoTurma(c.turmas?.nome) === turnoAtivo;
-        });
-
-        if (choqueMesmoTurno.length > 0) {
-            const nomeSalaChoque = choqueMesmoTurno[0].salas?.nome || 'outra sala';
-            const nomeTurno = turnoAtivo === 'eja' ? 'EJA Noturno' : 'Manhã Integral';
+        if (choqueProf && choqueProf.length > 0) {
+            const nomeSalaChoque = choqueProf[0].salas?.nome || 'outra sala';
             Swal.fire({
                 icon: 'error',
                 title: 'Conflito de horário!',
-                text: `Você já reservou "${nomeSalaChoque}" na Aula ${numeroAula} do turno ${nomeTurno}.`,
+                text: `Você já reservou "${nomeSalaChoque}" na Aula ${numeroAula} nesta mesma data.`,
                 confirmButtonColor: '#dc3c3c'
             });
             return;
@@ -1409,7 +1304,6 @@ window.agendarAula = async function(numeroAula) {
         const [anoStr, mesStr, diaStr] = dataEscolhida.split('-');
         const dtObj = new Date(Number(anoStr), Number(mesStr) - 1, Number(diaStr));
         const diaSemanaExtenso = diasSemana[dtObj.getDay()] || '';
-        const nomeTurno = turnoAtivo === 'eja' ? '🌙 EJA (Noturno)' : '☀️ Manhã Integral';
 
         const confirmacao = await Swal.fire({
             title: 'Confirmar Reserva?',
@@ -1418,7 +1312,6 @@ window.agendarAula = async function(numeroAula) {
                     <div style="margin-bottom: 6px;">📍 <strong>Local:</strong> ${nomeSala}</div>
                     <div style="margin-bottom: 6px;">👥 <strong>Turma:</strong> ${nomeTurma}</div>
                     <div style="margin-bottom: 6px;">⏰ <strong>Horário:</strong> Aula ${numeroAula}ª (${horario.inicio} às ${horario.fim})</div>
-                    <div style="margin-bottom: 6px;">⏳ <strong>Turno:</strong> ${nomeTurno}</div>
                     <div>📅 <strong>Data:</strong> ${diaSemanaExtenso}, ${dataBr}</div>
                 </div>
             `,
@@ -1433,7 +1326,7 @@ window.agendarAula = async function(numeroAula) {
 
         const insertPayload = {
             professor_id: professorLogado.id, sala_id: salaId, turma_id: turmaId,
-            data: dataEscolhida, aula_numero: numeroAula, turno: turnoAtivo
+            data: dataEscolhida, aula_numero: numeroAula, turno: 'manha'
         };
         let { error } = await supabase.from('agendamentos').insert([insertPayload]);
 
@@ -1557,9 +1450,7 @@ window.carregarHistorico = async function() {
             const dataBr    = item.data.split('-').reverse().join('/');
             const nomeSala  = item.salas?.nome  || 'Sala removida';
             const nomeTurma = item.turmas?.nome || 'Turma removida';
-            const turnoItem = detectarTurnoTurma(nomeTurma);
-            const horario   = _horarioDaAula(item.aula_numero, turnoItem);
-            const badgeTurno = turnoItem === 'eja' ? '🌙 EJA' : '☀️ Manhã';
+            const horario   = _horarioDaAula(item.aula_numero);
 
             const div = document.createElement('div');
             div.classList.add('historico-item');
@@ -1606,7 +1497,7 @@ window.carregarHistorico = async function() {
             titulo.appendChild(statusBadge);
 
             const meta = document.createElement('span');
-            meta.textContent = `${badgeTurno} · ${dataBr} · Turma ${nomeTurma}`;
+            meta.textContent = `${dataBr} · Turma ${nomeTurma}`;
 
             info.appendChild(titulo);
             info.appendChild(meta);
@@ -1829,14 +1720,11 @@ async function _fetchESalvar() {
 
         const mapa = {};
         data.forEach(a => {
-            const turnoItem = detectarTurnoTurma(a.turmas?.nome);
-            if (turnoItem === turnoAtivo) {
-                mapa[`${a.data}|${a.aula_numero}`] = {
-                    prof:  a.professores?.nome || '—',
-                    turma: a.turmas?.nome     || '—',
-                    minha: professorLogado && a.professor_id === professorLogado.id
-                };
-            }
+            mapa[`${a.data}|${a.aula_numero}`] = {
+                prof:  a.professores?.nome || '—',
+                turma: a.turmas?.nome     || '—',
+                minha: professorLogado && a.professor_id === professorLogado.id
+            };
         });
 
         _semDados = { salaId, offset: _semOffset, mapa, dias, hojeStr };

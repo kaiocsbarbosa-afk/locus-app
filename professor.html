@@ -2201,22 +2201,6 @@
                 <div class="login-card-titulo">Bem-vindo</div>
                 <div class="login-card-sub">Toque no seu nome para continuar</div>
 
-                <!-- Seletor de Turno (Manhã Integral vs EJA) -->
-                <div class="login-turno-wrap">
-                    <div class="login-turno-label">Turno de Acesso:</div>
-                    <div class="login-turno-toggle" role="group" aria-label="Seleção de Turno">
-                        <button type="button" class="btn-turno ativo" id="btn-turno-manha" onclick="selecionarTurnoLogin('manha')">
-                            <span>☀️</span> Manhã Integral
-                        </button>
-                        <button type="button" class="btn-turno btn-turno-eja" id="btn-turno-eja" onclick="selecionarTurnoLogin('eja')">
-                            <span>🌙</span> EJA (Noturno)
-                        </button>
-                    </div>
-                    <div class="login-turno-status" id="login-turno-status">
-                        Turno selecionado: <strong>Manhã Integral (7 aulas)</strong>
-                    </div>
-                </div>
-
                 <!-- Busca por texto -->
                 <div class="prof-search-wrap">
                     <span class="prof-search-icon">🔍</span>
@@ -2308,20 +2292,6 @@
     <!-- ── TELA 1: AGENDAR ── -->
     <div id="tela-agendar" class="tela">
 
-        <!-- Seletor Segmentado de Turno -->
-        <div class="stitch-turno-segmented-container">
-            <div class="stitch-turno-segmented" role="tablist" aria-label="Seleção de Turno">
-                <button type="button" class="stitch-turno-seg-btn ativo" id="seg-turno-manha" onclick="selecionarTurnoSegmented('manha')" role="tab" aria-selected="true">
-                    <span>☀️ Manhã Integral</span>
-                    <span class="seg-badge">7 aulas</span>
-                </button>
-                <button type="button" class="stitch-turno-seg-btn" id="seg-turno-eja" onclick="selecionarTurnoSegmented('eja')" role="tab" aria-selected="false">
-                    <span>🌙 EJA Noturno</span>
-                    <span class="seg-badge">4 aulas</span>
-                </button>
-            </div>
-        </div>
-
         <!-- 3 Selector Cards Grid -->
         <div class="stitch-selectors-grid">
             <!-- Card 1: DATA -->
@@ -2370,10 +2340,7 @@
 
         <!-- Grade Horária Section Header -->
         <div class="stitch-section-header">
-            <span class="stitch-section-title">Grade Horária</span>
-            <button type="button" class="stitch-turno-btn-subtle" onclick="alternarTurnoHeader()" id="btn-turno-agendar-subtle" title="Alternar entre Manhã Integral e EJA Noturno">
-                <span id="txt-turno-agendar">☀️ Manhã</span> ⇄
-            </button>
+            <span class="stitch-section-title">Grade Horária (7 Aulas)</span>
         </div>
 
         <!-- Grid Container -->
@@ -2544,12 +2511,6 @@
                     <div class="stitch-banner-greeting" id="saudacao-periodo">
                         <span class="greeting-dot">☀️</span> Bom dia!
                     </div>
-                    <div class="stitch-turno-pill-wrap">
-                        <button type="button" class="stitch-turno-btn" id="btn-toggle-turno-header" onclick="alternarTurnoHeader()" title="Alternar entre Manhã Integral e EJA Noturno">
-                            <span id="txt-turno-header">🌙 EJA (Noite)</span>
-                            <span class="stitch-turno-icon-switch">⇄</span>
-                        </button>
-                    </div>
                 </div>
                 <h1 class="stitch-banner-name" id="saudacao-nome">Carregando...</h1>
                 <p class="stitch-banner-sub" id="saudacao-disciplina">Análise e Desenvolvimento de Sistemas</p>
@@ -2586,16 +2547,14 @@
 
             <div class="perfil-row-divider"></div>
 
-            <!-- Linha 2: Turno de Trabalho -->
-            <div class="perfil-row" onclick="alternarTurnoPerfil()">
+            <!-- Linha 2: Horário de Aulas -->
+            <div class="perfil-row">
                 <div class="perfil-row-icon" style="background:#fef3c7; color:#d97706;">⏱️</div>
                 <div class="perfil-row-info">
-                    <span class="perfil-row-title">Turno de Aulas</span>
-                    <span class="perfil-row-desc" id="perfil-turno-detalhe">☀️ Manhã Integral (7 aulas)</span>
+                    <span class="perfil-row-title">Horário das Aulas</span>
+                    <span class="perfil-row-desc">07:00 às 14:00 (7 aulas diárias)</span>
                 </div>
-                <button type="button" class="perfil-row-btn perfil-btn-turno" onclick="event.stopPropagation(); alternarTurnoPerfil()">
-                    Trocar ⇄
-                </button>
+                <span style="font-size:0.75rem; font-weight:600; color:#b45309; background:#fef3c7; padding:3px 8px; border-radius:6px;">Manhã</span>
             </div>
 
             <div class="perfil-row-divider"></div>

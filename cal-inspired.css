@@ -1282,8 +1282,14 @@ body:has(#tela-login:not([style*="display: none"]))::-webkit-scrollbar {
     }
 }
 
-#bottom-nav,
-body:has(#tela-login) #bottom-nav {
+/* Bottom Navigation: visible on mobile (< 768px) when logged in, hidden on desktop */
+@media (min-width: 769px) {
+    #bottom-nav {
+        display: none !important;
+    }
+}
+#tela-login:not([style*="display: none"]) ~ #bottom-nav,
+body:has(#tela-login:not([style*="display: none"])) #bottom-nav {
     display: none !important;
 }
 
@@ -1339,7 +1345,7 @@ body:has(#tela-login) .pin-dot { background: var(--cal-paper); border-color: #d5
 body:has(#tela-login) .pin-dot.ativo,
 body:has(#tela-login) .pin-dot.preenchido { border-color: var(--cal-blue); background: #fbe3c4; }
 body:has(#tela-login) .pin-dot.ativo::before { background: var(--cal-blue); }
-body:has(#tela-login) #bottom-nav { background: var(--cal-paper); border-top-color: var(--cal-line); }
+body:has(#tela-login) #bottom-nav { background: var(--cal-paper) !important; border-top: 1px solid var(--cal-line) !important; }
 body:has(#tela-login) .nav-tab { color: var(--cal-subtle); }
 body:has(#tela-login) .nav-tab.ativa { color: var(--cal-red); }
 body:has(#tela-login) .nav-tab.ativa::before { background: var(--cal-red); }
@@ -1347,10 +1353,11 @@ body:has(#tela-login) .saudacao { background: var(--cal-ink); border-radius: var
 body:has(#tela-login) .saudacao::after { background: rgba(255,255,255,.09); }
 body:has(#tela-login) .form-group label,
 body:has(#tela-login) .secao-titulo { color: var(--cal-muted); }
-body:has(#tela-login) .btn-aula { border-radius: var(--cal-pill) !important; }
-body:has(#tela-login) .btn-aula.disponivel { background: var(--cal-paper) !important; color: var(--cal-red) !important; border-color: var(--cal-blue) !important; border-width: 1.5px !important; font-weight: 700; }
+body:has(#tela-login) .btn-aula { border-radius: 14px !important; min-height: 52px; }
+body:has(#tela-login) .btn-aula.disponivel { background: #f0fdf4 !important; color: #15803d !important; border-color: #86efac !important; border-width: 1.5px !important; font-weight: 700; }
+body:has(#tela-login) .btn-aula.disponivel:hover { background: #dcfce7 !important; border-color: #4ade80 !important; }
 body:has(#tela-login) .btn-aula.ocupada { background: var(--cal-soft) !important; color: var(--cal-muted) !important; border-color: var(--cal-line) !important; }
-body:has(#tela-login) .btn-aula.encerrada { background: var(--cal-soft) !important; color: var(--cal-subtle) !important; border-color: var(--cal-line) !important; cursor: not-allowed; }
+body:has(#tela-login) .btn-aula.encerrada { background: var(--cal-soft) !important; color: var(--cal-subtle) !important; border-color: var(--cal-line) !important; cursor: not-allowed; opacity: 0.75; }
 body:has(#tela-login) .historico-item,
 body:has(#tela-login) .reserva-card,
 body:has(#tela-login) .semana-card,

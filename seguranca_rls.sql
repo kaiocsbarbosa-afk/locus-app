@@ -16,9 +16,19 @@
 -- ------------------------------------------------------------
 
 -- Garante que colunas auxiliares necessárias existam nas tabelas
-ALTER TABLE public.agendamentos ADD COLUMN IF NOT EXISTS turno TEXT DEFAULT 'manha';
+ALTER TABLE public.solicitacoes_acesso ADD COLUMN IF NOT EXISTS turno TEXT DEFAULT 'manha';
 ALTER TABLE public.solicitacoes_acesso ADD COLUMN IF NOT EXISTS telefone TEXT;
 ALTER TABLE public.solicitacoes_acesso ADD COLUMN IF NOT EXISTS atualizado_em TIMESTAMPTZ;
+ALTER TABLE public.professores ADD COLUMN IF NOT EXISTS turno TEXT DEFAULT 'manha';
+ALTER TABLE public.professores ADD COLUMN IF NOT EXISTS telefone TEXT;
+ALTER TABLE public.agendamentos ADD COLUMN IF NOT EXISTS turno TEXT DEFAULT 'manha';
+
+-- Garante privilégios de acesso aos papéis do Supabase (anon e authenticated)
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT ON public.disciplinas, public.salas, public.turmas, public.professores, public.agendamentos TO anon, authenticated;
+GRANT INSERT ON public.solicitacoes_acesso, public.inscricoes_push TO anon, authenticated;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 
 -- Garante que NUNCA haja agendamentos duplicados na mesma sala, data, aula e turno
 DO $$
@@ -252,3 +262,42 @@ AS $$
 $$;
 
 GRANT EXECUTE ON FUNCTION public.verificar_solicitacao_existente(text) TO anon, authenticated;
+
+-- ------------------------------------------------------------
+-- 12. FUNÇÃO RPC: ALTERAR PIN DO PROFESSOR (4 DÍGITOS)
+-- Atualiza diretamente o hash da senha em auth.users para o usuário
+-- logado mantendo compatibilidade com padrão 'locus_PIN' (>= 6 chars)
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.alterar_meu_pin(novo_pin text)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, extensions
+AS $$
+DECLARE
+    v_user_id uuid;
+BEGIN
+    v_user_id := auth.uid();
+    IF v_user_id IS NULL THEN
+        RETURN json_build_object('sucesso', false, 'erro', 'Sessão inválida ou não autenticada.');
+    END IF;
+
+    IF novo_pin !~ '^\d{4}$' THEN
+        RETURN json_build_object('sucesso', false, 'erro', 'O PIN deve conter exatamente 4 dígitos numéricos.');
+    END IF;
+
+    UPDATE auth.users
+    SET encrypted_password = extensions.crypt('locus_' || novo_pin, extensions.gen_salt('bf')),
+        updated_at = now()
+    WHERE id = v_user_id;
+
+    UPDATE public.professores
+    SET pin = novo_pin
+    WHERE auth_user_id = v_user_id;
+
+    RETURN json_build_object('sucesso', true);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.alterar_meu_pin(text) TO authenticated;
+

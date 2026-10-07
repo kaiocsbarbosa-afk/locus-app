@@ -165,89 +165,6 @@
         .card-titulo { font-size: 1.2rem; font-weight: 700; color: var(--text); margin-bottom: 3px; }
         .card-sub { font-size: .8rem; color: var(--text2); margin-bottom: 18px; line-height: 1.5; }
 
-        /* ── SELETOR DE TURNO / MODALIDADE (MANHÃ x EJA) ── */
-        .cad-turno-wrap {
-            margin-bottom: 18px;
-            width: 100%;
-        }
-        .cad-turno-label {
-            display: block; font-size: .67rem; font-weight: 700;
-            text-transform: uppercase; letter-spacing: .09em;
-            color: var(--text2); margin-bottom: 8px;
-        }
-        .cad-turno-toggle {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            background: rgba(22,13,44,0.85);
-            padding: 5px;
-            border-radius: 16px;
-            border: 1px solid var(--border);
-        }
-        .btn-cad-turno {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 7px;
-            padding: 10px 8px;
-            border: 1px solid transparent;
-            border-radius: 12px;
-            background: transparent;
-            color: var(--text2);
-            font-family: 'Poppins', sans-serif;
-            font-size: 0.82rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-            user-select: none;
-        }
-        .btn-cad-turno:hover {
-            color: var(--text);
-            background: rgba(255,255,255,0.05);
-        }
-        .btn-cad-turno.ativo {
-            background: rgba(220,60,60,0.18);
-            color: #ff7878;
-            border-color: rgba(220,60,60,0.45);
-            box-shadow: 0 4px 14px rgba(220,60,60,0.2);
-        }
-        .btn-cad-turno-eja.ativo {
-            background: linear-gradient(135deg, rgba(49,46,129,0.7), rgba(67,56,202,0.8));
-            color: #e0e7ff;
-            border-color: rgba(129,140,248,0.55);
-            box-shadow: 0 4px 18px rgba(49,46,129,0.45);
-        }
-        .cad-turno-banner {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-top: 10px;
-            padding: 10px 12px;
-            border-radius: 12px;
-            background: rgba(220,60,60,0.08);
-            border: 1px solid rgba(220,60,60,0.18);
-            transition: all 0.25s ease;
-        }
-        .cad-turno-banner.eja {
-            background: rgba(49,46,129,0.22);
-            border-color: rgba(99,102,241,0.35);
-        }
-        .cad-turno-banner-icon {
-            font-size: 1.2rem;
-            flex-shrink: 0;
-        }
-        .cad-turno-banner-text {
-            font-size: 0.74rem;
-            line-height: 1.4;
-            color: var(--text2);
-        }
-        .cad-turno-banner-text strong {
-            color: var(--text);
-            display: block;
-            font-size: 0.79rem;
-            letter-spacing: -0.1px;
-        }
-
         /* ── CAMPOS ── */
         .field { margin-bottom: 14px; }
         .field label {
@@ -439,26 +356,6 @@
         <div id="tela-form">
             <div class="card-titulo" id="card-titulo">Criar meu perfil</div>
             <div class="card-sub" id="card-sub">Preencha os dados — a coordenação aprova em breve.</div>
-
-            <!-- Seletor de Modalidade / Turno -->
-            <div class="cad-turno-wrap">
-                <label class="cad-turno-label">Modalidade de Acesso</label>
-                <div class="cad-turno-toggle" role="group" aria-label="Seleção de Turno">
-                    <button type="button" class="btn-cad-turno ativo" id="btn-cad-manha" data-turno="manha">
-                        <span>☀️</span> Manhã Integral
-                    </button>
-                    <button type="button" class="btn-cad-turno btn-cad-turno-eja" id="btn-cad-eja" data-turno="eja">
-                        <span>🌙</span> EJA (Noturno)
-                    </button>
-                </div>
-                <div class="cad-turno-banner" id="cad-turno-banner">
-                    <span class="cad-turno-banner-icon" id="cad-banner-icon">☀️</span>
-                    <div class="cad-turno-banner-text">
-                        <strong id="cad-banner-titulo">Ensino Regular · Manhã Integral</strong>
-                        <span id="cad-banner-desc">Solicitação para atuar nas turmas do diurno (7 aulas diárias).</span>
-                    </div>
-                </div>
-            </div>
 
             <div class="field">
                 <label>Nome completo</label>

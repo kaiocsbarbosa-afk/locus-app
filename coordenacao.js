@@ -589,11 +589,7 @@ async function carregarSolicitacoes() {
             const meta = document.createElement('div')
             meta.className = 'solicitacao-meta'
             const telTag = s.telefone ? `<span class="solicitacao-tel-tag" title="WhatsApp informado">📱 ${formatarTelefoneExibicao(s.telefone)}</span>` : ''
-            const isEja = (s.turno === 'eja') || (s.disciplina && s.disciplina.toUpperCase().includes('EJA'))
-            const turnoTag = isEja 
-                ? '<span class="solicitacao-turno-tag tag-eja" style="display:inline-flex; align-items:center; gap:3px; background:rgba(99,102,241,0.2); border:1px solid rgba(99,102,241,0.4); color:#c7d2fe; padding:2px 8px; border-radius:6px; font-size:0.72rem; font-weight:600;">🌙 EJA</span>'
-                : '<span class="solicitacao-turno-tag tag-manha" style="display:inline-flex; align-items:center; gap:3px; background:rgba(220,60,60,0.14); border:1px solid rgba(220,60,60,0.3); color:#fca5a5; padding:2px 8px; border-radius:6px; font-size:0.72rem; font-weight:600;">☀️ Manhã</span>'
-            meta.innerHTML = `<span class="solicitacao-disc-tag">📚 ${s.disciplina || 'Geral'}</span> ${turnoTag} ${telTag} <span>· Pedido em ${dataFmt}</span>`
+            meta.innerHTML = `<span class="solicitacao-disc-tag">📚 ${s.disciplina || 'Geral'}</span> ${telTag} <span>· Pedido em ${dataFmt}</span>`
 
             info.appendChild(nome)
             info.appendChild(meta)
@@ -605,7 +601,7 @@ async function carregarSolicitacoes() {
             btnAprovar.className = 'btn-aprovar'
             btnAprovar.type = 'button'
             btnAprovar.innerHTML = '✓ Liberar Acesso'
-            btnAprovar.addEventListener('click', () => aprovarSolicitacao(s.id, s.nome, s.disciplina, s.pin, s.telefone))
+            btnAprovar.addEventListener('click', () => aprovarSolicitacao(s.id, s.nome, s.disciplina, s.pin, s.telefone, 'manha'))
 
             const btnRejeitar = document.createElement('button')
             btnRejeitar.className = 'btn-rejeitar'
@@ -627,7 +623,7 @@ async function carregarSolicitacoes() {
     }
 }
 
-async function aprovarSolicitacao(id, nome, disciplina, pin, telefone = null) {
+async function aprovarSolicitacao(id, nome, disciplina, pin, telefone = null, turno = 'manha') {
     if (!await exigirAuth()) return
 
     const confirmar = await Swal.fire({
@@ -656,17 +652,20 @@ async function aprovarSolicitacao(id, nome, disciplina, pin, telefone = null) {
             profId = existente.id
             const updatePayload = { disciplina }
             if (telefone) updatePayload.telefone = telefone
+            if (turno) updatePayload.turno = turno
             try {
                 await supabase.from('professores').update(updatePayload).eq('id', profId)
             } catch (errUp) {
-                if (errUp?.code === '42703' || String(errUp?.message).includes('telefone')) {
-                    await supabase.from('professores').update({ disciplina }).eq('id', profId)
+                if (errUp?.code === '42703' || String(errUp?.message).includes('turno') || String(errUp?.message).includes('telefone')) {
+                    const fallbackUp = { disciplina }
+                    if (telefone && !String(errUp?.message).includes('telefone')) fallbackUp.telefone = telefone
+                    await supabase.from('professores').update(fallbackUp).eq('id', profId)
                 } else {
                     throw errUp
                 }
             }
         } else {
-            const insertPayload = { nome, disciplina, auth_user_id: null }
+            const insertPayload = { nome, disciplina, auth_user_id: null, turno: turno || 'manha' }
             if (telefone) insertPayload.telefone = telefone
             let { data: prof, error: errProf } = await supabase
                 .from('professores')
@@ -674,10 +673,12 @@ async function aprovarSolicitacao(id, nome, disciplina, pin, telefone = null) {
                 .select('id')
                 .single()
 
-            if (errProf && (errProf.code === '42703' || String(errProf.message).includes('telefone'))) {
+            if (errProf && (errProf.code === '42703' || String(errProf.message).includes('turno') || String(errProf.message).includes('telefone'))) {
+                const fallbackInsert = { nome, disciplina, auth_user_id: null }
+                if (telefone && !String(errProf?.message).includes('telefone')) fallbackInsert.telefone = telefone
                 const fallback = await supabase
                     .from('professores')
-                    .insert([{ nome, disciplina, auth_user_id: null }])
+                    .insert([fallbackInsert])
                     .select('id')
                     .single()
                 prof = fallback.data
@@ -846,7 +847,6 @@ window.carregarRelatorioGeral = async function() {
     const filtroData      = document.getElementById('filtroData')
     const filtroSala      = document.getElementById('filtroSala')
     const filtroProfessor = document.getElementById('filtroProfessor')
-    const filtroTurno     = document.getElementById('filtroTurno')
     const tabela          = document.getElementById('listaAgendamentos')
     const buscaRapida     = document.getElementById('busca-rapida-reservas')
 
@@ -855,7 +855,6 @@ window.carregarRelatorioGeral = async function() {
     const dataFiltro      = filtroData.value
     const salaFiltro      = filtroSala?.value || ''
     const professorFiltro = filtroProfessor?.value || ''
-    const turnoFiltro     = filtroTurno?.value || ''
 
     tabela.innerHTML = ''
     dadosAtuaisParaExportar = []
@@ -900,11 +899,6 @@ window.carregarRelatorioGeral = async function() {
     }
 
     let agendamentosFiltrados = agendamentos || []
-    if (turnoFiltro) {
-        agendamentosFiltrados = agendamentosFiltrados.filter(item => {
-            return detectarTurnoTurma(item.turmas?.nome) === turnoFiltro
-        })
-    }
 
     const qtdEl = document.getElementById('qtd-total')
     if (qtdEl) qtdEl.innerText = agendamentosFiltrados.length
@@ -933,14 +927,12 @@ window.carregarRelatorioGeral = async function() {
         dataSpan.textContent = dataBr
         tdData.appendChild(dataSpan)
 
-        const turnoItem = detectarTurnoTurma(item.turmas?.nome)
-        const horario = obterHorarioAula(item.aula_numero, turnoItem)
-        const badgeTurno = turnoItem === 'eja' ? '🌙 EJA' : '☀️ Manhã'
+        const horario = obterHorarioAula(item.aula_numero)
 
         const tdAula = document.createElement('td')
         const badge = document.createElement('span')
-        badge.className = `badge-aula badge-turno-${turnoItem === 'eja' ? 'eja' : 'manha'}`
-        badge.textContent = `${badgeTurno} · Aula ${item.aula_numero}ª (${horario.inicio}–${horario.fim})`
+        badge.className = 'badge-aula badge-turno-manha'
+        badge.textContent = `Aula ${item.aula_numero}ª (${horario.inicio}–${horario.fim})`
         tdAula.appendChild(badge)
 
         const tdSala = document.createElement('td')
@@ -1024,12 +1016,10 @@ window.filtrarTabelaReservasEmTempoReal = function(termo) {
 window.limparFiltros = function() {
     const filtroSala      = document.getElementById('filtroSala')
     const filtroProfessor = document.getElementById('filtroProfessor')
-    const filtroTurno     = document.getElementById('filtroTurno')
     const buscaRapida     = document.getElementById('busca-rapida-reservas')
 
     if (filtroSala)       filtroSala.value = ''
     if (filtroProfessor)  filtroProfessor.value = ''
-    if (filtroTurno)      filtroTurno.value = ''
     if (buscaRapida)      buscaRapida.value = ''
 
     window.selecionarFiltroDataRapido('hoje')
@@ -1089,21 +1079,18 @@ window.baixarRelatorioCSV = async function() {
             return `"${str.replace(/"/g, '""')}"`
         }
 
-        const cabecalho = ['Data', 'Turno', 'Aula', 'Horário Início', 'Horário Fim', 'Sala / Local', 'Professor', 'Turma']
+        const cabecalho = ['Data', 'Aula', 'Horário Início', 'Horário Fim', 'Sala / Local', 'Professor', 'Turma']
         const linhas = [cabecalho.map(escapeCSV).join(';')]
 
         dadosAtuaisParaExportar.forEach(item => {
             const dataBr    = item.data.split('-').reverse().join('/')
-            const turnoItem = detectarTurnoTurma(item.turmas?.nome)
-            const horario   = obterHorarioAula(item.aula_numero, turnoItem)
-            const nomeTurno = turnoItem === 'eja' ? 'EJA Noturno' : 'Manhã Integral'
+            const horario   = obterHorarioAula(item.aula_numero)
             const nomeSala  = item.salas?.nome || 'Não informada'
             const nomeProf  = item.professores?.nome || 'Desconhecido'
             const nomeTurma = item.turmas?.nome || 'Geral'
 
             const linha = [
                 dataBr,
-                nomeTurno,
                 `Aula ${item.aula_numero}ª`,
                 horario.inicio,
                 horario.fim,
@@ -1119,10 +1106,8 @@ window.baixarRelatorioCSV = async function() {
         const blob = new Blob([conteudoCSV], { type: 'text/csv;charset=utf-8;' })
 
         const filtroData = document.getElementById('filtroData')?.value
-        const filtroTurno = document.getElementById('filtroTurno')?.value
-        const sufixoTurno = filtroTurno ? `-${filtroTurno}` : ''
         const sufixoData  = filtroData || formatarData(new Date())
-        const nomeArquivo = `locus-agendamentos${sufixoTurno}-${sufixoData}.csv`
+        const nomeArquivo = `locus-agendamentos-${sufixoData}.csv`
 
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
@@ -1584,22 +1569,7 @@ function renderizarListaTurmas(turmas, isFiltrado = false) {
         nome.className = 'item-card-nome'
         nome.textContent = turma.nome
 
-        // Detecção automática de turno
-        const turno = detectarTurnoTurma(turma.nome)
-        const tagTurno = document.createElement('span')
-        if (turno === 'manha') {
-            tagTurno.className = 'badge-turno-tag manha'
-            tagTurno.textContent = '☀️ Manhã'
-        } else if (turno === 'eja') {
-            tagTurno.className = 'badge-turno-tag eja'
-            tagTurno.textContent = '🌙 EJA'
-        } else {
-            tagTurno.className = 'badge-turno-tag geral'
-            tagTurno.textContent = '📚 Geral'
-        }
-
         detalhes.appendChild(nome)
-        detalhes.appendChild(tagTurno)
         info.appendChild(icone)
         info.appendChild(detalhes)
 
@@ -1710,7 +1680,7 @@ window.excluirTurma = async function(id, nome) {
 async function obterDisciplinasCache() {
     if (disciplinasCache.length > 0) return disciplinasCache
     const { data, error } = await supabase.from('disciplinas').select('id, nome').order('nome', { ascending: true })
-    if (!error && data) disciplinasCache = data
+    if (!error && data) disciplinasCache = data.map(d => ({ ...d, nome: d.nome ? d.nome.trim() : '' }))
     return disciplinasCache
 }
 
@@ -1719,11 +1689,15 @@ async function carregarListaProfessores() {
     if (!container) return
     container.innerHTML = '<div class="gerenciar-vazio">Carregando professores...</div>'
 
-    // Busca professores com coluna 'telefone' de forma resiliente
+    // Busca professores com colunas 'telefone' e 'turno' de forma resiliente
     const buscarProfessores = async () => {
-        const res = await supabase.from('professores').select('id, nome, disciplina, auth_user_id, pin, telefone').order('nome', { ascending: true })
-        if (res.error && (res.error.code === '42703' || String(res.error.message).includes('telefone'))) {
-            return await supabase.from('professores').select('id, nome, disciplina, auth_user_id, pin').order('nome', { ascending: true })
+        const res = await supabase.from('professores').select('id, nome, disciplina, auth_user_id, pin, telefone, turno').order('nome', { ascending: true })
+        if (res.error && (res.error.code === '42703' || String(res.error.message).includes('turno'))) {
+            const resSemTurno = await supabase.from('professores').select('id, nome, disciplina, auth_user_id, pin, telefone').order('nome', { ascending: true })
+            if (resSemTurno.error && (resSemTurno.error.code === '42703' || String(resSemTurno.error.message).includes('telefone'))) {
+                return await supabase.from('professores').select('id, nome, disciplina, auth_user_id, pin').order('nome', { ascending: true })
+            }
+            return resSemTurno
         }
         return res
     }
@@ -1895,7 +1869,6 @@ function renderizarListaProfessores(professores, disciplinas = disciplinasCache,
 
         const statusClasse = temAcesso ? 'ativo' : 'pendente'
         const statusTexto  = temAcesso ? '🟢 Acesso Liberado' : '🟡 Falta Criar Senha'
-
         div.innerHTML = `
             <div class="professor-card-topo">
                 <div class="avatar-wrapper">
@@ -2495,6 +2468,13 @@ window.abrirModalNovoProfessor = async function() {
                 </select>
             </div>
             <div style="display:flex; flex-direction:column; gap:5px;">
+                <label style="font-size:0.8rem; font-weight:700; color:var(--txt);">Turno / Modalidade:</label>
+                <select id="novo-prof-turno" class="swal2-select" style="margin:0; width:100%; font-size:0.88rem; display:block; box-sizing:border-box;">
+                    <option value="manha">☀️ Ensino Regular · Manhã Integral</option>
+                    <option value="eja">🌙 Educação de Jovens e Adultos · EJA Noturno</option>
+                </select>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:5px;">
                 <label style="font-size:0.8rem; font-weight:700; color:var(--txt);">WhatsApp / Celular (Opcional):</label>
                 <input type="tel" id="novo-prof-tel" class="swal2-input" placeholder="(DDD) 99999-9999" maxlength="15" inputmode="numeric" style="margin:0; width:100%; font-size:0.88rem; box-sizing:border-box;">
             </div>
@@ -2545,6 +2525,7 @@ window.abrirModalNovoProfessor = async function() {
         preConfirm: () => {
             const nomeRaw = document.getElementById('novo-prof-nome')?.value.trim() || ''
             const disciplina = document.getElementById('novo-prof-disciplina')?.value || ''
+            const turno = 'manha'
             const telLimpo = (document.getElementById('novo-prof-tel')?.value || '').replace(/\D/g, '')
             const pinRaw = document.getElementById('novo-prof-pin')?.value.replace(/\D/g, '') || ''
 
@@ -2565,13 +2546,13 @@ window.abrirModalNovoProfessor = async function() {
                 return false
             }
 
-            return { nome: nomeRaw, disciplina, pin: pinRaw || null, telefone: telLimpo || null }
+            return { nome: nomeRaw, disciplina, pin: pinRaw || null, telefone: telLimpo || null, turno }
         }
     })
 
     if (!res.isConfirmed || !res.value) return
 
-    const { nome, disciplina, pin, telefone } = res.value
+    const { nome, disciplina, pin, telefone, turno } = res.value
 
     Swal.fire({
         title: 'Cadastrando professor...',
@@ -2598,8 +2579,8 @@ window.abrirModalNovoProfessor = async function() {
             return
         }
 
-        // Insere professor com suporte a telefone e fallback resiliente
-        const insertPayload = { nome, disciplina, auth_user_id: null }
+        // Insere professor com suporte a turno, telefone e fallback resiliente
+        const insertPayload = { nome, disciplina, auth_user_id: null, turno }
         if (telefone) insertPayload.telefone = telefone
 
         let novoProf = null
@@ -2611,10 +2592,12 @@ window.abrirModalNovoProfessor = async function() {
             .select('id')
             .single()
 
-        if (resInsert.error && (resInsert.error.code === '42703' || String(resInsert.error.message).includes('telefone'))) {
+        if (resInsert.error && (resInsert.error.code === '42703' || String(resInsert.error.message).includes('turno') || String(resInsert.error.message).includes('telefone'))) {
+            const fallbackObj = { nome, disciplina, auth_user_id: null }
+            if (telefone && !String(resInsert.error.message).includes('telefone')) fallbackObj.telefone = telefone
             const fallbackRes = await supabase
                 .from('professores')
-                .insert([{ nome, disciplina, auth_user_id: null }])
+                .insert([fallbackObj])
                 .select('id')
                 .single()
             novoProf = fallbackRes.data

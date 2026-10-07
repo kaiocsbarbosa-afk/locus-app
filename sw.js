@@ -1,5 +1,5 @@
 // IMPORTANTE: incremente CACHE_VERSION a cada deploy para forçar atualização
-const CACHE_VERSION = 'v28';
+const CACHE_VERSION = 'v30';
 const CACHE_NAME    = `locus-cache-${CACHE_VERSION}`;
 
 // Chave pública VAPID — necessária para renovar a subscription em pushsubscriptionchange
@@ -14,7 +14,6 @@ const ASSETS = [
   './manifest.json',
   './locus.css',
   './cal-inspired.css',
-  './env.js',
   './utils.js',
   './push.js',
   './professor.js',

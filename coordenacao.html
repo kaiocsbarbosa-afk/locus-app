@@ -2603,14 +2603,6 @@
                             <option value="">Todos os professores</option>
                         </select>
                     </div>
-                    <div class="filtro-item">
-                        <label>⏳ Turno</label>
-                        <select id="filtroTurno">
-                            <option value="">Todos os turnos</option>
-                            <option value="manha">☀️ Manhã Integral</option>
-                            <option value="eja">🌙 EJA Noturno</option>
-                        </select>
-                    </div>
                 </div>
 
                 <div class="filtros-acoes">
@@ -2784,7 +2776,7 @@
                         <input type="text" id="busca-turmas" placeholder="Buscar turma..." oninput="filtrarTurmas(this.value)">
                     </div>
                     <div class="gerenciar-add-inline">
-                        <input type="text" id="nova-turma-nome" placeholder="Nome da nova turma (ex: 1º A, 3º C EJA)..." autocomplete="off"
+                        <input type="text" id="nova-turma-nome" placeholder="Nome da nova turma (ex: 1º A, 2º B, 3º C)..." autocomplete="off"
                                onkeydown="if(event.key==='Enter') adicionarTurma()">
                         <button class="btn-adicionar-novo" onclick="adicionarTurma()">+ Adicionar Turma</button>
                     </div>

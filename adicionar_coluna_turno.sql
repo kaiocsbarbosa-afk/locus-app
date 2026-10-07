@@ -12,6 +12,12 @@ ALTER TABLE public.solicitacoes_acesso
 ALTER TABLE public.professores 
     ADD COLUMN IF NOT EXISTS turno text DEFAULT 'manha';
 
--- 3. Cria índices para consultas rápidas por turno
+-- 3. Adiciona a coluna turno na tabela de agendamentos (padrão: 'manha')
+ALTER TABLE public.agendamentos 
+    ADD COLUMN IF NOT EXISTS turno text DEFAULT 'manha';
+
+-- 4. Cria índices para consultas rápidas por turno
 CREATE INDEX IF NOT EXISTS idx_solicitacoes_turno ON public.solicitacoes_acesso (turno);
 CREATE INDEX IF NOT EXISTS idx_professores_turno ON public.professores (turno);
+CREATE INDEX IF NOT EXISTS idx_agendamentos_turno ON public.agendamentos (turno);
+

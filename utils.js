@@ -62,50 +62,31 @@ export const GRADE_HORARIOS_EJA = {
 };
 
 export function detectarTurnoHorarioAtual() {
-    try {
-        const agoraSp = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
-        const hora = agoraSp.getHours();
-        const minutos = agoraSp.getMinutes();
-        const tempoEmMinutos = hora * 60 + minutos;
-        // A partir das 17:30 (1050 minutos) ativa automaticamente o EJA Noturno
-        return tempoEmMinutos >= 1050 ? 'eja' : 'manha';
-    } catch (_) {
-        return 'manha';
-    }
+    return 'manha';
 }
 
 export function getTurnoAtivo() {
-    const salvo = localStorage.getItem('locus_turno');
-    if (salvo === 'manha' || salvo === 'eja') {
-        return salvo;
-    }
-    return detectarTurnoHorarioAtual();
+    return 'manha';
 }
 
 export function setTurnoAtivo(turno) {
-    const turnoNormalizado = turno === 'eja' ? 'eja' : 'manha';
-    localStorage.setItem('locus_turno', turnoNormalizado);
-    window.dispatchEvent(new CustomEvent('locus:turno_alterado', { detail: { turno: turnoNormalizado } }));
-    return turnoNormalizado;
+    localStorage.setItem('locus_turno', 'manha');
+    return 'manha';
 }
 
-export function obterTotalAulasTurno(turno = getTurnoAtivo()) {
-    return turno === 'eja' ? 4 : 7;
+export function obterTotalAulasTurno(turno = 'manha') {
+    return 7;
 }
 
 export function detectarTurnoTurma(turmaNome) {
-    if (!turmaNome) return 'manha';
-    const nomeNorm = String(turmaNome).toUpperCase();
-    const isEja = nomeNorm.includes('EJA') || nomeNorm.includes('E.J.A.') || nomeNorm.includes('NOTURNO') || nomeNorm.includes('NOITE');
-    return isEja ? 'eja' : 'manha';
+    return 'manha';
 }
 
-export function obterHorarioAula(numeroAula, turno = getTurnoAtivo()) {
-    const grade = turno === 'eja' ? GRADE_HORARIOS_EJA : GRADE_HORARIOS_MANHA;
-    if (grade[numeroAula]) {
-        return grade[numeroAula];
+export function obterHorarioAula(numeroAula, turno = 'manha') {
+    if (GRADE_HORARIOS_MANHA[numeroAula]) {
+        return GRADE_HORARIOS_MANHA[numeroAula];
     }
-    const baseHora = turno === 'eja' ? 18 : 7;
+    const baseHora = 7;
     const inicioMinutos = baseHora * 60 + (numeroAula - 1) * 50;
     const fimMinutos = inicioMinutos + 50;
     const formatarMin = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
