@@ -587,7 +587,11 @@ async function carregarSolicitacoes() {
             const meta = document.createElement('div')
             meta.className = 'solicitacao-meta'
             const telTag = s.telefone ? `<span class="solicitacao-tel-tag" title="WhatsApp informado">📱 ${formatarTelefoneExibicao(s.telefone)}</span>` : ''
-            meta.innerHTML = `<span class="solicitacao-disc-tag">📚 ${s.disciplina || 'Geral'}</span> ${telTag} <span>· Pedido em ${dataFmt}</span>`
+            const isEja = (s.turno === 'eja') || (s.disciplina && s.disciplina.toUpperCase().includes('EJA'))
+            const turnoTag = isEja 
+                ? '<span class="solicitacao-turno-tag tag-eja" style="display:inline-flex; align-items:center; gap:3px; background:rgba(99,102,241,0.2); border:1px solid rgba(99,102,241,0.4); color:#c7d2fe; padding:2px 8px; border-radius:6px; font-size:0.72rem; font-weight:600;">🌙 EJA</span>'
+                : '<span class="solicitacao-turno-tag tag-manha" style="display:inline-flex; align-items:center; gap:3px; background:rgba(220,60,60,0.14); border:1px solid rgba(220,60,60,0.3); color:#fca5a5; padding:2px 8px; border-radius:6px; font-size:0.72rem; font-weight:600;">☀️ Manhã</span>'
+            meta.innerHTML = `<span class="solicitacao-disc-tag">📚 ${s.disciplina || 'Geral'}</span> ${turnoTag} ${telTag} <span>· Pedido em ${dataFmt}</span>`
 
             info.appendChild(nome)
             info.appendChild(meta)

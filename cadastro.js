@@ -39,9 +39,12 @@ const DISCIPLINAS_PADRAO = [
     'Sociologia'
 ];
 
+let turnoCadastro = 'manha';
+
 // ── INICIALIZAÇÃO ─────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     carregarPreferenciaModo();
+    configurarSeletorTurno();
     carregarDisciplinas();
     configurarPin();
     verificarSessaoExistente();
@@ -86,6 +89,75 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+function configurarSeletorTurno() {
+    const btnManha = document.getElementById('btn-cad-manha');
+    const btnEja = document.getElementById('btn-cad-eja');
+
+    btnManha?.addEventListener('click', () => selecionarTurnoCadastro('manha'));
+    btnEja?.addEventListener('click', () => selecionarTurnoCadastro('eja'));
+
+    // Suporte a parâmetro na URL (ex: cadastro.html?turno=eja)
+    const urlParams = new URLSearchParams(window.location.search);
+    const turnoUrl = urlParams.get('turno') || urlParams.get('modo');
+    if (turnoUrl === 'eja' || turnoUrl === 'noturno') {
+        selecionarTurnoCadastro('eja');
+    }
+}
+
+function selecionarTurnoCadastro(turno) {
+    turnoCadastro = turno === 'eja' ? 'eja' : 'manha';
+    const isEja = turnoCadastro === 'eja';
+
+    const btnManha = document.getElementById('btn-cad-manha');
+    const btnEja = document.getElementById('btn-cad-eja');
+    const banner = document.getElementById('cad-turno-banner');
+    const bannerIcon = document.getElementById('cad-banner-icon');
+    const bannerTitulo = document.getElementById('cad-banner-titulo');
+    const bannerDesc = document.getElementById('cad-banner-desc');
+    const cardTitulo = document.getElementById('card-titulo');
+    const cardSub = document.getElementById('card-sub');
+    const btnEnviar = document.getElementById('btn-enviar');
+    const avisoAprovacao = document.getElementById('txt-aviso-aprovacao');
+
+    if (btnManha && btnEja) {
+        btnManha.classList.toggle('ativo', !isEja);
+        btnEja.classList.toggle('ativo', isEja);
+    }
+
+    if (banner) {
+        banner.classList.toggle('eja', isEja);
+    }
+    if (bannerIcon) {
+        bannerIcon.textContent = isEja ? '🌙' : '☀️';
+    }
+    if (bannerTitulo) {
+        bannerTitulo.textContent = isEja
+            ? 'Educação de Jovens e Adultos · EJA Noturno'
+            : 'Ensino Regular · Manhã Integral';
+    }
+    if (bannerDesc) {
+        bannerDesc.textContent = isEja
+            ? 'Solicitação para atuar nas turmas noturnas da EJA (4 aulas diárias).'
+            : 'Solicitação para atuar nas turmas regulares do diurno (7 aulas diárias).';
+    }
+    if (cardTitulo) {
+        cardTitulo.textContent = isEja ? 'Criar meu perfil (EJA)' : 'Criar meu perfil';
+    }
+    if (cardSub) {
+        cardSub.textContent = isEja
+            ? 'Preencha os dados — a coordenação aprova seu acesso ao EJA em breve.'
+            : 'Preencha os dados — a coordenação aprova em breve.';
+    }
+    if (btnEnviar) {
+        btnEnviar.textContent = isEja ? 'Enviar solicitação (EJA)' : 'Enviar solicitação';
+    }
+    if (avisoAprovacao) {
+        avisoAprovacao.textContent = isEja
+            ? 'Após enviar, aguarde a coordenação aprovar seu perfil de professor(a) no EJA Noturno.'
+            : 'Após enviar, aguarde a coordenação aprovar. Você poderá fazer login assim que for aprovado.';
+    }
+}
 
 function formatarNomeProprio(str) {
     if (!str) return '';
@@ -351,21 +423,33 @@ async function enviarSolicitacao() {
             });
         }
 
-        // 3. Insere a nova solicitação com telefone
-        // Se a coluna telefone ainda não existir no banco (código 42703), faz fallback para não bloquear
+        // 3. Insere a nova solicitação com telefone e turno (com fallback resiliente)
+        const isEja = turnoCadastro === 'eja';
+        const disciplinaFormatada = isEja ? `${disciplina} · EJA` : disciplina;
+
         const payloadInsert = {
             nome,
-            disciplina,
+            disciplina: disciplinaFormatada,
             pin,
             telefone: telefone || null,
             status: 'pendente'
         };
 
+        // Tenta inserir incluindo coluna turno se ela existir no banco
         let { error: errInsert } = await supabase
             .from('solicitacoes_acesso')
-            .insert(payloadInsert);
+            .insert({ ...payloadInsert, turno: turnoCadastro });
 
-        if (errInsert && (errInsert.code === '42703' || errInsert.message?.includes('telefone'))) {
+        // Fallback 1: se coluna turno não existir (código 42703), insere sem turno
+        if (errInsert && (errInsert.code === '42703' || String(errInsert.message).includes('turno'))) {
+            const resFallbackTurno = await supabase
+                .from('solicitacoes_acesso')
+                .insert(payloadInsert);
+            errInsert = resFallbackTurno.error;
+        }
+
+        // Fallback 2: se coluna telefone não existir (código 42703), remove telefone
+        if (errInsert && (errInsert.code === '42703' || String(errInsert.message).includes('telefone'))) {
             delete payloadInsert.telefone;
             const resFallback = await supabase
                 .from('solicitacoes_acesso')
@@ -376,13 +460,19 @@ async function enviarSolicitacao() {
         if (errInsert) throw errInsert;
 
         // 4. Notifica coordenadores em segundo plano (não bloqueia exibição da tela de sucesso)
+        const tituloPush = isEja ? '🌙 Nova solicitação de acesso (EJA)' : '📋 Nova solicitação de acesso';
+        const descTurnoPush = isEja ? 'EJA Noturno' : 'Manhã Integral';
         enviarNotificacao(
-            '📋 Nova solicitação de acesso',
-            `${nome} (${disciplina}) solicitou acesso ao Locus.`,
+            tituloPush,
+            `${nome} (${disciplina} · ${descTurnoPush}) solicitou acesso ao Locus.`,
             'coordenacao'
         ).catch(e => console.warn('[Push] Falha ao notificar coordenação:', e));
 
-        // 5. Exibe a tela de sucesso
+        // 5. Exibe a tela de sucesso personalizada
+        const subSucesso = document.querySelector('.sucesso-sub');
+        if (subSucesso) {
+            subSucesso.textContent = `Sua solicitação para ${isEja ? 'o EJA Noturno' : 'a Manhã Integral'} foi recebida. Assim que a coordenação aprovar, você poderá fazer login com seu PIN.`;
+        }
         document.getElementById('tela-form').style.display = 'none';
         document.getElementById('tela-sucesso').style.display = 'flex';
 

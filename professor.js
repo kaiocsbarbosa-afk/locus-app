@@ -19,6 +19,11 @@ function atualizarVisualTurnoLogin() {
     const btnManha = document.getElementById('btn-turno-manha');
     const btnEja = document.getElementById('btn-turno-eja');
     const statusEl = document.getElementById('login-turno-status');
+    const linkCad = document.getElementById('link-solicitar-acesso');
+
+    if (linkCad) {
+        linkCad.href = `cadastro.html?turno=${turnoAtivo}`;
+    }
 
     if (btnManha && btnEja) {
         if (turnoAtivo === 'eja') {
