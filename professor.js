@@ -1033,6 +1033,37 @@ function configurarCalendarioSemana() {
     }
 }
 
+window.verificarEScrollParaGrade = function() {
+    const dataVal = document.getElementById('data-agendamento')?.value;
+    const turmaVal = document.getElementById('select-turma')?.value;
+    const salaVal = document.getElementById('select-sala')?.value;
+
+    // Se data, turma e local estiverem selecionados, desce suavemente para a grade de horários
+    if (dataVal && turmaVal && salaVal) {
+        setTimeout(() => {
+            const appContent = document.getElementById('app-content');
+            const headerGrade = document.querySelector('.stitch-section-header');
+            const gridAulas = document.getElementById('grid-aulas');
+            const target = headerGrade || gridAulas;
+
+            if (appContent && target) {
+                const rectApp = appContent.getBoundingClientRect();
+                const rectTarget = target.getBoundingClientRect();
+                const topoRelativo = (rectTarget.top - rectApp.top) + appContent.scrollTop - 10;
+
+                appContent.scrollTo({
+                    top: Math.max(0, topoRelativo),
+                    behavior: 'smooth'
+                });
+            }
+        }, 150);
+    }
+};
+
+window.turmaSelecionada = function() {
+    window.verificarEScrollParaGrade();
+};
+
 window.selecionarDataDropdown = function(novaData) {
     const input = document.getElementById('data-agendamento');
     if (input && novaData) {
@@ -1043,6 +1074,7 @@ window.selecionarDataDropdown = function(novaData) {
         select.value = novaData;
     }
     buscarAulas();
+    window.verificarEScrollParaGrade();
 };
 
 window.abrirSeletorData = function() {
@@ -1208,6 +1240,7 @@ window.buscarAulas = async function() {
         }
 
         _programarAtualizacaoDaGrade(dataEscolhida);
+        window.verificarEScrollParaGrade();
     } catch (err) {
         console.error("Erro ao buscar aulas:", err);
         grid.innerHTML = '<div class="grid-vazio"><div class="icone-vazio">⚠️</div><p>Erro ao carregar. Tente novamente.</p></div>';
@@ -1325,17 +1358,13 @@ window.agendarAula = async function(numeroAula) {
         if (!confirmacao.isConfirmed) return;
 
         const insertPayload = {
-            professor_id: professorLogado.id, sala_id: salaId, turma_id: turmaId,
-            data: dataEscolhida, aula_numero: numeroAula, turno: 'manha'
+            professor_id: professorLogado.id,
+            sala_id: salaId,
+            turma_id: turmaId,
+            data: dataEscolhida,
+            aula_numero: numeroAula
         };
-        let { error } = await supabase.from('agendamentos').insert([insertPayload]);
-
-        // Se a coluna 'turno' ainda não existir no banco (erro 42703), insere sem ela
-        if (error && error.code === '42703') {
-            delete insertPayload.turno;
-            const resFallback = await supabase.from('agendamentos').insert([insertPayload]);
-            error = resFallback.error;
-        }
+        const { error } = await supabase.from('agendamentos').insert([insertPayload]);
 
         if (error) {
             vibrarErro();
@@ -1347,7 +1376,13 @@ window.agendarAula = async function(numeroAula) {
                 Swal.fire({ icon: 'error', title: 'Horário já reservado!', text: 'Outro professor acabou de reservar este horário ou sala.', confirmButtonColor: '#dc3c3c' });
                 buscarAulas();
             } else {
-                Swal.fire({ icon: 'error', title: 'Vaga indisponível', text: 'Pode ter sido preenchida agora mesmo.', confirmButtonColor: '#dc3c3c' });
+                console.error('[Agendamento] Erro retornado pelo Supabase:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Não foi possível agendar',
+                    text: error.message || 'Ocorreu um erro ao registrar a reserva. Tente novamente.',
+                    confirmButtonColor: '#dc3c3c'
+                });
                 buscarAulas();
             }
         } else {
@@ -1651,10 +1686,134 @@ async function carregarSalasParaSemana(opcoes) {
     }
 }
 
+window.trocarSalaDiretoSemana = async function(novaSalaId) {
+    if (!novaSalaId) return;
+    _semSalaId = novaSalaId;
+    _semOffset = 0;
+    _semDiaIdx = -1;
+    _semDados  = null;
+    await _fetchESalvar();
+};
+
+window.agendarDiretoPelaSemana = async function(dataIso, aulaNumero) {
+    if (!professorLogado) return;
+
+    const agoraSp = _getAgoraBrasilia();
+    const hojeIso = `${agoraSp.getFullYear()}-${String(agoraSp.getMonth()+1).padStart(2,'0')}-${String(agoraSp.getDate()).padStart(2,'0')}`;
+
+    if (dataIso < hojeIso || (dataIso === hojeIso && _aulaJaComecou(dataIso, aulaNumero, agoraSp))) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Horário já encerrado',
+            text: 'Esta aula já começou ou é de uma data anterior e não pode mais ser agendada.',
+            confirmButtonColor: '#dc3c3c'
+        });
+        return;
+    }
+
+    const salaId = _semSalaId;
+    if (!salaId) {
+        Swal.fire({ icon: 'info', title: 'Selecione uma sala primeiro', confirmButtonColor: '#dc3c3c' });
+        return;
+    }
+
+    // Carrega turmas ativas do select ou do banco
+    const selectTurma = document.getElementById('select-turma');
+    const optsTurmas = {};
+    if (selectTurma && selectTurma.options.length > 1) {
+        Array.from(selectTurma.options).forEach(o => {
+            if (o.value) optsTurmas[o.value] = o.textContent;
+        });
+    }
+
+    if (Object.keys(optsTurmas).length === 0) {
+        try {
+            const { data, error } = await supabase.from('turmas').select('id, nome').order('nome', { ascending: true });
+            if (!error && data) {
+                data.filter(t => !t.nome.toUpperCase().includes('EJA')).forEach(t => { optsTurmas[t.id] = t.nome; });
+            }
+        } catch (e) {
+            console.error('Erro ao buscar turmas:', e);
+        }
+    }
+
+    if (Object.keys(optsTurmas).length === 0) {
+        Swal.fire({ icon: 'warning', title: 'Nenhuma turma disponível', text: 'Cadastre turmas antes de agendar.', confirmButtonColor: '#dc3c3c' });
+        return;
+    }
+
+    const horario = _horarioDaAula(aulaNumero);
+    const dataBr = dataIso.split('-').reverse().join('/');
+    const selectAgendar = document.getElementById('select-sala');
+    const semanaSelect = document.getElementById('semana-select-sala');
+    const opcaoSala = semanaSelect
+        ? Array.from(semanaSelect.options).find(o => o.value === salaId)
+        : (selectAgendar ? Array.from(selectAgendar.options).find(o => o.value === salaId) : null);
+    const nomeSala = opcaoSala?.textContent || 'Sala selecionada';
+
+    const { value: turmaEscolhida } = await Swal.fire({
+        title: `Reservar Aula ${aulaNumero}`,
+        html: `
+            <div style="text-align:left; font-size:0.86rem; color:var(--cal-ink, #333); margin-bottom:12px; line-height:1.6;">
+                <div>📍 <strong>Local:</strong> ${nomeSala}</div>
+                <div>📅 <strong>Data:</strong> ${dataBr}</div>
+                <div>⏰ <strong>Horário:</strong> ${horario.inicio} às ${horario.fim}</div>
+            </div>
+            <div style="text-align:left; font-weight:700; font-size:0.82rem; margin-bottom:6px;">Escolha a Turma:</div>
+        `,
+        input: 'select',
+        inputOptions: optsTurmas,
+        inputPlaceholder: 'Selecione a turma...',
+        confirmButtonText: 'Confirmar Reserva',
+        confirmButtonColor: '#059669',
+        showCancelButton: true,
+        cancelButtonText: 'Cancelar',
+        preConfirm: (val) => {
+            if (!val) Swal.showValidationMessage('Selecione para qual turma será esta aula!');
+            return val;
+        }
+    });
+
+    if (!turmaEscolhida) return;
+
+    try {
+        const { error } = await supabase.from('agendamentos').insert({
+            data: dataIso,
+            aula_numero: aulaNumero,
+            sala_id: salaId,
+            turma_id: turmaEscolhida,
+            professor_id: professorLogado.id
+        });
+
+        if (error) {
+            if (error.code === '23505') {
+                Swal.fire({ icon: 'error', title: 'Horário já reservado!', text: 'Outro professor acabou de reservar esta aula.', confirmButtonColor: '#dc3c3c' });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Erro ao agendar', text: error.message, confirmButtonColor: '#dc3c3c' });
+            }
+            return;
+        }
+
+        vibrarSucesso();
+        Swal.fire({ icon: 'success', title: 'Agendado com sucesso!', text: `Aula ${aulaNumero} confirmada para ${dataBr}. ✨`, confirmButtonColor: '#059669', timer: 1800, showConfirmButton: false });
+
+        _semDados = null;
+        await _fetchESalvar();
+        if (typeof buscarAulas === 'function') buscarAulas();
+        if (typeof carregarHistorico === 'function') carregarHistorico();
+
+        const nomeTurma = optsTurmas[turmaEscolhida] || 'Turma';
+        enviarNotificacao('📅 Novo agendamento', `${professorLogado.nome} reservou ${nomeSala} - Aula ${aulaNumero} (${nomeTurma}) em ${dataBr}.`, 'coordenacao');
+    } catch (err) {
+        console.error('Erro ao agendar pela semana:', err);
+        Swal.fire({ icon: 'error', title: 'Erro!', text: 'Não foi possível agendar.', confirmButtonColor: '#dc3c3c' });
+    }
+};
+
 window.trocarDiaSemana = function(idx) {
     _semDiaIdx = idx;
     _renderSemana();
-}
+};
 
 async function _fetchESalvar() {
     const salaId    = _semSalaId;
@@ -1662,21 +1821,37 @@ async function _fetchESalvar() {
     const infoEl    = document.getElementById('semana-sala-info');
     if (!container) return;
 
+    // Sincroniza o dropdown de sala no cabeçalho da semana
+    const semanaSelect = document.getElementById('semana-select-sala');
+    const selectAgendar = document.getElementById('select-sala');
+    if (semanaSelect) {
+        if (selectAgendar && selectAgendar.options.length > 1) {
+            semanaSelect.innerHTML = selectAgendar.innerHTML;
+        } else if (semanaSelect.options.length <= 1) {
+            const opcoes = {};
+            await carregarSalasParaSemana(opcoes);
+            if (Object.keys(opcoes).length > 0) {
+                semanaSelect.innerHTML = '<option value="">Selecione um local...</option>' +
+                    Object.entries(opcoes).map(([id, nome]) => `<option value="${id}">${nome}</option>`).join('');
+            }
+        }
+        if (salaId) semanaSelect.value = salaId;
+    }
+
     if (!salaId) {
         container.innerHTML = `
           <div class="semana-vazio">
             <div class="icone">🏫</div>
-            <p>Toque em <strong>Trocar local</strong> para escolher<br>uma sala e ver a semana antes de agendar.</p>
+            <p>Selecione um local acima para ver a grade horária da semana.</p>
           </div>`;
         if (infoEl) infoEl.textContent = 'Nenhum local selecionado';
         return;
     }
 
-    const selectAgendar = document.getElementById('select-sala');
-    const opcaoSala = selectAgendar
-        ? Array.from(selectAgendar.options).find(o => o.value === salaId)
-        : null;
-    const nomeSala = opcaoSala?.textContent || 'Sala';
+    const opcaoSala = semanaSelect
+        ? Array.from(semanaSelect.options).find(o => o.value === salaId)
+        : (selectAgendar ? Array.from(selectAgendar.options).find(o => o.value === salaId) : null);
+    const nomeSala = opcaoSala?.textContent || 'Sala selecionada';
     if (infoEl) infoEl.textContent = nomeSala;
 
     container.innerHTML = '<div class="spinner-container"><div class="spinner"></div><div class="spinner-texto">Carregando semana...</div></div>';
@@ -1684,8 +1859,6 @@ async function _fetchESalvar() {
     const fmt = d =>
         `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
-    // Âncora sempre dentro da janela de agendamento válida (evita, por
-    // exemplo, mostrar a semana errada quando hoje é sábado/domingo).
     const { minData } = _limitesAgendamento();
     const dataInput = document.getElementById('data-agendamento')?.value;
     const dataBase  = dataInput ? new Date(dataInput + 'T00:00:00') : minData;
@@ -1703,7 +1876,6 @@ async function _fetchESalvar() {
 
     const hojeStr = fmt(_getAgoraBrasilia());
 
-    // Auto-seleciona hoje se estiver nesta semana
     if (_semDiaIdx < 0) {
         const hi = dias.findIndex(d => d.data === hojeStr);
         _semDiaIdx = hi >= 0 ? hi : 0;
@@ -1746,81 +1918,172 @@ function _renderSemana() {
 
     const { mapa, dias, hojeStr } = _semDados;
     const diaAtivo = dias[_semDiaIdx];
+    const TOTAL_AULAS = _totalAulasTurno();
+    const agoraSp = _getAgoraBrasilia();
 
-    /* ── Navegação de semana — travada à janela de agendamento válida ── */
+    /* ── Navegação de semana ── */
     const podeAnterior = _offsetSemanaValido(_semOffset - 1);
     const podeProxima  = _offsetSemanaValido(_semOffset + 1);
     const nav = `
       <div class="semana-nav">
         <button class="semana-seta" onclick="navegarSemana(-1)" ${podeAnterior ? '' : 'disabled'} aria-label="Semana anterior">‹</button>
-        <span class="semana-periodo">${dias[0].diaNum}/${dias[0].mes} – ${dias[4].diaNum}/${dias[4].mes}</span>
+        <div class="semana-periodo-wrap">
+          <span class="semana-periodo-rotulo">Semana</span>
+          <span class="semana-periodo">${dias[0].diaNum}/${dias[0].mes} a ${dias[4].diaNum}/${dias[4].mes}</span>
+        </div>
         <button class="semana-seta" onclick="navegarSemana(1)" ${podeProxima ? '' : 'disabled'} aria-label="Próxima semana">›</button>
       </div>`;
 
-    /* ── Pills de dia ── */
+    /* ── Pills de dia com dots inteligentes de status ── */
     const pills = dias.map((d, i) => {
         const ativo = i === _semDiaIdx ? ' ativo' : '';
         const hoje  = d.data === hojeStr ? ' hoje' : '';
-        return `<button class="dia-pill${ativo}${hoje}" onclick="trocarDiaSemana(${i})">
+        const ehPassado = d.data < hojeStr;
+
+        let temMinha = false;
+        let temLivre = false;
+
+        for (let a = 1; a <= TOTAL_AULAS; a++) {
+            const inf = mapa[`${d.data}|${a}`];
+            if (inf?.minha) temMinha = true;
+            const jaPassou = ehPassado || (d.data === hojeStr && _aulaJaComecou(d.data, a, agoraSp));
+            if (!inf && !jaPassou) temLivre = true;
+        }
+
+        let dotHtml = '';
+        if (temMinha) {
+            dotHtml += '<span class="dia-dot minha" title="Sua aula agendada"></span>';
+        }
+        if (temLivre) {
+            dotHtml += '<span class="dia-dot livre" title="Horários disponíveis para agendar"></span>';
+        } else if (ehPassado) {
+            dotHtml += '<span class="dia-dot passado" title="Dia anterior"></span>';
+        } else {
+            dotHtml += '<span class="dia-dot lotado" title="Sem vagas disponíveis"></span>';
+        }
+
+        return `<button class="dia-pill${ativo}${hoje}${ehPassado ? ' dia-passado' : ''}" onclick="trocarDiaSemana(${i})">
                   <span class="dia-nome">${d.nome}</span>
                   <span class="dia-num">${d.diaNum}</span>
+                  <div class="dia-pill-dots">
+                    ${dotHtml}
+                  </div>
                 </button>`;
     }).join('');
 
-    /* ── Cards de aula ── */
-    const TOTAL_AULAS = _totalAulasTurno();
-    const ICONS = { livre: '○', ocupada: '●', minha: '★' };
-    const LABELS = { livre: 'Livre', ocupada: 'Ocupado', minha: 'Minha reserva' };
+    /* ── Cards de aula com horários oficiais e intervalos ── */
+    const ICONS = { livre: '✨', ocupada: '🔒', minha: '⭐', encerrada: '⏱️' };
+    const LABELS = { livre: 'Disponível', ocupada: 'Ocupada', minha: 'Minha Reserva', encerrada: 'Encerrada' };
 
-    const cards = Array.from({ length: TOTAL_AULAS }, (_, i) => {
-        const aula = i + 1;
-        const inf  = mapa[`${diaAtivo.data}|${aula}`];
-        const tipo = inf?.minha ? 'minha' : inf ? 'ocupada' : 'livre';
+    let slotsHtml = '';
+    for (let i = 1; i <= TOTAL_AULAS; i++) {
+        // Intervalos oficiais
+        if (i === 3) {
+            slotsHtml += `
+              <div class="semana-intervalo-card">
+                <div class="semana-intervalo-ico">☕</div>
+                <div class="semana-intervalo-info">
+                  <span class="semana-intervalo-tit">Recreio Escolar</span>
+                  <span class="semana-intervalo-sub">08:40 às 09:00 (20 min)</span>
+                </div>
+              </div>`;
+        } else if (i === 6) {
+            slotsHtml += `
+              <div class="semana-intervalo-card">
+                <div class="semana-intervalo-ico">🍽️</div>
+                <div class="semana-intervalo-info">
+                  <span class="semana-intervalo-tit">Almoço e Descanso</span>
+                  <span class="semana-intervalo-sub">11:30 às 12:20 (50 min)</span>
+                </div>
+              </div>`;
+        }
 
-        // Placeholder vazio — preenchido via textContent depois do innerHTML
-        const temDetalhe = tipo === 'minha' || tipo === 'ocupada';
-        const temSub     = tipo === 'ocupada';
+        const inf  = mapa[`${diaAtivo.data}|${i}`];
+        const horario = _horarioDaAula(i);
+        const ehPassado = diaAtivo.data < hojeStr;
+        const aulaJaEncerrada = ehPassado || (diaAtivo.data === hojeStr && _aulaJaComecou(diaAtivo.data, i, agoraSp));
 
-        return `
-          <div class="slot-card ${tipo}" data-aula="${aula}">
-            <div class="slot-num">${aula}<small>aula</small></div>
-            <div class="slot-divisor"></div>
-            <div class="slot-content">
-              <div class="slot-badge">${ICONS[tipo]} ${LABELS[tipo]}</div>
-              ${temDetalhe ? '<div class="slot-detail"></div>' : ''}
-              ${temSub     ? '<div class="slot-sub"></div>'    : ''}
+        let tipo = 'livre';
+        if (inf?.minha) {
+            tipo = 'minha';
+        } else if (inf) {
+            tipo = 'ocupada';
+        } else if (aulaJaEncerrada) {
+            tipo = 'encerrada';
+        } else {
+            tipo = 'livre';
+        }
+
+        const isLivre = tipo === 'livre';
+        const isEncerrada = tipo === 'encerrada';
+
+        slotsHtml += `
+          <div class="slot-card ${tipo}" data-aula="${i}" ${isLivre ? `onclick="window.agendarDiretoPelaSemana('${diaAtivo.data}', ${i})"` : ''} title="${isLivre ? 'Toque para reservar esta aula' : isEncerrada ? 'Horário já passou' : ''}">
+            <div class="slot-topo-linha">
+              <div class="slot-aula-identificador">
+                <span class="slot-badge-num">${i}ª Aula</span>
+                <span class="slot-horario-range">⏰ ${horario.inicio} às ${horario.fim}</span>
+              </div>
+              <span class="slot-badge-status ${tipo}">
+                ${ICONS[tipo]} ${LABELS[tipo]}
+              </span>
+            </div>
+
+            <div class="slot-corpo-linha">
+              ${isLivre ? `
+                <div class="slot-detalhe-livre">
+                  <span>Horário disponível para reserva</span>
+                </div>
+                <button type="button" class="btn-reservar-slot-pill" onclick="event.stopPropagation(); window.agendarDiretoPelaSemana('${diaAtivo.data}', ${i})">
+                  + Reservar
+                </button>
+              ` : tipo === 'minha' ? `
+                <div class="slot-detalhe-info">
+                  <div class="slot-detail"></div>
+                  <div class="slot-sub">Sua reserva ativa</div>
+                </div>
+              ` : tipo === 'ocupada' ? `
+                <div class="slot-detalhe-info">
+                  <div class="slot-detail"></div>
+                  <div class="slot-sub"></div>
+                </div>
+              ` : `
+                <div class="slot-detalhe-encerrada">
+                  <span>⏱️ Este horário já passou (${diaAtivo.data < hojeStr ? 'dia anterior' : 'encerrado hoje'})</span>
+                </div>
+              `}
             </div>
           </div>`;
-    }).join('');
+    }
 
     /* ── Legenda ── */
     const legenda = `
       <div class="semana-legenda">
         <div class="semana-legenda-item"><div class="semana-legenda-cor livre"></div>Livre</div>
-        <div class="semana-legenda-item"><div class="semana-legenda-cor ocupada"></div>Outro professor</div>
+        <div class="semana-legenda-item"><div class="semana-legenda-cor ocupada"></div>Ocupada</div>
         <div class="semana-legenda-item"><div class="semana-legenda-cor minha"></div>Minha reserva</div>
+        <div class="semana-legenda-item"><div class="semana-legenda-cor encerrada"></div>Encerrada</div>
       </div>`;
 
     container.innerHTML = `
       <div class="semana-v2">
         ${nav}
         <div class="semana-dias-pills">${pills}</div>
-        <div class="semana-slots" id="semana-slots">${cards}</div>
+        <div class="semana-slots" id="semana-slots">${slotsHtml}</div>
         ${legenda}
       </div>`;
 
     // Preenche dados do banco via textContent (sem XSS) nos placeholders
-    Array.from({ length: TOTAL_AULAS }, (_, i) => {
-        const aula = i + 1;
-        const inf  = mapa[`${diaAtivo.data}|${aula}`];
-        if (!inf) return;
-        const card   = container.querySelector(`.slot-card[data-aula="${aula}"]`);
-        if (!card) return;
+    for (let i = 1; i <= TOTAL_AULAS; i++) {
+        const inf  = mapa[`${diaAtivo.data}|${i}`];
+        if (!inf) continue;
+        const card   = container.querySelector(`.slot-card[data-aula="${i}"]`);
+        if (!card) continue;
         const detail = card.querySelector('.slot-detail');
         const sub    = card.querySelector('.slot-sub');
-        if (detail) detail.textContent = inf.turma;
-        if (sub)    sub.textContent    = inf.prof;
-    });
+        if (detail) detail.textContent = inf.turma ? `Turma: ${inf.turma}` : '';
+        if (sub && inf.prof && inf.prof !== '—') sub.textContent = inf.minha ? '⭐ Sua aula agendada' : `Prof. ${inf.prof}`;
+    }
 
     /* ── Swipe para trocar de dia ── */
     const slotsEl = document.getElementById('semana-slots');

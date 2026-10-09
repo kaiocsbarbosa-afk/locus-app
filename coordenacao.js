@@ -92,6 +92,16 @@ window.abrirWhatsAppComPin = function(nomeProf, pinAcesso, telefone = null) {
     window.open(link, '_blank')
 }
 
+window.abrirWhatsAppContato = function(nomeProf, telefone = null) {
+    const primeiroNome = (nomeProf || 'Professor').split(' ')[0]
+    const msg = `Olá Prof. ${primeiroNome}! Mensagem da Coordenação escolar (Locus Agendamentos).`
+    const telInt = formatarTelefoneInternacional(telefone)
+    const link = telInt
+        ? `https://api.whatsapp.com/send?phone=${telInt}&text=${encodeURIComponent(msg)}`
+        : `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`
+    window.open(link, '_blank')
+}
+
 window.copiarMensagemWhatsApp = function(nomeProf, pinAcesso, btnEl) {
     const msg = gerarMensagemWhatsAppProfessor(nomeProf, pinAcesso)
     navigator.clipboard.writeText(msg).then(() => {
@@ -653,12 +663,11 @@ async function aprovarSolicitacao(id, nome, disciplina, pin, telefone = null, tu
             const updatePayload = { disciplina }
             if (telefone) updatePayload.telefone = telefone
             if (turno) updatePayload.turno = turno
-            try {
-                await supabase.from('professores').update(updatePayload).eq('id', profId)
-            } catch (errUp) {
-                if (errUp?.code === '42703' || String(errUp?.message).includes('turno') || String(errUp?.message).includes('telefone')) {
+            const { error: errUp } = await supabase.from('professores').update(updatePayload).eq('id', profId)
+            if (errUp) {
+                if (errUp.code === '42703' || errUp.code === 'PGRST204' || String(errUp.message).includes('turno') || String(errUp.message).includes('telefone')) {
                     const fallbackUp = { disciplina }
-                    if (telefone && !String(errUp?.message).includes('telefone')) fallbackUp.telefone = telefone
+                    if (telefone && !String(errUp.message).includes('telefone')) fallbackUp.telefone = telefone
                     await supabase.from('professores').update(fallbackUp).eq('id', profId)
                 } else {
                     throw errUp
@@ -673,7 +682,7 @@ async function aprovarSolicitacao(id, nome, disciplina, pin, telefone = null, tu
                 .select('id')
                 .single()
 
-            if (errProf && (errProf.code === '42703' || String(errProf.message).includes('turno') || String(errProf.message).includes('telefone'))) {
+            if (errProf && (errProf.code === '42703' || errProf.code === 'PGRST204' || String(errProf.message).includes('turno') || String(errProf.message).includes('telefone'))) {
                 const fallbackInsert = { nome, disciplina, auth_user_id: null }
                 if (telefone && !String(errProf?.message).includes('telefone')) fallbackInsert.telefone = telefone
                 const fallback = await supabase
@@ -1891,30 +1900,19 @@ function renderizarListaProfessores(professores, disciplinas = disciplinasCache,
                 </span>
             </div>
 
-            <div class="prof-meta-row-clean">
-                ${prof.telefone ? `
-                    <span class="prof-tel-link" title="WhatsApp cadastrado">📱 ${formatarTelefoneExibicao(prof.telefone)}</span>
-                ` : `
-                    <span style="color:var(--txt3); font-style:italic;">Sem telefone</span>
-                `}
-                <span style="font-size:0.72rem; color:var(--txt3);">
-                    ${temAcesso ? (prof.pin ? `PIN: ${prof.pin}` : 'PIN ativo') : 'Acesso bloqueado'}
-                </span>
-            </div>
-
             <div class="prof-card-actions-clean">
                 ${temAcesso ? `
-                    <button type="button" class="btn-card-clean-main" id="btn-pin-${prof.id}" title="Ver ou alterar a senha de acesso (PIN de 4 dígitos)">
-                        <span>🔑</span> Senha
+                    <button type="button" class="btn-card-clean-main" id="btn-pin-${prof.id}" title="Redefinir senha de acesso deste professor">
+                        <span>🔑</span> Redefinir Senha
                     </button>
-                    ${prof.pin ? `
-                    <button type="button" class="btn-card-clean-zap" id="btn-zap-prof-${prof.id}" title="Enviar dados de acesso diretamente pelo WhatsApp">
+                    ${prof.telefone ? `
+                    <button type="button" class="btn-card-clean-zap" id="btn-zap-prof-${prof.id}" title="Enviar mensagem no WhatsApp (${formatarTelefoneExibicao(prof.telefone)})">
                         <span>💬</span> WhatsApp
                     </button>
                     ` : ''}
                 ` : `
                     <button type="button" class="btn-card-clean-main destaque" id="btn-pin-${prof.id}" title="Criar senha de 4 números para liberar o acesso">
-                        <span>✨</span> Liberar Senha
+                        <span>✨</span> Liberar Acesso
                     </button>
                 `}
                 <button type="button" class="btn-card-clean-icon" id="btn-edit-${prof.id}" title="Editar dados">
@@ -1926,11 +1924,11 @@ function renderizarListaProfessores(professores, disciplinas = disciplinasCache,
             </div>`
 
         // Eventos dos botões (100% preservados)
-        if (prof.pin) {
+        if (prof.telefone) {
             div.querySelector(`#btn-zap-prof-${prof.id}`)
                 ?.addEventListener('click', (e) => {
                     e.stopPropagation()
-                    window.abrirWhatsAppComPin(prof.nome, prof.pin, prof.telefone)
+                    window.abrirWhatsAppContato(prof.nome, prof.telefone)
                 })
         }
 
@@ -1941,7 +1939,7 @@ function renderizarListaProfessores(professores, disciplinas = disciplinasCache,
             })
 
         div.querySelector(`#btn-pin-${prof.id}`)
-            ?.addEventListener('click', () => window.gerenciarAcessoProfessor(prof.id, prof.nome, temAcesso, prof.pin, prof.telefone))
+            ?.addEventListener('click', () => window.gerenciarAcessoProfessor(prof.id, prof.nome, temAcesso, null, prof.telefone))
 
         div.querySelector(`#btn-edit-${prof.id}`)
             ?.addEventListener('click', () => window.abrirModalEditarProfessor(prof.id, prof.nome, prof.disciplina, prof.telefone))
@@ -2140,52 +2138,53 @@ async function ativarOuAtualizarPinProfessor(profId, nome, pin) {
     return { sucesso: true, metodo: 'direct_auth', authUserId };
 }
 
-window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual, telefone = null) {
+window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual = null, telefone = null) {
     if (!await exigirAuth()) return
 
     const profDoCache = cacheProfessores.find(p => p.id === id)
-    const pinCadastrado = pinAtual || profDoCache?.pin || null
     const telProf = telefone !== null && telefone !== undefined ? telefone : (profDoCache?.telefone || null)
 
     const htmlModal = `
         <div class="modal-pin-wrapper">
-            <div style="font-size:0.84rem; color:var(--txt2); line-height:1.45;">
-                O professor usa esta senha de 4 números para entrar no Locus e agendar salas.
+            <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.22); border-radius: 12px; padding: 11px 14px; text-align: left; display: flex; gap: 10px; align-items: flex-start;">
+                <span style="font-size: 1.25rem; line-height: 1;">🛡️</span>
+                <div style="font-size: 0.78rem; color: var(--txt2); line-height: 1.45;">
+                    <strong style="color: var(--txt); display: block; margin-bottom: 2px;">Privacidade e Proteção de Senhas</strong>
+                    A senha atual do professor é sigilosa e protegida. Por segurança, o sistema nunca exibe senhas existentes. Se o professor esqueceu a senha, redefina-a abaixo.
+                </div>
             </div>
 
-            ${pinCadastrado ? `
-            <div class="modal-copiar-box" style="margin-top:2px; margin-bottom:4px;">
-                <div style="text-align:left;">
-                    <div style="font-size:0.68rem; text-transform:uppercase; color:var(--txt3); font-weight:700;">SENHA ATUAL CADASTRADA</div>
-                    <div class="badge-pin-display">${pinCadastrado}</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin-top:2px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${temAcesso ? '#10b981' : '#f59e0b'};"></span>
+                    <span style="font-size:0.83rem; font-weight:700; color:var(--txt);">
+                        ${temAcesso ? 'Acesso Ativo' : 'Acesso Pendente'}
+                    </span>
                 </div>
-                <div style="display:flex; gap:8px;">
-                    <button type="button" id="btn-zap-pin-atual" class="btn-whatsapp-rapido" style="padding:8px 14px; font-size:0.78rem;">
-                        📱 WhatsApp ${telProf ? `(${formatarTelefoneExibicao(telProf)})` : ''}
-                    </button>
-                    <button type="button" id="btn-copiar-pin-atual" class="btn-acao-topo" style="padding:8px 14px; font-size:0.78rem;">
-                        📋 Copiar
-                    </button>
-                </div>
+                <span style="font-size:0.75rem; color:var(--txt3); font-weight:600;">
+                    ${temAcesso ? 'PIN de 4 dígitos configurado (••••)' : 'Sem senha definida'}
+                </span>
             </div>
-            ` : ''}
 
             <div class="modal-pin-bloco">
                 <div class="modal-pin-titulo">
-                    <span>🔑</span> ${pinCadastrado ? 'Trocar a Senha de Acesso' : 'Definir Senha de Acesso'}
+                    <span>🔑</span> ${temAcesso ? 'Definir Nova Senha (Redefinição)' : 'Criar Senha Inicial'}
                 </div>
                 <div class="modal-pin-sub">
-                    Digite 4 números ou clique em "Gerar Senha" para ${pinCadastrado ? 'trocar a senha de' : 'liberar o acesso de'} <strong>${nome}</strong>.
+                    ${temAcesso ? 'Digite 4 novos números ou clique em "Gerar Senha" para redefinir o acesso de' : 'Digite 4 números ou clique em "Gerar Senha" para liberar o acesso de'} <strong>${nome}</strong>:
                 </div>
                 <div class="modal-pin-input-linha">
-                    <input type="text" id="modal-input-pin" class="modal-pin-input" maxlength="4" placeholder="••••" autocomplete="off" inputmode="numeric">
+                    <input type="password" id="modal-input-pin" class="modal-pin-input" maxlength="4" placeholder="••••" autocomplete="new-password" inputmode="numeric">
+                    <button type="button" id="btn-toggle-eye-pin" class="btn-acao-topo" style="padding: 0 10px; height: 38px;" title="Ver ou ocultar dígitos">
+                        👁️
+                    </button>
                     <button type="button" id="btn-gerar-pin-modal" class="modal-pin-btn-random">
                         🎲 Gerar Senha
                     </button>
                 </div>
                 <label style="font-size:0.76rem; color:var(--txt2); display:flex; align-items:center; gap:6px; cursor:pointer; margin-top:4px;">
                     <input type="checkbox" id="chk-notificar-prof" checked style="cursor:pointer;">
-                    Avisar o professor pelo aplicativo sobre a nova senha
+                    Notificar o professor pelo aplicativo sobre a alteração
                 </label>
             </div>
 
@@ -2201,10 +2200,10 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual, 
     `
 
     const res = await Swal.fire({
-        title: `Senha de Acesso · ${nome}`,
+        title: `${temAcesso ? 'Redefinir Senha' : 'Criar Acesso'} · ${nome}`,
         html: htmlModal,
         showCancelButton: true,
-        confirmButtonText: '💾 Salvar Senha',
+        confirmButtonText: '💾 Salvar Nova Senha',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: 'var(--cor-sucesso, #22c55e)',
         cancelButtonColor: 'var(--texto-secundario, #6b7280)',
@@ -2212,9 +2211,8 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual, 
         didOpen: () => {
             const inputPin = document.getElementById('modal-input-pin')
             const btnRandom = document.getElementById('btn-gerar-pin-modal')
+            const btnToggleEye = document.getElementById('btn-toggle-eye-pin')
             const btnRevogar = document.getElementById('btn-revogar-acesso-modal')
-            const btnZapAtual = document.getElementById('btn-zap-pin-atual')
-            const btnCopiarAtual = document.getElementById('btn-copiar-pin-atual')
 
             if (inputPin) {
                 inputPin.focus()
@@ -2223,26 +2221,25 @@ window.gerenciarAcessoProfessor = async function(id, nome, temAcesso, pinAtual, 
                 })
             }
 
+            if (btnToggleEye && inputPin) {
+                btnToggleEye.addEventListener('click', () => {
+                    if (inputPin.type === 'password') {
+                        inputPin.type = 'text'
+                        btnToggleEye.textContent = '🔒'
+                    } else {
+                        inputPin.type = 'password'
+                        btnToggleEye.textContent = '👁️'
+                    }
+                })
+            }
+
             if (btnRandom && inputPin) {
                 btnRandom.addEventListener('click', () => {
                     const rnd = Math.floor(1000 + Math.random() * 9000).toString()
                     inputPin.value = rnd
+                    inputPin.type = 'text'
+                    if (btnToggleEye) btnToggleEye.textContent = '🔒'
                     inputPin.focus()
-                })
-            }
-
-            if (btnZapAtual && pinCadastrado) {
-                btnZapAtual.addEventListener('click', () => {
-                    window.abrirWhatsAppComPin(nome, pinCadastrado, telProf)
-                })
-            }
-
-            if (btnCopiarAtual && pinCadastrado) {
-                btnCopiarAtual.addEventListener('click', () => {
-                    navigator.clipboard.writeText(pinCadastrado).then(() => {
-                        btnCopiarAtual.textContent = '✓ Copiado!'
-                        setTimeout(() => { if (btnCopiarAtual) btnCopiarAtual.textContent = '📋 Copiar' }, 2000)
-                    }).catch(() => alert(`PIN: ${pinCadastrado}`))
                 })
             }
 

@@ -232,7 +232,45 @@
     }
     .header-logo-info .titulo { font-size: .95rem; font-weight: 700; color: var(--txt); }
     .header-logo-info .sub { font-size: .68rem; color: var(--txt3); }
-    .header-acoes { display: flex; align-items: center; gap: 8px; }
+    
+    /* Navegação de Abas no Topo */
+    .header-nav-coord {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .header-nav-item {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 7px 14px;
+        color: var(--txt2);
+        font-size: 0.82rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: all 0.18s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        white-space: nowrap;
+    }
+    .header-nav-item:hover {
+        border-color: var(--border2);
+        color: var(--txt);
+        background: var(--surface);
+    }
+    .header-nav-item.ativo {
+        background: var(--purple, #dc3c3c);
+        color: #ffffff;
+        border-color: var(--purple, #dc3c3c);
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(220, 60, 60, 0.25);
+    }
+
+    .header-acoes { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
     .btn-header {
         background: var(--surface2);
         border: 1px solid var(--border2);
@@ -270,12 +308,11 @@
         display: none;
         align-items: center;
         gap: 12px;
-        background: linear-gradient(135deg, rgba(46,16,101,.8), rgba(59,7,100,.8));
-        border: 1px solid rgba(181,45,45,.4);
+        background: rgba(220, 60, 60, 0.08);
+        border: 1px solid rgba(220, 60, 60, 0.22);
         border-radius: 14px;
-        padding: 14px 16px;
+        padding: 10px 16px;
         cursor: pointer;
-        backdrop-filter: blur(8px);
         transition: opacity .2s, transform .15s;
         animation: surgir .4s cubic-bezier(.34,1.56,.64,1) both;
     }
@@ -285,11 +322,11 @@
     }
     #banner-notif.visivel { display: flex; }
     #banner-notif:active { transform: scale(.98); opacity: .9; }
-    .banner-notif-icone { font-size: 1.4rem; flex-shrink: 0; }
+    .banner-notif-icone { font-size: 1.3rem; flex-shrink: 0; }
     .banner-notif-texto { flex: 1; }
-    .banner-notif-titulo { font-weight: 700; font-size: .85rem; color: #ffb4b0; }
-    .banner-notif-sub { font-size: .74rem; color: #ef6b64; margin-top: 2px; }
-    .banner-notif-seta { color: #ffb4b0; font-size: 1.1rem; flex-shrink: 0; }
+    .banner-notif-titulo { font-weight: 700; font-size: .84rem; color: var(--txt); }
+    .banner-notif-sub { font-size: .74rem; color: var(--txt2); margin-top: 1px; }
+    .banner-notif-seta { color: var(--txt2); font-size: 1.1rem; flex-shrink: 0; }
 
     #banner-notif-ok {
         display: none;
@@ -297,48 +334,10 @@
         background: rgba(34,197,94,.08);
         border: 1px solid rgba(34,197,94,.2);
         border-radius: 14px;
-        padding: 12px 16px;
+        padding: 10px 16px;
         font-size: .82rem; font-weight: 600; color: #86efac;
     }
     #banner-notif-ok.visivel { display: flex; }
-
-    /* Cards de resumo */
-    .resumo-cards {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    .card-mini {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 16px;
-        padding: 20px;
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-    }
-    .card-mini::before {
-        content: '';
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--blue), #6366f1);
-        border-radius: 16px 16px 0 0;
-    }
-    .card-mini span {
-        display: block;
-        font-size: 2.5rem;
-        font-weight: 800;
-        color: var(--txt);
-        letter-spacing: -2px;
-        line-height: 1;
-        margin-bottom: 6px;
-    }
-    .card-mini label {
-        font-size: .78rem;
-        color: var(--txt3);
-        font-weight: 500;
-    }
 
     /* Cards colapsáveis */
     .card-gerenciar {
@@ -644,15 +643,23 @@
 
     /* ══ REFINAMENTO VISUAL ELEGANTE DO DASHBOARD E TABELA ══ */
     
-    /* Card Resumo */
+    /* Container de Resumo / KPIs */
+    .resumo-cards {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        width: 100%;
+    }
     .card-mini {
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: 16px;
-        padding: 18px 24px;
+        padding: 14px 20px;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
         position: relative;
         overflow: hidden;
+        min-width: 200px;
+        max-width: 300px;
         transition: transform .2s, border-color .2s, box-shadow .2s;
     }
     .card-mini:hover {
@@ -663,18 +670,18 @@
     .card-mini-inner {
         display: flex;
         align-items: center;
-        gap: 16px;
+        gap: 14px;
     }
     .card-mini-icone {
-        width: 50px;
-        height: 50px;
-        border-radius: 13px;
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
         background: rgba(220, 60, 60, 0.1);
         border: 1px solid rgba(220, 60, 60, 0.2);
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.45rem;
+        font-size: 1.35rem;
         flex-shrink: 0;
     }
     .card-mini-dados {
@@ -682,23 +689,34 @@
         flex-direction: column;
     }
     .card-mini-dados span {
-        font-size: 2.1rem;
+        font-size: 1.8rem;
         font-weight: 800;
         letter-spacing: -0.5px;
         line-height: 1.1;
+        color: var(--txt);
     }
     .card-mini-dados label {
-        font-size: .82rem;
+        font-size: .8rem;
         font-weight: 500;
-        margin-top: 3px;
+        color: var(--txt2);
+        margin-top: 2px;
     }
 
     /* Topo da Tabela */
+    .tabela-larga {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 20px 22px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+        width: 100%;
+        box-sizing: border-box;
+    }
     .tabela-topo-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
+        margin-bottom: 16px;
         flex-wrap: wrap;
         gap: 12px;
     }
@@ -706,6 +724,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
+        min-width: 0;
     }
     .tabela-secao-icone {
         width: 42px;
@@ -717,56 +736,60 @@
         align-items: center;
         justify-content: center;
         font-size: 1.25rem;
+        flex-shrink: 0;
     }
     .tabela-secao-titulo {
-        font-size: 1.18rem;
+        font-size: 1.15rem;
         font-weight: 800;
         letter-spacing: -.3px;
         margin: 0;
+        line-height: 1.3;
+        color: var(--txt);
     }
     .tabela-secao-sub {
-        font-size: .78rem;
-        margin-top: 2px;
+        font-size: .8rem;
+        margin-top: 3px;
+        line-height: 1.45;
+        color: var(--txt2);
     }
 
     /* Container de Filtros */
-    .tabela-larga {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 24px;
-        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-    }
     .filtros-container {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
         align-items: flex-end;
-        margin-bottom: 14px;
+        margin-bottom: 12px;
     }
     .filtro-item {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 5px;
+        min-width: 0;
     }
     .filtro-item label {
         font-size: .74rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: .06em;
+        letter-spacing: .05em;
         display: flex;
         align-items: center;
         gap: 5px;
+        color: var(--txt2);
     }
     .filtro-item input,
     .filtro-item select {
         width: 100%;
-        padding: 10px 13px;
+        height: 38px;
+        padding: 6px 12px;
         border: 1px solid var(--border);
         border-radius: 10px;
-        font-size: .86rem;
+        font-size: .84rem;
         font-family: 'Poppins', sans-serif;
+        background: var(--surface2);
+        color: var(--txt);
         outline: none;
+        box-sizing: border-box;
         transition: border-color .2s, box-shadow .2s;
     }
     .filtro-item input:focus,
@@ -777,8 +800,8 @@
 
     /* Botão Baixar CSV */
     .btn-baixar-csv {
-        height: 40px;
-        padding: 0 16px;
+        height: 38px;
+        padding: 0 15px;
         background: #ecfdf5;
         border: 1px solid #a7f3d0;
         border-radius: 10px;
@@ -807,7 +830,7 @@
     .filtros-acoes {
         display: flex;
         justify-content: flex-end;
-        margin-bottom: 16px;
+        margin-bottom: 14px;
     }
     .btn-limpar-filtros {
         background: transparent;
@@ -819,6 +842,7 @@
         font-family: 'Poppins', sans-serif;
         cursor: pointer;
         transition: all .18s;
+        color: var(--txt2);
     }
     .btn-limpar-filtros:hover {
         border-color: rgba(220, 60, 60, 0.4);
@@ -828,31 +852,39 @@
 
     /* Tabela Responsiva e Células */
     .table-responsive {
-        border-radius: 14px;
+        border-radius: 12px;
         border: 1px solid var(--border);
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        width: 100%;
+        box-sizing: border-box;
+        background: var(--surface);
     }
     table {
         width: 100%;
+        min-width: 660px;
         border-collapse: separate;
         border-spacing: 0;
-        font-size: .86rem;
+        font-size: .85rem;
     }
     th {
-        font-size: .74rem;
+        font-size: .72rem;
         font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: .06em;
-        padding: 13px 18px;
+        letter-spacing: .05em;
+        padding: 11px 14px;
         border-bottom: 1px solid var(--border);
+        background: var(--surface2);
+        color: var(--txt2);
         white-space: nowrap;
         text-align: left;
     }
     td {
-        padding: 13px 18px;
+        padding: 11px 14px;
         border-bottom: 1px solid var(--border);
         vertical-align: middle;
+        white-space: nowrap;
+        color: var(--txt);
         transition: background .15s;
     }
     tr:last-child td {
@@ -860,6 +892,71 @@
     }
     tbody tr:hover td {
         background: rgba(220, 60, 60, 0.03);
+    }
+
+    /* ── BREAKPOINTS RESPONSIVOS DE TELA ── */
+    @media (max-width: 960px) {
+        .header-painel {
+            padding: 10px 14px;
+            gap: 10px;
+        }
+        .header-logo-info .sub {
+            display: none;
+        }
+        .header-nav-coord {
+            gap: 4px;
+        }
+        .header-nav-item {
+            padding: 6px 10px;
+            font-size: 0.77rem;
+        }
+        .dashboard-content {
+            padding: 12px 12px calc(28px + env(safe-area-inset-bottom));
+            gap: 12px;
+        }
+        .tabela-larga {
+            padding: 14px 16px;
+            border-radius: 14px;
+        }
+        .card-mini {
+            max-width: 100%;
+            padding: 12px 16px;
+        }
+        .filtros-container {
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+        }
+    }
+
+    @media (max-width: 680px) {
+        .header-painel {
+            flex-wrap: wrap;
+            padding: 8px 12px;
+        }
+        .header-nav-coord {
+            order: 3;
+            width: 100%;
+            justify-content: space-between;
+            margin-top: 6px;
+        }
+        .header-nav-item {
+            flex: 1;
+            justify-content: center;
+            font-size: 0.74rem;
+            padding: 6px 4px;
+        }
+        .tabela-topo-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+        .btn-baixar-csv {
+            width: 100%;
+            justify-content: center;
+        }
+        .filtros-container {
+            grid-template-columns: 1fr;
+        }
     }
 
     /* Elementos das Células */

@@ -1157,76 +1157,172 @@
             border-top-color: #dc3c3c !important;
         }
 
-        /* ── VISÃO SEMANAL v2 — mobile-first ──────────────── */
-        .semana-v2 { display: flex; flex-direction: column; gap: 14px; }
+        /* ── VISÃO SEMANAL v2 — design espaçoso e adaptável ao celular ──────────────── */
+        .semana-topo-card {
+            background: var(--bg-card);
+            border: 1px solid var(--borda);
+            border-radius: 16px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.04);
+        }
+        .semana-topo-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .semana-topo-titulos {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .semana-topo-titulo {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: var(--texto-principal);
+            font-family: 'Poppins', sans-serif;
+            letter-spacing: -0.2px;
+        }
+        .semana-topo-sub {
+            font-size: 0.78rem;
+            color: var(--texto-secundario);
+            font-weight: 500;
+        }
+        .semana-seletor-linha {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+        }
+        .semana-seletor-label {
+            font-size: 0.74rem;
+            font-weight: 700;
+            color: var(--texto-secundario);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .semana-select-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        .semana-select-sala-modern {
+            width: 100%;
+            height: 42px;
+            padding: 8px 14px;
+            background: var(--fundo, #ffffff);
+            border: 1.5px solid var(--borda);
+            border-radius: 12px;
+            font-size: 0.86rem;
+            font-weight: 600;
+            color: var(--texto-principal);
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            outline: none;
+            box-sizing: border-box;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .semana-select-sala-modern:focus {
+            border-color: var(--cal-red);
+            box-shadow: 0 0 0 3px rgba(220,60,60,.12);
+        }
+
+        .semana-v2 { display: flex; flex-direction: column; gap: 12px; width: 100%; }
 
         /* Navegação de semana */
         .semana-nav {
             display: flex;
             align-items: center;
             justify-content: space-between;
+            background: var(--bg-card);
+            border: 1px solid var(--borda);
+            border-radius: 14px;
+            padding: 6px 10px;
         }
         .semana-seta {
-            width: 38px; height: 38px;
-            background: rgba(220,60,60,.1);
-            border: 1px solid rgba(220,60,60,.3);
+            width: 36px; height: 36px;
+            background: rgba(220,60,60,.08);
+            border: 1px solid rgba(220,60,60,.25);
             border-radius: 50%;
             color: var(--cal-red);
-            font-size: 1.3rem;
+            font-size: 1.25rem;
             cursor: pointer; touch-action: manipulation;
             display: flex; align-items: center; justify-content: center;
             transition: background .15s, transform .12s;
             flex-shrink: 0;
         }
-        .semana-seta:active { background: rgba(220,60,60,.22); transform: scale(.88); }
+        .semana-seta:active { background: rgba(220,60,60,.22); transform: scale(.9); }
         .semana-seta:disabled {
-            opacity: .3; cursor: not-allowed;
+            opacity: .25; cursor: not-allowed;
         }
-        .semana-seta:disabled:active { background: rgba(220,60,60,.1); transform: none; }
+        .semana-seta:disabled:active { background: rgba(220,60,60,.08); transform: none; }
+        .semana-periodo-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1px;
+            text-align: center;
+        }
+        .semana-periodo-rotulo {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: var(--texto-terciario, #9ca3af);
+        }
         .semana-periodo {
-            font-size: .85rem;
+            font-size: .86rem;
             font-weight: 700;
             color: var(--texto-principal);
             letter-spacing: -.2px;
         }
 
-        /* Pills de dia */
+        /* Grid dos Dias da Semana: 5 colunas perfeitas sem espremer */
         .semana-dias-pills {
-            display: flex;
-            gap: 7px;
-            overflow-x: auto;
-            scrollbar-width: none;
-            padding: 2px 1px 4px;
-            scroll-snap-type: x mandatory;
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            width: 100%;
+            box-sizing: border-box;
         }
-        .semana-dias-pills::-webkit-scrollbar { display: none; }
         .dia-pill {
-            flex: 1;
-            min-width: 52px;
             background: var(--bg-card);
-            border: 1px solid var(--borda);
-            border-radius: 14px;
-            padding: 10px 4px 8px;
+            border: 1.5px solid var(--borda);
+            border-radius: 13px;
+            padding: 8px 2px 7px;
             color: var(--texto-secundario);
             font-family: 'Poppins', sans-serif;
-            font-size: .66rem;
-            font-weight: 700;
             text-align: center;
             cursor: pointer; touch-action: manipulation;
-            transition: background .18s, border-color .18s;
-            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            transition: all .15s ease;
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
             position: relative;
-            scroll-snap-align: start;
+            min-width: 0;
+            box-sizing: border-box;
         }
-        .dia-pill .dia-nome { text-transform: uppercase; letter-spacing: .04em; }
-        .dia-pill .dia-num  { font-size: 1.15rem; font-weight: 800; color: var(--texto-principal); line-height: 1; }
+        .dia-pill .dia-nome {
+            font-size: .64rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            opacity: .8;
+        }
+        .dia-pill .dia-num {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--texto-principal);
+            line-height: 1;
+        }
         .dia-pill.ativo {
-            background: rgba(220,60,60,.13);
+            background: rgba(220,60,60,.12);
             border-color: var(--cal-red);
             color: var(--cal-red);
+            box-shadow: 0 2px 8px rgba(220,60,60,.12);
         }
         .dia-pill.ativo .dia-num { color: var(--cal-red); }
-        /* Ponto indicador de "hoje" */
         .dia-pill.hoje::after {
             content: '';
             width: 5px; height: 5px;
@@ -1235,130 +1331,244 @@
             display: block;
             margin-top: 1px;
         }
-        .dia-pill.ativo.hoje::after { background: var(--cal-red); }
+        .dia-pill.dia-passado {
+            opacity: 0.58;
+            background: rgba(0,0,0,0.02);
+        }
 
-        /* Cards de aula */
+        /* Dots nos Pills dos Dias */
+        .dia-pill-dots {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            margin-top: 1px;
+            height: 6px;
+        }
+        .dia-dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .dia-dot.minha { background: #eab308; }
+        .dia-dot.livre { background: #10b981; }
+        .dia-dot.lotado { background: #ef4444; }
+        .dia-dot.passado { background: #9ca3af; }
+
+        /* Lista de Slots de Aula Espaçosa */
         .semana-slots {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
+            width: 100%;
         }
         .slot-card {
+            background: var(--bg-card);
+            border: 1px solid var(--borda);
+            border-radius: 14px;
+            padding: 12px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: all .16s ease;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        .slot-topo-linha {
             display: flex;
             align-items: center;
-            gap: 14px;
-            padding: 13px 16px;
-            border-radius: 15px;
-            border: 1px solid;
-            animation: fadeUp .18s ease both;
+            justify-content: space-between;
+            gap: 8px;
+            width: 100%;
         }
-        @keyframes slotIn {
-            from { opacity: 0; transform: translateY(6px); }
-            to   { opacity: 1; transform: translateY(0); }
+        .slot-aula-identificador {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 0;
         }
-        .slot-card { animation: slotIn .2s ease both; }
-        .slot-card:nth-child(2) { animation-delay: .03s; }
-        .slot-card:nth-child(3) { animation-delay: .06s; }
-        .slot-card:nth-child(4) { animation-delay: .09s; }
-        .slot-card:nth-child(5) { animation-delay: .12s; }
-        .slot-card:nth-child(6) { animation-delay: .15s; }
-        .slot-card:nth-child(7) { animation-delay: .18s; }
-
-        .slot-num {
-            font-size: .9rem;
+        .slot-badge-num {
+            background: rgba(0,0,0,.06);
+            padding: 2px 7px;
+            border-radius: 7px;
+            font-size: 0.74rem;
             font-weight: 800;
-            min-width: 28px;
-            text-align: center;
-            line-height: 1;
-            display: flex; flex-direction: column; align-items: center;
-        }
-        .slot-num small {
-            font-size: .55rem;
-            font-weight: 600;
-            opacity: .6;
-            text-transform: uppercase;
-            letter-spacing: .04em;
-            margin-top: 2px;
-        }
-        .slot-divisor {
-            width: 1px; height: 32px;
-            border-radius: 2px;
+            color: var(--texto-principal);
+            letter-spacing: -0.2px;
             flex-shrink: 0;
         }
-        .slot-content { flex: 1; min-width: 0; }
-        .slot-badge {
-            font-size: .67rem;
+        .slot-horario-range {
+            font-size: 0.74rem;
+            color: var(--texto-secundario);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .slot-badge-status {
+            font-size: 0.68rem;
             font-weight: 800;
             text-transform: uppercase;
-            letter-spacing: .07em;
-            margin-bottom: 3px;
+            letter-spacing: 0.05em;
+            padding: 2px 8px;
+            border-radius: 20px;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .slot-corpo-linha {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            width: 100%;
+        }
+        .slot-detalhe-livre {
+            font-size: 0.79rem;
+            color: #059669;
+            font-weight: 600;
+        }
+        .btn-reservar-slot-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: #059669;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            font-family: 'Poppins', sans-serif;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(5,150,105,.2);
+            transition: all .15s ease;
+            flex-shrink: 0;
+        }
+        .btn-reservar-slot-pill:active {
+            transform: scale(0.96);
+        }
+        .slot-detalhe-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+            flex: 1;
         }
         .slot-detail {
-            font-size: .88rem;
+            font-size: 0.88rem;
             font-weight: 700;
             color: var(--texto-principal);
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         .slot-sub {
-            font-size: .74rem;
+            font-size: 0.74rem;
             color: var(--texto-secundario);
-            margin-top: 1px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
-        .slot-icone {
-            font-size: 1.2rem;
-            flex-shrink: 0;
-            opacity: .85;
+        .slot-detalhe-encerrada {
+            font-size: 0.74rem;
+            color: var(--texto-terciario, #9ca3af);
+            font-style: italic;
         }
 
-        /* Cores por tipo */
+        /* Cores de cards por estado */
         .slot-card.livre {
-            background: rgba(5,150,105,.1);
-            border-color: rgba(110,231,183,.2);
+            border-color: rgba(16, 185, 129, 0.3);
+            background: rgba(16, 185, 129, 0.05);
+            cursor: pointer;
         }
-        .slot-card.livre .slot-num      { color: #34d399; }
-        .slot-card.livre .slot-divisor  { background: rgba(52,211,153,.3); }
-        .slot-card.livre .slot-badge    { color: #34d399; }
-
+        .slot-card.livre:hover {
+            border-color: rgba(16, 185, 129, 0.5);
+            background: rgba(16, 185, 129, 0.09);
+        }
+        .slot-badge-status.livre {
+            background: rgba(16, 185, 129, 0.15);
+            color: #059669;
+        }
         .slot-card.ocupada {
-            background: rgba(239,68,68,.07);
-            border-color: rgba(239,68,68,.18);
+            border-color: rgba(239, 68, 68, 0.22);
+            background: rgba(239, 68, 68, 0.04);
         }
-        .slot-card.ocupada .slot-num    { color: #f87171; }
-        .slot-card.ocupada .slot-divisor{ background: rgba(248,113,113,.3); }
-        .slot-card.ocupada .slot-badge  { color: #f87171; }
-
+        .slot-badge-status.ocupada {
+            background: rgba(239, 68, 68, 0.14);
+            color: #dc2626;
+        }
         .slot-card.minha {
-            background: var(--cal-amber-soft);
-            border-color: var(--cal-amber);
-            box-shadow: 0 2px 12px rgba(242,166,90,.18);
+            border-color: rgba(245, 158, 11, 0.35);
+            background: rgba(245, 158, 11, 0.07);
         }
-        .slot-card.minha .slot-num      { color: #a8631c; }
-        .slot-card.minha .slot-divisor  { background: rgba(242,166,90,.5); }
-        .slot-card.minha .slot-badge    { color: #a8631c; }
+        .slot-badge-status.minha {
+            background: rgba(245, 158, 11, 0.18);
+            color: #d97706;
+        }
+        .slot-card.encerrada {
+            border-color: rgba(156, 163, 175, 0.2);
+            background: rgba(156, 163, 175, 0.05);
+            opacity: 0.7;
+            cursor: default;
+        }
+        .slot-badge-status.encerrada {
+            background: rgba(156, 163, 175, 0.18);
+            color: #6b7280;
+        }
+
+        /* Intervalos na Semana */
+        .semana-intervalo-card {
+            background: rgba(245, 158, 11, 0.07);
+            border: 1px dashed rgba(245, 158, 11, 0.35);
+            border-radius: 12px;
+            padding: 9px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-sizing: border-box;
+        }
+        .semana-intervalo-ico {
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+        .semana-intervalo-info {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+        .semana-intervalo-tit {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #b45309;
+        }
+        .semana-intervalo-sub {
+            font-size: 0.71rem;
+            color: #d97706;
+            font-weight: 500;
+        }
 
         /* Legenda */
         .semana-legenda {
             display: flex;
-            gap: 16px;
+            gap: 14px;
             flex-wrap: wrap;
-            padding: 2px 2px 0;
+            padding: 4px 2px 0;
         }
-        .semana-legenda-item { display: flex; align-items: center; gap: 6px; font-size: .72rem; color: var(--texto-secundario); }
+        .semana-legenda-item { display: flex; align-items: center; gap: 5px; font-size: .72rem; color: var(--texto-secundario); font-weight: 500; }
         .semana-legenda-cor  { width: 10px; height: 10px; border-radius: 3px; border: 1px solid; }
         .semana-legenda-cor.livre   { background: rgba(5,150,105,.25);  border-color: rgba(110,231,183,.4); }
         .semana-legenda-cor.ocupada { background: rgba(239,68,68,.2);   border-color: rgba(239,68,68,.4);   }
         .semana-legenda-cor.minha   { background: var(--cal-amber-soft); border-color: var(--cal-amber); }
+        .semana-legenda-cor.encerrada { background: rgba(156,163,175,.2); border-color: rgba(156,163,175,.4); }
 
-        /* Hint de swipe (some após 1ª interação) */
-        .semana-swipe-hint {
+        .semana-vazio {
             text-align: center;
-            font-size: .7rem;
-            color: var(--texto-terciario);
-            opacity: .6;
-            animation: fadeOut 4s ease 2s forwards;
+            padding: 40px 20px;
+            color: var(--texto-secundario);
         }
-        @keyframes fadeOut { to { opacity: 0; height: 0; margin: 0; overflow: hidden; } }
+        .semana-vazio .icone { font-size: 2.5rem; margin-bottom: 12px; }
+        .semana-vazio p { font-size: .85rem; line-height: 1.6; }
 
         .semana-vazio {
             text-align: center;
@@ -2314,7 +2524,7 @@
                     <span class="stitch-card-label">Turma</span>
                 </div>
                 <div class="stitch-input-wrap">
-                    <select id="select-turma">
+                    <select id="select-turma" onchange="window.turmaSelecionada()">
                         <option value="">Selecione a turma...</option>
                     </select>
                     <span class="stitch-select-arrow">⌄</span>
@@ -2392,14 +2602,23 @@
 
     <!-- ── TELA 2: SEMANA ── -->
     <div id="tela-semana" class="tela">
-        <div class="stitch-section-header">
-            <div class="stitch-section-title-wrap">
-                <span class="stitch-section-title">Grade Horária</span>
-                <span class="stitch-section-subtitle" id="semana-sala-info">Nenhum local selecionado</span>
+        <div class="semana-topo-card">
+            <div class="semana-topo-header">
+                <div class="semana-topo-titulos">
+                    <span class="semana-topo-titulo">Grade Semanal</span>
+                    <span class="semana-topo-sub" id="semana-sala-info">Nenhum local selecionado</span>
+                </div>
+                <button onclick="_semOffset=0;_semDiaIdx=-1;carregarVisaoSemanal()" class="stitch-btn-pill" title="Voltar para a data de hoje">
+                    <span>📅</span> Hoje
+                </button>
             </div>
-            <div class="stitch-actions-row">
-                <button onclick="abrirSeletorLocalSemana()" class="stitch-btn-pill"><span>⇅</span> Trocar local</button>
-                <button onclick="_semOffset=0;_semDiaIdx=-1;carregarVisaoSemanal()" class="stitch-btn-pill"><span>📅</span> Hoje</button>
+            <div class="semana-seletor-linha">
+                <label for="semana-select-sala" class="semana-seletor-label">🏫 Local / Ambiente:</label>
+                <div class="semana-select-wrapper">
+                    <select id="semana-select-sala" class="semana-select-sala-modern" onchange="window.trocarSalaDiretoSemana(this.value)" title="Selecionar sala para ver a semana">
+                        <option value="">Carregando salas...</option>
+                    </select>
+                </div>
             </div>
         </div>
         <div id="visao-semanal">
