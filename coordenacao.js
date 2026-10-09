@@ -1865,77 +1865,67 @@ function renderizarListaProfessores(professores, disciplinas = disciplinasCache,
 
         const div = document.createElement('div')
         div.classList.add('professor-card')
-        div.style.animationDelay = `${i * 0.03}s`
+        div.style.animationDelay = `${i * 0.02}s`
 
         const statusClasse = temAcesso ? 'ativo' : 'pendente'
-        const statusTexto  = temAcesso ? '🟢 Acesso Liberado' : '🟡 Falta Criar Senha'
+        const statusTexto  = temAcesso ? '🟢 Ativo' : '🟡 Sem Senha'
+
         div.innerHTML = `
-            <div class="professor-card-topo">
-                <div class="avatar-wrapper">
-                    <div class="professor-card-avatar" style="background: ${gradiente} !important;">
-                        ${iniciais}
-                    </div>
-                    <span class="avatar-status-dot ${statusClasse}" title="${temAcesso ? 'Acesso Liberado' : 'Falta Criar Senha'}"></span>
+            <div class="professor-card-header-clean">
+                <div class="professor-avatar-clean" style="background: ${gradiente} !important;">
+                    ${iniciais}
                 </div>
-                <div class="professor-card-info">
-                    <div class="professor-nome" title="${prof.nome}">${prof.nome}</div>
-                    <div class="professor-card-meta">
-                        <span class="badge-disciplina-pill" title="Matéria">📚 ${prof.disciplina || 'Geral'}</span>
-                        ${prof.telefone ? `<span class="badge-telefone-pill" title="WhatsApp: ${formatarTelefoneExibicao(prof.telefone)}">📱 ${formatarTelefoneExibicao(prof.telefone)}</span>` : ''}
-                        <span class="status-pill-badge ${statusClasse}">
-                            ${statusTexto}
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="prof-card-detalhe-bloco">
-                ${temAcesso ? `
-                    <div class="prof-card-pin-status">
-                        <span>🔑 Senha de 4 dígitos ativa</span>
-                    </div>
-                    ${qtdReservas > 0 ? `
-                        <span class="badge-reservas-pill" id="res-prof-${prof.id}" title="Ver histórico de agendamentos deste professor">
-                            📅 ${qtdReservas} agendamento${qtdReservas === 1 ? '' : 's'} ›
-                        </span>
-                    ` : `
-                        <span style="color:var(--txt3); font-size:0.75rem;">Nenhum agendamento</span>
-                    `}
-                ` : `
-                    <div style="color:#f59e0b; font-weight:600; font-size:0.78rem; display:flex; align-items:center; gap:6px;">
-                        <span>⚠️</span> Sem senha cadastrada. O professor não consegue acessar.
-                    </div>
-                `}
-            </div>
-
-            <div class="professor-card-footer">
-                <div class="prof-card-linha-acoes prof-card-linha-acesso">
-                    ${temAcesso ? `
-                        <button type="button" class="btn-card-pin" id="btn-pin-${prof.id}" title="Ver ou alterar a senha de acesso (PIN de 4 dígitos)">
-                            <span>🔑</span> Senha de Acesso
-                        </button>
-                        ${prof.pin ? `
-                        <button type="button" class="btn-card-zap" id="btn-zap-prof-${prof.id}" title="Enviar dados de acesso diretamente pelo WhatsApp">
-                            <span>📱</span> WhatsApp
-                        </button>
+                <div class="professor-header-info">
+                    <div class="professor-nome-clean" title="${prof.nome}">${prof.nome}</div>
+                    <div class="professor-subinfo-clean">
+                        <span class="badge-disciplina-clean">${prof.disciplina || 'Geral'}</span>
+                        ${qtdReservas > 0 ? `
+                            <span class="badge-reservas-clean" id="res-prof-${prof.id}" title="Ver histórico de agendamentos">
+                                📅 ${qtdReservas} ${qtdReservas === 1 ? 'aula' : 'aulas'} ›
+                            </span>
                         ` : ''}
-                    ` : `
-                        <button type="button" class="btn-card-pin destaque" id="btn-pin-${prof.id}" title="Criar senha de 4 números para liberar o acesso">
-                            <span>✨</span> Criar Senha de Acesso
-                        </button>
-                    `}
+                    </div>
                 </div>
-                <div class="prof-card-linha-acoes prof-card-linha-gestao">
-                    <button type="button" class="btn-card-editar-modal" id="btn-edit-${prof.id}" title="Alterar nome ou matéria do professor">
-                        <span>✏️</span> Editar Dados
+                <span class="status-pill-clean ${statusClasse}" title="${temAcesso ? 'Acesso Liberado com PIN' : 'Falta cadastrar senha de acesso'}">
+                    ${statusTexto}
+                </span>
+            </div>
+
+            <div class="prof-meta-row-clean">
+                ${prof.telefone ? `
+                    <span class="prof-tel-link" title="WhatsApp cadastrado">📱 ${formatarTelefoneExibicao(prof.telefone)}</span>
+                ` : `
+                    <span style="color:var(--txt3); font-style:italic;">Sem telefone</span>
+                `}
+                <span style="font-size:0.72rem; color:var(--txt3);">
+                    ${temAcesso ? (prof.pin ? `PIN: ${prof.pin}` : 'PIN ativo') : 'Acesso bloqueado'}
+                </span>
+            </div>
+
+            <div class="prof-card-actions-clean">
+                ${temAcesso ? `
+                    <button type="button" class="btn-card-clean-main" id="btn-pin-${prof.id}" title="Ver ou alterar a senha de acesso (PIN de 4 dígitos)">
+                        <span>🔑</span> Senha
                     </button>
-                    <button type="button" class="btn-card-icon-del" id="btn-del-${prof.id}" title="Excluir professor do sistema">
-                        🗑️
+                    ${prof.pin ? `
+                    <button type="button" class="btn-card-clean-zap" id="btn-zap-prof-${prof.id}" title="Enviar dados de acesso diretamente pelo WhatsApp">
+                        <span>💬</span> WhatsApp
                     </button>
-                </div>
+                    ` : ''}
+                ` : `
+                    <button type="button" class="btn-card-clean-main destaque" id="btn-pin-${prof.id}" title="Criar senha de 4 números para liberar o acesso">
+                        <span>✨</span> Liberar Senha
+                    </button>
+                `}
+                <button type="button" class="btn-card-clean-icon" id="btn-edit-${prof.id}" title="Editar dados">
+                    ✏️
+                </button>
+                <button type="button" class="btn-card-clean-icon del" id="btn-del-${prof.id}" title="Excluir professor">
+                    🗑️
+                </button>
             </div>`
 
-        // Eventos dos botões
+        // Eventos dos botões (100% preservados)
         if (prof.pin) {
             div.querySelector(`#btn-zap-prof-${prof.id}`)
                 ?.addEventListener('click', (e) => {

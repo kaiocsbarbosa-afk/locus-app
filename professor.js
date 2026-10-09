@@ -653,7 +653,7 @@ window.trocarTela = function(nomeTela) {
     const tab = document.getElementById(`tab-${nomeTela}`);
     if (tab) tab.classList.add('ativa');
 
-    document.querySelectorAll('.stitch-tab').forEach(t => t.classList.remove('ativa'));
+    document.querySelectorAll('.stitch-tab, .stitch-profile-badge-btn').forEach(t => t.classList.remove('ativa'));
     const topTab = document.getElementById(`top-tab-${nomeTela}`);
     if (topTab) topTab.classList.add('ativa');
 

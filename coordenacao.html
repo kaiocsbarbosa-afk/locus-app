@@ -1512,24 +1512,248 @@
         }
     }
 
+    /* Mini Métricas Docentes (Estilo Linear / Resumo Executivo) */
+    .prof-kpis-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+    .prof-kpi-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        transition: all 0.2s ease;
+    }
+    .prof-kpi-card:hover {
+        border-color: var(--border2);
+        transform: translateY(-1px);
+    }
+    .prof-kpi-label {
+        font-size: 0.74rem;
+        font-weight: 600;
+        color: var(--txt2);
+        letter-spacing: 0.02em;
+    }
+    .prof-kpi-val {
+        font-size: 1.45rem;
+        font-weight: 800;
+        color: var(--txt);
+        line-height: 1.1;
+    }
+    .prof-kpi-card.kpi-card-ativo .prof-kpi-val { color: #4ade80; }
+    .prof-kpi-card.kpi-card-pendente .prof-kpi-val { color: #facc15; }
+
     /* Card do Professor - Moderno, Limpo e Respirável */
     .professor-card {
         background: var(--surface);
         border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 16px;
+        border-radius: 16px;
+        padding: 14px 16px;
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
-        gap: 12px;
+        gap: 10px;
         transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.03);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
         position: relative;
     }
     .professor-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+        border-color: rgba(220, 60, 60, 0.35);
+    }
+
+    /* Estrutura Clean do Card */
+    .professor-card-header-clean {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .professor-avatar-clean {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.88rem;
+        font-weight: 800;
+        color: #ffffff;
+        flex-shrink: 0;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+    }
+    .professor-header-info {
+        flex: 1;
+        min-width: 0;
+    }
+    .professor-nome-clean {
+        font-size: 0.98rem;
+        font-weight: 700;
+        color: var(--txt);
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .professor-subinfo-clean {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 2px;
+        font-size: 0.74rem;
+        color: var(--txt2);
+    }
+    .badge-disciplina-clean {
+        font-weight: 600;
+        color: var(--txt);
+        background: var(--surface2);
+        padding: 1px 7px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 140px;
+    }
+    .status-pill-clean {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 14px;
+        white-space: nowrap;
+        margin-left: auto;
+        flex-shrink: 0;
+    }
+    .status-pill-clean.ativo {
+        background: rgba(34, 197, 94, 0.12);
+        border: 1px solid rgba(34, 197, 94, 0.32);
+        color: #4ade80;
+    }
+    .status-pill-clean.pendente {
+        background: rgba(245, 158, 11, 0.12);
+        border: 1px solid rgba(245, 158, 11, 0.32);
+        color: #fbbf24;
+    }
+
+    .prof-meta-row-clean {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.74rem;
+        color: var(--txt3);
+        padding: 2px 0;
+    }
+    .prof-tel-link {
+        color: var(--txt2);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 500;
+    }
+    .badge-reservas-clean {
+        color: #60a5fa;
+        cursor: pointer;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        transition: all 0.15s ease;
+    }
+    .badge-reservas-clean:hover {
+        color: #93c5fd;
+        text-decoration: underline;
+    }
+
+    /* Linha de Ações Limpa e Compacta (1 única linha) */
+    .prof-card-actions-clean {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: auto;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .btn-card-clean-main {
+        flex: 1;
+        height: 34px;
+        border-radius: 9px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        border: 1px solid rgba(220, 60, 60, 0.32);
+        background: rgba(220, 60, 60, 0.12);
+        color: var(--txt);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+    }
+    .btn-card-clean-main:hover {
+        background: rgba(220, 60, 60, 0.22);
+        border-color: rgba(220, 60, 60, 0.55);
+        transform: translateY(-1px);
+    }
+    .btn-card-clean-main.destaque {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        border: none;
+        color: #ffffff;
+        box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25);
+    }
+    .btn-card-clean-zap {
+        height: 34px;
+        padding: 0 10px;
+        border-radius: 9px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        font-family: 'Poppins', sans-serif;
+        border: 1px solid rgba(34, 197, 94, 0.32);
+        background: rgba(34, 197, 94, 0.12);
+        color: #4ade80;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+    }
+    .btn-card-clean-zap:hover {
+        background: rgba(34, 197, 94, 0.22);
+        border-color: rgba(34, 197, 94, 0.55);
+        transform: translateY(-1px);
+    }
+    .btn-card-clean-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        font-size: 0.85rem;
+        border: 1px solid var(--border);
+        background: var(--surface2);
+        color: var(--txt2);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+        flex-shrink: 0;
+    }
+    .btn-card-clean-icon:hover {
+        background: var(--surface);
+        color: var(--txt);
         border-color: var(--border2);
+        transform: translateY(-1px);
+    }
+    .btn-card-clean-icon.del:hover {
+        background: rgba(239, 68, 68, 0.15);
+        border-color: rgba(239, 68, 68, 0.4);
+        color: #f87171;
     }
 
     /* Topo do Card */
@@ -2643,20 +2867,37 @@
         </div>
 
         <!-- ══ ABA 2: PROFESSORES ═══════════════════════════════ -->
+        <!-- ══ ABA 2: PROFESSORES ═══════════════════════════════ -->
         <div id="painel-aba-professores" class="painel-aba-principal oculto">
             
-            <!-- Header Amigável da Seção Professores -->
+            <!-- Header Minimalista da Seção Professores -->
             <div class="prof-secao-header">
                 <div class="prof-secao-info">
                     <div class="prof-secao-icone-wrap">👨‍🏫</div>
                     <div>
                         <h2 class="prof-secao-titulo">Professores</h2>
-                        <div class="prof-secao-sub">Consulte os professores da escola, cadastre novos e ajude quem precisa de senha.</div>
+                        <div class="prof-secao-sub">Gestão do corpo docente, senhas de acesso e agendamentos.</div>
                     </div>
                 </div>
                 <button class="btn-novo-professor-topo" onclick="window.abrirModalNovoProfessor()" title="Cadastrar novo professor">
                     <span>➕</span> Cadastrar Professor
                 </button>
+            </div>
+
+            <!-- Mini Métricas / Resumo Executivo Docente (Estilo Linear) -->
+            <div class="prof-kpis-container">
+                <div class="prof-kpi-card">
+                    <span class="prof-kpi-label">👥 Total de Professores</span>
+                    <strong class="prof-kpi-val" id="kpi-prof-total">0</strong>
+                </div>
+                <div class="prof-kpi-card kpi-card-ativo">
+                    <span class="prof-kpi-label">🟢 Com Acesso Ativo</span>
+                    <strong class="prof-kpi-val" id="kpi-prof-ativos">0</strong>
+                </div>
+                <div class="prof-kpi-card kpi-card-pendente">
+                    <span class="prof-kpi-label">🟡 Sem Senha Definida</span>
+                    <strong class="prof-kpi-val" id="kpi-prof-pendentes">0</strong>
+                </div>
             </div>
 
             <!-- Banner Inteligente de Solicitações Pendentes (aparece somente se houver solicitações) -->
@@ -2669,7 +2910,7 @@
                     </div>
                 </div>
                 <div class="solicitacoes-alerta-sub">
-                    Eles se cadastraram pelo aplicativo e estão aguardando sua autorização para começar a agendar salas.
+                    Professores aguardando autorização para agendamento de salas.
                 </div>
                 <div class="lista-solicitacoes-cards" id="lista-solicitacoes">
                     <div class="gerenciar-vazio">Carregando solicitações...</div>
@@ -2678,16 +2919,16 @@
 
             <!-- Toolbar de Filtros & Busca Simplificada -->
             <div class="painel-prof-toolbar">
-                <!-- Abas Rápidas de Status (3 em 1: Informa a contagem e filtra na hora) -->
+                <!-- Abas Rápidas de Status -->
                 <div class="status-segment-group">
                     <button class="status-segment-btn ativo" id="chip-status-todos" onclick="window.filtrarStatusProfessores('todos')">
-                        👥 Todos os Professores <span class="segment-badge" id="chip-count-todos">0</span>
+                        Todos <span class="segment-badge" id="chip-count-todos">0</span>
                     </button>
                     <button class="status-segment-btn" id="chip-status-ativos" onclick="window.filtrarStatusProfessores('ativos')">
-                        🟢 Acesso Liberado <span class="segment-badge" id="chip-count-ativos">0</span>
+                        Ativos <span class="segment-badge" id="chip-count-ativos">0</span>
                     </button>
                     <button class="status-segment-btn" id="chip-status-pendentes" onclick="window.filtrarStatusProfessores('pendentes')">
-                        🟡 Falta Definir Senha <span class="segment-badge" id="chip-count-pendentes">0</span>
+                        Falta Senha <span class="segment-badge" id="chip-count-pendentes">0</span>
                     </button>
                 </div>
 
@@ -2695,7 +2936,7 @@
                 <div class="toolbar-linha-busca">
                     <div class="busca-prof-input-wrap">
                         <span class="busca-icone">🔍</span>
-                        <input type="text" id="busca-professores" placeholder="Buscar professor por nome ou matéria..." oninput="window.aplicarFiltrosProfessores()">
+                        <input type="text" id="busca-professores" placeholder="Buscar por nome ou matéria..." oninput="window.aplicarFiltrosProfessores()">
                     </div>
                     <div class="filtro-disc-select-wrap">
                         <select id="filtro-disciplina-professores" onchange="window.aplicarFiltrosProfessores()">
@@ -2710,24 +2951,13 @@
 
             <!-- Corpo Docente Cadastrado -->
             <div class="bloco-docentes-container" id="bloco-docentes">
-                <div class="bloco-docentes-topo">
-                    <div class="bloco-docentes-titulo">
-                        <span>👥 Lista de Professores</span>
-                    </div>
-                    <div class="bloco-docentes-dica">
-                        Dica: Clique em "Senha de Acesso" para ver ou trocar a senha, ou envie direto pelo WhatsApp.
-                    </div>
-                </div>
                 <div class="gerenciar-lista-professores" id="lista-professores">
                     <div class="gerenciar-vazio">Carregando professores...</div>
                 </div>
             </div>
 
-            <!-- Elementos ocultos para compatibilidade com KPIs anteriores (evita erros em scripts) -->
+            <!-- Elementos ocultos para compatibilidade com outros scripts -->
             <div style="display:none;" aria-hidden="true">
-                <span id="kpi-prof-total">0</span>
-                <span id="kpi-prof-ativos">0</span>
-                <span id="kpi-prof-pendentes">0</span>
                 <span id="kpi-prof-solicitacoes">0</span>
                 <span id="kpi-badge-alerta"></span>
                 <span id="kpi-card-solicitacoes"></span>
